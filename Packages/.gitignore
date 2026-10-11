@@ -1,0 +1,6 @@
+/*/
+com.vrchat.*/
+!com.vrchat.core.*/
+!com.unity.pipeline/
+!vpm-manifest.json
+!manifest.json

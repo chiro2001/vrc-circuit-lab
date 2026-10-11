@@ -16,8 +16,8 @@ from unity_remote import DEFAULT_HOST, DEFAULT_PROJECT, pwsh_literal
 
 ROOT = Path(__file__).resolve().parents[1]
 TASK_TMP = Path.home() / "tmp/vrc-cpu-map/github"
-TREES = ("Assets", "AgentScripts", "ProjectSettings", "Packages/com.unity.pipeline")
-MANIFESTS = ("Packages/manifest.json", "Packages/packages-lock.json", "Packages/vpm-manifest.json")
+TREES = ("Assets", "AgentScripts", "ProjectSettings", "Packages/com.unity.pipeline", "Packages/com.vrchat.core.vpm-resolver")
+MANIFESTS = ("Packages/.gitignore", "Packages/manifest.json", "Packages/packages-lock.json", "Packages/vpm-manifest.json")
 
 
 def digest(path):

@@ -114,8 +114,10 @@ InitTestScene*.unity*
 /Tools/UnityCLI/
 /Assets/Reports/
 /Assets/Reports.meta
-/Packages/com.vrchat.*/
-/Packages/com.vrchat.*.meta
+/Packages/com.vrchat.base/
+/Packages/com.vrchat.base.meta
+/Packages/com.vrchat.worlds/
+/Packages/com.vrchat.worlds.meta
 __pycache__/
 *.py[cod]
 .venv/

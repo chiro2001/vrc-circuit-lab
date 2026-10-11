@@ -8,7 +8,7 @@
 
 仓库根目录就是 Unity 工程，使用 **Unity 2022.3.22f1**。将克隆目录添加到 VRChat Creator Companion，通过 Manage Project 恢复 `Packages/vpm-manifest.json` 锁定的 VRChat Base / Worlds SDK **3.10.5** 和 VPM Resolver **0.1.29**，再打开 `Assets/CircuitLab/Scenes/CircuitLab.unity`。
 
-场景、网格、材质、Udon 程序、原始 `.meta` 和 ProjectSettings 均纳入 Git。VRChat SDK 由 VCC 下载；Unity Pipeline 的 2022 本地兼容版本保存在 `Packages/com.unity.pipeline`，更新时必须保留兼容补丁。
+场景、网格、材质、Udon 程序、原始 `.meta` 和 ProjectSettings 均纳入 Git。VRChat SDK 由 VCC 下载，VPM Resolver 按 VCC 默认规则保留在仓库；Unity Pipeline 的 2022 本地兼容版本保存在 `Packages/com.unity.pipeline`，更新时必须保留兼容补丁。
 
 ## 开发与同步
 
