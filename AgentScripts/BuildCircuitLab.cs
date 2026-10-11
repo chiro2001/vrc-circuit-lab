@@ -230,6 +230,7 @@ public static class BuildCircuitLab
         restoreIndex.SetPixels(restorePixels); restoreIndex.Apply(false, false); restoreIndex.filterMode = FilterMode.Point; restoreIndex.wrapMode = TextureWrapMode.Clamp;
         simulator.restoreIndexTexture = restoreIndex; EditorUtility.SetDirty(restoreIndex);
         simulator.runOnStart = false;
+        simulator.historyFrozen = false; simulator.followLatest = true; simulator.waveOffset = 0;
         simulator.historyCapacity = 2048;
         simulator.waveWindowSamples = 128;
         simulator.waveAspect = 5.05f / 1.85f; simulator.analyticAA = true; simulator.waveEdgeWidth = 1f;
@@ -654,7 +655,7 @@ public static class BuildCircuitLab
         AddMovableTool(panel, handle.transform);
         WorldText(panel.transform, "WaveTitle", "4 CHANNEL LOGIC ANALYZER", new Vector3(0, 2.78f, -.08f), new Vector2(5.3f, .32f), 27, Color.white);
         var screen = Primitive(panel.transform, "WaveformScreen", PrimitiveType.Quad, new Vector3(0, 1.12f, -.10f), new Vector3(5.05f, 1.85f, 1), waveform, false);
-        simulator.waveHudText = WorldText(panel.transform, "WaveHud", "HISTORY READY  /  FREEZE LOCKS THE VIEW, CPU CONTINUES", new Vector3(0, -.06f, -.14f), new Vector2(5.2f, .38f), 14, new Color(.6f, .83f, .9f));
+        simulator.waveHudText = WorldText(panel.transform, "WaveHud", "LIVE  /  FOLLOWING LATEST  /  FREEZE LOCKS THE VIEW", new Vector3(0, -.06f, -.14f), new Vector2(5.2f, .38f), 14, new Color(.6f, .83f, .9f));
         simulator.simHudText = WorldText(panel.transform, "SimulationHud", "PAUSED  /  STEP TO EXECUTE ONE CLOCK", new Vector3(0, -1.52f, -.14f), new Vector2(5.2f, .40f), 16, new Color(.68f, .90f, .82f));
         simulator.statusText = WorldText(panel.transform, "TestStatus", "SELF TEST READY", new Vector3(0, -2.52f, -.14f), new Vector2(5.3f, .18f), 12, new Color(.55f, .78f, .86f));
         Controls(panel.transform, simulator, new[] { "FreezeWaveform", "ResumeWaveform", "ZoomIn", "ZoomOut", "PanLeft", "PanRight", "FollowLatest" }, new[] { "FREEZE", "LIVE", "ZOOM +", "ZOOM -", "< PAN", "PAN >", "LATEST" }, -.45f, 5.05f);

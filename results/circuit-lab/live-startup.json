@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "startsLive": true,
+  "startsUnfrozen": true,
+  "followsLatest": true,
+  "offset": 0,
+  "hud": "LIVE | WINDOW 128 | HEX | 4 CHANNELS\nA 0  B 0  DELTA 0 half-cycles | values: upper A / lower B"
+}

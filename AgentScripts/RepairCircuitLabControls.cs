@@ -32,6 +32,23 @@ public static class RepairCircuitLabControls
         File.WriteAllText("Reports/CircuitLab/control-clicks.json", JsonConvert.SerializeObject(report, Formatting.Indented));
         return report;
     }
+    public static object ApplyLiveDefault()
+    {
+        Check(!EditorApplication.isPlaying, "Set the startup view in Edit Mode.");
+        var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByPath(ScenePath);
+        Check(scene.isLoaded && !scene.isDirty, "Preserve existing unsaved scene changes.");
+        var simulator = Object.FindObjectOfType<CircuitLabSimulator>();
+        Undo.RecordObject(simulator, "Start analyzer in LIVE view");
+        simulator.historyFrozen = false; simulator.followLatest = true; simulator.waveOffset = 0;
+        UdonSharpEditorUtility.CopyProxyToUdon(simulator);
+        EditorUtility.SetDirty(simulator); EditorUtility.SetDirty(Vm(simulator));
+        Undo.RecordObject(simulator.waveHudText, "Show LIVE before Udon startup");
+        simulator.waveHudText.text = "LIVE  /  FOLLOWING LATEST  /  FREEZE LOCKS THE VIEW";
+        EditorUtility.SetDirty(simulator.waveHudText);
+        EditorSceneManager.MarkSceneDirty(scene);
+        Check(EditorSceneManager.SaveScene(scene), "Scene save failed.");
+        return new { saved = true, startsLive = true, followLatest = true, offset = 0 };
+    }
     public static object Apply()
     {
         Check(!EditorApplication.isPlaying, "Repair the toolbar in Edit Mode.");
