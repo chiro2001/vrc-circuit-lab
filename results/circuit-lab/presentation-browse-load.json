@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "selectionOnlyPreviews": true,
+  "actualRomUnchangedWhileBrowsing": true,
+  "originalAssemblyComments": true,
+  "sourcePaging": true,
+  "hexAndBinaryEncoding": true,
+  "sharedSelectionAndView": true,
+  "explicitLoadPreset": "hello",
+  "programWordsCompared": 512,
+  "actualGpuOutput": "HELLO\n",
+  "inputPath": "actual Unity Button.pointerClick -> backing Udon -> queued GPU load"
+}

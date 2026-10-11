@@ -502,6 +502,7 @@ def export_netlist(design: dict, programs: list[Program], fixture_rows: list[dic
         if verified["terminalBytes"] != output_bytes or verified["finalRam"] != final_cpu.ram:
             raise AssertionError(f"{program.id}: RTL/netlist results differ from program metadata model")
         record = {"id": program.id, "name": program.name, "description": program.description,
+                  "source": program.source,
                   "words": program.words, "initialRam": program.initial_ram,
                   "expectedText": program.expected_text}
         if final_cpu.halt:

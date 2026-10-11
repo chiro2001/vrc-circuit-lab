@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "observerRomLoadDenied": true,
+  "actualUdonDeserializationCallback": true,
+  "lastRomPageRestored": 42,
+  "sharedViewPreservesCpu": true,
+  "newPanelsReset": 2,
+  "layoutResetPreservesCpu": true,
+  "realMultiplayerTransportNotExercised": true
+}

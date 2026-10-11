@@ -23,7 +23,7 @@ public static class BuildCircuitLab
 {
     private const string Root = "Assets/CircuitLab";
     private const string ScenePath = Root + "/Scenes/CircuitLab.unity";
-    private static readonly string[] ProgramNames = { "CircuitLabSimulator", "CircuitLabModule", "CircuitLabProbe", "CircuitLabSignalTarget", "CircuitLabButton", "CircuitLabWire", "CircuitLabLayout", "CircuitLabMovableTool", "CircuitLabPlayerSetup", "CircuitLabHierarchyTree", "CircuitLabHierarchyRow", "CircuitLabNetworkCoordinator", "CircuitLabNetworkClock", "CircuitLabControlRequest", "CircuitLabTerminal", "CircuitLabObjectState", "CircuitLabProgramPanel", "CircuitLabProgramDraft", "CircuitLabStateTablet", "CircuitLabTabletCell", "CircuitLabTabletSharedState" };
+    private static readonly string[] ProgramNames = { "CircuitLabSimulator", "CircuitLabModule", "CircuitLabProbe", "CircuitLabSignalTarget", "CircuitLabButton", "CircuitLabWire", "CircuitLabLayout", "CircuitLabMovableTool", "CircuitLabPlayerSetup", "CircuitLabHierarchyTree", "CircuitLabHierarchyRow", "CircuitLabNetworkCoordinator", "CircuitLabNetworkClock", "CircuitLabControlRequest", "CircuitLabTerminal", "CircuitLabObjectState", "CircuitLabProgramPanel", "CircuitLabProgramDraft", "CircuitLabStateTablet", "CircuitLabTabletCell", "CircuitLabTabletSharedState", "CircuitLabProgramBrowser", "CircuitLabProgramRow" };
     private static Font _font;
     private static Material _board, _edge, _textDark, _highlight, _handle;
     private static Material _display;
@@ -223,15 +223,8 @@ public static class BuildCircuitLab
                 statusRect.sizeDelta = new Vector2(520, 48);
                 EditorUtility.SetDirty(simulator.simHudText); EditorUtility.SetDirty(statusRect);
             }
-            var nextProgramLabel = waveformPanel.Find("SelectProgram_Canvas/SelectProgram/Label");
-            if (nextProgramLabel != null)
-            {
-                var label = nextProgramLabel.GetComponent<Text>();
-                Undo.RecordObject(label, "Rename Analyzer Program Control");
-                label.text = "NEXT PROGRAM";
-                EditorUtility.SetDirty(label);
-            }
         }
+        HideLegacyProgramControls(world.transform);
         EditorSceneManager.MarkSceneDirty(scene);
         return new { repaired = true, scene = scene.path, keyboardButtons = 12, draftActions = 3, movedISA = true, analyzerControlsAtTop = waveformPanel != null, titleBestFit = true, descriptionBestFit = true };
     }
@@ -294,11 +287,12 @@ public static class BuildCircuitLab
         var preservedWorkspaceChildren = new List<Transform>();
         if (upgrade)
         {
-            foreach (string name in new[] { "MovableWaveformPanel", "ProbeAndHierarchyRack", "HierarchyPanel", "ANSISymbolGuide", "TerminalPanel", "ProgramPanel", "StateTablet" })
+            foreach (string name in new[] { "MovableWaveformPanel", "ProbeAndHierarchyRack", "HierarchyPanel", "ANSISymbolGuide", "TerminalPanel", "ProgramPanel", "StateTablet", "AboutPanel", "ProgramBrowserPanel" })
             {
                 var owned = previous.transform.Find(name);
                 if (owned == null) continue;
                 previousTools[name] = new Pose { position = owned.position, rotation = owned.rotation, scale = owned.localScale };
+                if (name == "AboutPanel" || name == "ProgramBrowserPanel") continue;
                 Undo.DestroyObjectImmediate(owned.gameObject);
             }
             var oldWorkspace = previous.transform.Find("Workspace");
@@ -457,6 +451,7 @@ public static class BuildCircuitLab
         BuildTerminal(world.transform, simulator, data);
         var programPanel = BuildProgramPanel(world.transform, simulator, data, programData, programNames, programDescriptions, defaultProgramIndex);
         var stateTablet = BuildStateTablet(world.transform, simulator, data, nodes, tabletMaterial);
+        var programBrowser = BuildPresentationPanels(world.transform, simulator, programData, programNames, programDescriptions, programPanel, programPanel.sharedDraft, defaultProgramIndex);
         var waveformPanel = world.transform.Find("MovableWaveformPanel");
         programPanel.analyzerProgramTitle = WorldText(waveformPanel, "WaveProgramName", "PROGRAM", new Vector3(0, 2.53f, -.14f), new Vector2(5.2f, .16f), 12, new Color(.76f, .91f, .78f));
         for (int i = 0; i < Targets.Count; i++) { Targets[i].targetIndex = i; Targets[i].probes = probes; }
@@ -465,6 +460,13 @@ public static class BuildCircuitLab
         programPanel.coordinator = _coordinator; programPanel.simulator = simulator;
         stateTablet.coordinator = _coordinator; stateTablet.simulator = simulator; stateTablet.probes = probes; stateTablet.signalTargets = signalTargets;
         stateTablet.ApplySharedRamTargets();
+        programBrowser.coordinator = _coordinator; programBrowser.simulator = simulator; programBrowser.editorPanel = programPanel;
+        programPanel.sharedDraft.browser = programBrowser; programBrowser.sharedState = programPanel.sharedDraft;
+        programBrowser.selectedProgram = Mathf.Clamp(programBrowser.selectedProgram, 0, programData.Length - 1);
+        programPanel.selectedPreset = programBrowser.selectedProgram;
+        programPanel.sharedDraft.selectedPreset = programBrowser.selectedProgram;
+        programPanel.sharedDraft.browsePage = programBrowser.browsePage;
+        programPanel.sharedDraft.browseMode = programBrowser.browseMode;
         var rootView = ordered.First(view => view.behaviour.logicalParent == null);
         rootView.behaviour.header.Find("ModuleName").GetComponent<Text>().text = "TEACHING CPU  /  " + views.Count + " MODULES";
         var initialNames = new[] { "pc", "instruction", "acc", "out" };
@@ -480,6 +482,7 @@ public static class BuildCircuitLab
         simulator.probe3Signals = simulator.outSignals; simulator.probe3Label = "teaching_cpu/out";
         _layout.modules = allModules; _layout.probes = probes;
         _layout.tools = world.GetComponentsInChildren<CircuitLabMovableTool>(true);
+        HideLegacyProgramControls(world.transform);
         foreach (var tool in _layout.tools)
         {
             if (upgrade && previousTools.TryGetValue(tool.name, out var pose)) { tool.transform.position = pose.position; tool.transform.rotation = pose.rotation; }
@@ -874,7 +877,7 @@ public static class BuildCircuitLab
         Controls(panel.transform, simulator, new[] { "MoveCursorALeft", "MoveCursorARight", "MoveCursorBLeft", "MoveCursorBRight" }, new[] { "CURSOR A <", "A >", "CURSOR B <", "B >" }, -.78f, 5.05f);
         Controls(panel.transform, simulator, new[] { "CycleBitView", "CycleNumberFormat", "ToggleAA", "EdgeWidthDown", "EdgeWidthUp" }, new[] { "BUS / BITS", "HEX / BIN / DEC", "SMOOTH", "EDGE -", "EDGE +" }, -1.11f, 5.05f);
         Controls(panel.transform, simulator, new[] { "Run", "Pause", "Step", "SpeedDown", "SpeedUp", "ResetCircuit" }, new[] { "RUN", "PAUSE", "STEP", "SLOWER", "FASTER", "RESET" }, -1.94f, 5.05f);
-        Controls(panel.transform, simulator, new[] { "SelectProgram", "RestartExperiment", "RunSelfTest" }, new[] { "NEXT PROGRAM", "RESTART", "SELF TEST" }, -2.28f, 5.05f);
+        Controls(panel.transform, simulator, new[] { "RestartExperiment", "RunSelfTest" }, new[] { "RESTART", "SELF TEST" }, -2.28f, 5.05f);
         WorldText(panel.transform, "Hints", "VR: GRAB = DETACH, TOUCH PIN + USE = LOCK   /   DESKTOP: SELECT A-D, CLICK PIN", new Vector3(0, -3.0f, -.13f), new Vector2(5.3f, .15f), 9, new Color(.5f, .65f, .73f));
         var rack = Child(world, "ProbeAndHierarchyRack"); rack.transform.position = new Vector3(0, .92f, -1.17f); rack.transform.eulerAngles = new Vector3(65, 0, 0);
         Backing(rack.transform, 5.7f, 1.65f);
@@ -1152,10 +1155,7 @@ public static class BuildCircuitLab
         program.draftInput = PanelInputField(canvas.transform, "DraftInput", "HEX or BIN, one word per line\n0x prefix accepted; #, ; and // comments\nEmpty lines are ignored. Capacity: 512 words.", new Vector2(-207, 46), new Vector2(284, 362), out Text draftContent);
         program.editorStatus = PanelText(canvas.transform, "EditorStatus", "DRAFT READY  /  RUNNING PROGRAM SHOWN AT RIGHT", new Vector2(-207, -151), new Vector2(284, 44), 10, new Color(.75f, .84f, .78f), TextAnchor.MiddleLeft);
         program.editorStatus.fontSize = 8;
-        program.selectedPresetText = PanelText(canvas.transform, "PresetSelection", "SELECTED PRESET 0", new Vector2(-207, -192), new Vector2(284, 20), 10, new Color(.7f, .88f, .92f));
-        PanelButton(canvas.transform, "PRESET_PREVIOUS", "<", program, "PreviousPreset", new Vector2(-297, -219), new Vector2(42, 28), 12);
-        PanelButton(canvas.transform, "PRESET_NEXT", ">", program, "NextPreset", new Vector2(-251, -219), new Vector2(42, 28), 12);
-        PanelButton(canvas.transform, "LOAD_PRESET", "LOAD PRESET + RESET", program, "LoadSelectedPreset", new Vector2(-115, -219), new Vector2(218, 28), 10);
+        PanelText(canvas.transform, "DraftHint", "DRAFT IS SEPARATE FROM CURRENT LOADED ROM", new Vector2(-207, -192), new Vector2(284, 20), 9, new Color(.58f, .77f, .82f));
         PanelButton(canvas.transform, "INPUT_HEX", "HEX", program, "SetInputHex", new Vector2(-281, -253), new Vector2(66, 27), 10);
         PanelButton(canvas.transform, "INPUT_BINARY", "BIN", program, "SetInputBinary", new Vector2(-207, -253), new Vector2(66, 27), 10);
 
@@ -1188,7 +1188,277 @@ public static class BuildCircuitLab
         var draftState = Behaviour<CircuitLabProgramDraft>(Child(panel.transform, "SharedDraftState"));
         draftState.panel = program; draftState.coordinator = _coordinator; program.sharedDraft = draftState;
         program.inputMode = 0; program.selectedPreset = defaultPreset; program.programPage = 0; program.virtualWord = 0;
+        draftState.selectedPreset = defaultPreset;
         return program;
+    }
+
+    // Pipeline entry for adding the presentation boards to an already-built scene.
+    // Unlike UpgradeScene, this path never rebuilds modules, tools, or the environment.
+    public static object AddPresentationPanels()
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (EditorApplication.isPlaying || scene.path != ScenePath)
+            throw new InvalidOperationException("Activate the CircuitLab scene in Edit Mode before adding presentation panels.");
+        var worldObject = scene.GetRootGameObjects().FirstOrDefault(root => root.name == "CircuitLabWorld");
+        if (worldObject == null) throw new InvalidOperationException("CircuitLabWorld is missing; this entry only augments an existing build.");
+        var world = worldObject.transform;
+        var simulator = worldObject.GetComponentInChildren<CircuitLabSimulator>(true);
+        _coordinator = worldObject.GetComponentInChildren<CircuitLabNetworkCoordinator>(true);
+        _layout = worldObject.GetComponentInChildren<CircuitLabLayout>(true);
+        var editor = worldObject.GetComponentInChildren<CircuitLabProgramPanel>(true);
+        if (simulator == null || _coordinator == null || _layout == null || editor == null || editor.sharedDraft == null)
+            throw new InvalidOperationException("Existing CPU, coordinator, layout, ProgramPanel, or shared draft is missing.");
+
+        var source = AssetDatabase.LoadAssetAtPath<TextAsset>(Root + "/Data/gpu-netlist.json");
+        if (source == null) throw new InvalidOperationException("CircuitLab program data is missing.");
+        var data = JObject.Parse(source.text);
+        if ((int?)data["schemaVersion"] != 3 && (int?)data["schema"] != 3)
+            throw new InvalidOperationException("Expected schema3 teaching CPU program data.");
+        if (!(data["programs"] is JArray programArray)) throw new InvalidOperationException("CircuitLab program catalog is missing.");
+        var programs = programArray.Cast<JObject>().ToArray();
+        if (programs.Length == 0 || programs.Length != simulator.programCount
+            || simulator.programNames == null || simulator.programNames.Length != programs.Length
+            || simulator.programDescriptions == null || simulator.programDescriptions.Length != programs.Length
+            || simulator.presetProgramWords == null || simulator.presetProgramWords.Length < programs.Length * 512
+            || simulator.presetInitialRam == null || simulator.presetInitialRam.Length < programs.Length * 256)
+            throw new InvalidOperationException("Program data does not match the existing simulator catalog; build matching CPU data first.");
+
+        string[] names = new string[programs.Length];
+        string[] descriptions = new string[programs.Length];
+        for (int i = 0; i < programs.Length; i++)
+        {
+            names[i] = (string)programs[i]["name"] ?? ("Program " + i);
+            descriptions[i] = (string)programs[i]["description"] ?? "";
+            string lowerName = names[i].ToLowerInvariant();
+            string lowerDescription = descriptions[i].ToLowerInvariant();
+            bool statesFirstSix = lowerDescription.Contains("first six") || lowerDescription.Contains("前六") || lowerDescription.Contains("前 6");
+            bool statesSeventh = lowerDescription.Contains("seventh") || lowerDescription.Contains("第七") || lowerDescription.Contains("第 7");
+            if ((lowerName.Contains("pi") || lowerName.Contains("π")) && (!statesFirstSix || !statesSeventh))
+                descriptions[i] += " 【近似】355/113 长除法：小数前六位与 π 一致，第七位起不同。";
+        }
+
+        _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        _board = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/ModuleBoard.mat");
+        _edge = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/ModuleRim.mat");
+        _handle = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/PickupHandles.mat");
+        if (_font == null || _board == null || _edge == null || _handle == null)
+            throw new InvalidOperationException("Existing panel font or materials are missing.");
+
+        var existingToolIds = new HashSet<int>(worldObject.GetComponentsInChildren<CircuitLabMovableTool>(true).Select(tool => tool.GetInstanceID()));
+        bool addedAbout = world.Find("AboutPanel") == null;
+        bool addedBrowser = world.Find("ProgramBrowserPanel") == null;
+        int initialPreset = editor.sharedDraft.selectedPreset;
+        if (initialPreset < 0 || initialPreset >= programs.Length) initialPreset = editor.selectedPreset;
+        if (initialPreset < 0 || initialPreset >= programs.Length) initialPreset = simulator.programSelect;
+        initialPreset = Mathf.Clamp(initialPreset, 0, programs.Length - 1);
+        Behaviours.Clear();
+        var browser = BuildPresentationPanels(world, simulator, programs, names, descriptions, editor, editor.sharedDraft, initialPreset);
+        editor.sharedDraft.panel = editor;
+        editor.sharedDraft.browser = browser;
+        editor.sharedDraft.coordinator = _coordinator;
+        browser.sharedState = editor.sharedDraft;
+        browser.editorPanel = editor;
+        browser.simulator = simulator;
+        browser.coordinator = _coordinator;
+        if (addedBrowser)
+        {
+            editor.sharedDraft.selectedPreset = browser.selectedProgram;
+            editor.sharedDraft.browsePage = browser.browsePage;
+            editor.sharedDraft.browseMode = browser.browseMode;
+        }
+        if (!Behaviours.Contains(editor.sharedDraft)) Behaviours.Add(editor.sharedDraft);
+        _layout.tools = worldObject.GetComponentsInChildren<CircuitLabMovableTool>(true);
+        foreach (var tool in _layout.tools)
+        {
+            if (existingToolIds.Contains(tool.GetInstanceID())) continue;
+            tool.initialPosition = tool.transform.position;
+            tool.initialRotation = tool.transform.rotation;
+            tool.initialScale = tool.transform.localScale;
+            if (!Behaviours.Contains(tool)) Behaviours.Add(tool);
+        }
+        HideLegacyProgramControls(world);
+        foreach (var behaviour in Behaviours)
+        {
+            UdonSharpEditorUtility.CopyProxyToUdon(behaviour);
+            EditorUtility.SetDirty(behaviour);
+            EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(behaviour));
+        }
+        UdonSharpEditorUtility.CopyProxyToUdon(_layout);
+        EditorUtility.SetDirty(_layout);
+        EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(_layout));
+        EditorSceneManager.MarkSceneDirty(scene);
+        return new
+        {
+            addedAboutPanel = addedAbout,
+            addedProgramBrowserPanel = addedBrowser,
+            programRows = world.GetComponentsInChildren<CircuitLabProgramRow>(true).Length,
+            layoutTools = _layout.tools.Length,
+            preservedExistingToolInitialPoses = true,
+            scene = scene.path,
+            saved = false
+        };
+    }
+
+    private static CircuitLabProgramBrowser BuildPresentationPanels(Transform world, CircuitLabSimulator simulator, JObject[] programs,
+        string[] names, string[] descriptions, CircuitLabProgramPanel editor, CircuitLabProgramDraft sharedState, int defaultPreset)
+    {
+        BuildAboutPanel(world);
+        var browser = BuildProgramBrowserPanel(world, simulator, programs, names, descriptions, editor, sharedState, defaultPreset);
+        if (_layout != null) _layout.tools = world.GetComponentsInChildren<CircuitLabMovableTool>(true);
+        return browser;
+    }
+
+    private static GameObject BuildAboutPanel(Transform world)
+    {
+        var existing = world.Find("AboutPanel");
+        if (existing != null) return existing.gameObject;
+
+        var panel = MovablePanel(world, "AboutPanel", new Vector3(-12.2f, 3.25f, -5.35f), new Vector3(0, -60f, 0), 5.4f, 3.7f);
+        var canvas = PanelCanvas(panel.transform, "AboutCanvas", 5.4f, 3.7f);
+        var title = PanelText(canvas.transform, "AboutTitle", "CIRCUIT LAB  /  VRCHAT CPU MAP", new Vector2(0, 137), new Vector2(500, 34), 17, Color.white);
+        title.resizeTextForBestFit = true; title.resizeTextMinSize = 12; title.resizeTextMaxSize = 17;
+        var description = PanelText(canvas.transform, "ProjectDescription",
+            "Explore a synthesized gate-level teaching CPU in VRChat. Inspect the circuit hierarchy, probe live logic signals, follow clock waveforms, and browse or load shared ROM programs.",
+            new Vector2(0, 46), new Vector2(480, 104), 12, new Color(.74f, .87f, .89f), TextAnchor.UpperLeft);
+        description.resizeTextForBestFit = true; description.resizeTextMinSize = 9; description.resizeTextMaxSize = 12;
+        PanelText(canvas.transform, "ProjectAuthor", "AUTHOR  /  chiro2001", new Vector2(0, -55), new Vector2(480, 28), 12, new Color(.69f, .90f, .80f), TextAnchor.MiddleLeft);
+        var repository = PanelText(canvas.transform, "ProjectRepository",
+            "SOURCE REPOSITORY\nhttps://github.com/chiro2001/vrc-circuit-lab",
+            new Vector2(0, -112), new Vector2(480, 54), 10, new Color(.66f, .82f, .90f), TextAnchor.MiddleLeft);
+        repository.resizeTextForBestFit = true; repository.resizeTextMinSize = 8; repository.resizeTextMaxSize = 10;
+        return panel;
+    }
+
+    private static CircuitLabProgramBrowser BuildProgramBrowserPanel(Transform world, CircuitLabSimulator simulator, JObject[] programs,
+        string[] names, string[] descriptions, CircuitLabProgramPanel editor, CircuitLabProgramDraft sharedState, int defaultPreset)
+    {
+        var existing = world.Find("ProgramBrowserPanel");
+        bool isNew = existing == null;
+        var panel = isNew
+            ? MovablePanel(world, "ProgramBrowserPanel", new Vector3(12.2f, 3.75f, -5.35f), new Vector3(0, 60f, 0), 8.8f, 6.8f)
+            : existing.gameObject;
+        var browser = Behaviour<CircuitLabProgramBrowser>(panel);
+        browser.simulator = simulator; browser.coordinator = _coordinator; browser.editorPanel = editor; browser.sharedState = sharedState;
+        browser.pageSize = 12;
+        browser.programNames = names; browser.programDescriptions = descriptions;
+        browser.programSources = programs.Select(program => (string)program["source"] ?? "").ToArray();
+        browser.programExpectedTexts = programs.Select(program => (string)program["expectedText"] ?? "").ToArray();
+        browser.programExpectedCycles = programs.Select(program => (int?)program["expectedCycles"] ?? 0).ToArray();
+        if (!isNew)
+        {
+            browser.selectedProgram = Mathf.Clamp(browser.selectedProgram, 0, Mathf.Max(0, programs.Length - 1));
+            HideLegacyProgramControls(panel.transform);
+            return browser;
+        }
+
+        var canvas = PanelCanvas(panel.transform, "ProgramBrowserCanvas", 8.8f, 6.8f);
+        PanelText(canvas.transform, "ProgramBrowserTitle", "PROGRAM BROWSER", new Vector2(-97, 310), new Vector2(580, 34), 20, Color.white);
+        PanelButton(canvas.transform, "BROWSER_REQUEST_CONTROL", "REQUEST / CLAIM CONTROL", browser, "ClaimControl", new Vector2(339, 309), new Vector2(190, 26), 9);
+        browser.currentLoadedText = PanelText(canvas.transform, "CurrentLoadedStatus", "CURRENT LOADED", new Vector2(0, 270), new Vector2(830, 29), 12, new Color(.78f, .92f, .76f));
+        PanelText(canvas.transform, "ProgramListHeading", "PRESET PROGRAMS", new Vector2(-309, 225), new Vector2(248, 23), 11, new Color(.65f, .85f, .88f));
+        browser.browsingProgramText = PanelText(canvas.transform, "BrowsingProgram", "BROWSING", new Vector2(142, 228), new Vector2(535, 26), 12, new Color(.86f, .96f, .78f));
+        browser.descriptionText = PanelText(canvas.transform, "BrowsingDescription", "", new Vector2(142, 188), new Vector2(535, 48), 10, new Color(.68f, .83f, .87f), TextAnchor.UpperLeft);
+        browser.descriptionText.verticalOverflow = VerticalWrapMode.Truncate;
+        browser.expectedOutputText = PanelText(canvas.transform, "ExpectedOutput", "EXPECTED RESULT", new Vector2(142, 148), new Vector2(535, 30), 9, new Color(.84f, .85f, .67f), TextAnchor.MiddleLeft);
+        browser.expectedOutputText.resizeTextForBestFit = true; browser.expectedOutputText.resizeTextMinSize = 7; browser.expectedOutputText.resizeTextMaxSize = 9;
+
+        PanelButton(canvas.transform, "BROWSER_SHOW_SOURCE", "ASM SOURCE", browser, "ShowSource", new Vector2(-19, 112), new Vector2(132, 25), 9);
+        PanelButton(canvas.transform, "BROWSER_SHOW_HEX", "HEX WORDS", browser, "ShowEncoding", new Vector2(124, 112), new Vector2(116, 25), 9);
+        PanelButton(canvas.transform, "BROWSER_SHOW_BIN", "BIN WORDS", browser, "ShowBinaryEncoding", new Vector2(256, 112), new Vector2(116, 25), 9);
+        browser.pageText = PanelText(canvas.transform, "BrowserPageInfo", "ASM SOURCE", new Vector2(142, 82), new Vector2(535, 20), 9, new Color(.59f, .78f, .82f));
+
+        GameObject sourcePane = PanelScrollText(canvas.transform, "SourceScrollRegion", new Vector2(142, -65), new Vector2(535, 270), 10,
+            new Color(.79f, .90f, .86f), out browser.sourceScrollRect, out browser.sourceContentRect, out browser.sourceText, out browser.sourceTextRect);
+        GameObject encodingPane = PanelScrollText(canvas.transform, "EncodingScrollRegion", new Vector2(142, -65), new Vector2(535, 270), 11,
+            new Color(.79f, .90f, .86f), out browser.encodingScrollRect, out browser.encodingContentRect, out browser.encodingText, out browser.encodingTextRect);
+        browser.sourcePane = sourcePane; browser.encodingPane = encodingPane;
+        encodingPane.SetActive(false);
+
+        PanelButton(canvas.transform, "BROWSER_PREVIOUS_PAGE", "< PREVIOUS", browser, "PreviousPage", new Vector2(-5, -231), new Vector2(135, 25), 9);
+        PanelButton(canvas.transform, "BROWSER_NEXT_PAGE", "NEXT >", browser, "NextPage", new Vector2(289, -231), new Vector2(135, 25), 9);
+        PanelButton(canvas.transform, "LOAD_SELECTED_TO_ROM", "LOAD SELECTED TO ROM", browser, "LoadSelectedPreset", new Vector2(142, -273), new Vector2(292, 30), 10);
+        browser.statusText = PanelText(canvas.transform, "BrowserStatus", "SELECTING A PROGRAM ONLY BROWSES IT", new Vector2(142, -306), new Vector2(535, 19), 8, new Color(.63f, .76f, .80f));
+
+        browser.programListScrollRect = PanelScrollRegion(canvas.transform, "ProgramListScrollRegion", new Vector2(-309, -5), new Vector2(250, 365), out RectTransform programListContent);
+        const float rowHeight = 29f;
+        programListContent.sizeDelta = new Vector2(programListContent.sizeDelta.x, programs.Length * rowHeight);
+        for (int index = 0; index < programs.Length; index++)
+        {
+            var rowButton = UiButton(programListContent, "ProgramRow_" + index, names[index], null, "", Vector2.zero, Vector2.zero, 10);
+            var rowObject = rowButton.gameObject;
+            var rowRect = rowObject.GetComponent<RectTransform>();
+            rowRect.anchorMin = new Vector2(0, 1); rowRect.anchorMax = Vector2.one; rowRect.pivot = new Vector2(.5f, 1);
+            rowRect.anchoredPosition = new Vector2(0, -index * rowHeight); rowRect.sizeDelta = new Vector2(0, rowHeight - 1f);
+            var rowLabel = rowObject.transform.Find("Label").GetComponent<Text>();
+            rowLabel.alignment = TextAnchor.MiddleLeft; rowLabel.resizeTextMinSize = 6; rowLabel.resizeTextMaxSize = 10;
+            rowLabel.horizontalOverflow = HorizontalWrapMode.Wrap; rowLabel.verticalOverflow = VerticalWrapMode.Truncate;
+            rowLabel.resizeTextForBestFit = true;
+            var rowLabelRect = rowLabel.GetComponent<RectTransform>();
+            rowLabelRect.anchorMin = Vector2.zero; rowLabelRect.anchorMax = Vector2.one;
+            rowLabelRect.offsetMin = new Vector2(7, 0); rowLabelRect.offsetMax = new Vector2(-7, 0);
+            var row = Behaviour<CircuitLabProgramRow>(rowObject); row.browser = browser; row.programIndex = index; row.label = rowLabel; row.uiButton = rowButton.uiButton;
+            var clickHandler = rowObject.GetComponent<CircuitLabButton>();
+            clickHandler.target = row; clickHandler.eventName = "Select"; clickHandler.requireControl = true;
+        }
+        PanelButton(canvas.transform, "PROGRAM_LIST_SCROLL_UP", "SCROLL UP", browser, "ScrollListUp", new Vector2(-309, 190), new Vector2(250, 24), 9);
+        PanelButton(canvas.transform, "PROGRAM_LIST_SCROLL_DOWN", "SCROLL DOWN", browser, "ScrollListDown", new Vector2(-309, -202), new Vector2(250, 24), 9);
+        browser.selectedProgram = Mathf.Clamp(defaultPreset, 0, Mathf.Max(0, programs.Length - 1));
+        browser.browsePage = 0; browser.browseMode = 0;
+        HideLegacyProgramControls(panel.transform);
+        return browser;
+    }
+
+    private static ScrollRect PanelScrollRegion(Transform parent, string name, Vector2 position, Vector2 size, out RectTransform contentRect)
+    {
+        var root = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(ScrollRect));
+        root.layer = InteractionLayer; root.transform.SetParent(parent, false);
+        var rootRect = root.GetComponent<RectTransform>(); rootRect.anchoredPosition = position; rootRect.sizeDelta = size;
+        var background = root.GetComponent<Image>(); background.color = new Color(.012f, .031f, .046f, .98f); background.raycastTarget = true;
+        var scroll = root.GetComponent<ScrollRect>(); scroll.horizontal = false; scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped; scroll.inertia = false;
+        var viewport = new GameObject("Viewport", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(RectMask2D));
+        viewport.layer = InteractionLayer; viewport.transform.SetParent(root.transform, false);
+        var viewportRect = viewport.GetComponent<RectTransform>(); viewportRect.anchorMin = Vector2.zero; viewportRect.anchorMax = Vector2.one;
+        viewportRect.offsetMin = Vector2.zero; viewportRect.offsetMax = Vector2.zero;
+        viewport.GetComponent<Image>().color = new Color(1, 1, 1, .015f);
+        var content = new GameObject("Content", typeof(RectTransform)); content.layer = InteractionLayer; content.transform.SetParent(viewport.transform, false);
+        contentRect = content.GetComponent<RectTransform>(); contentRect.anchorMin = new Vector2(0, 1); contentRect.anchorMax = Vector2.one;
+        contentRect.pivot = new Vector2(.5f, 1); contentRect.sizeDelta = new Vector2(0, size.y); contentRect.anchoredPosition = Vector2.zero;
+        scroll.viewport = viewportRect; scroll.content = contentRect;
+        return scroll;
+    }
+
+    private static GameObject PanelScrollText(Transform parent, string name, Vector2 position, Vector2 size, int fontSize, Color color,
+        out ScrollRect scroll, out RectTransform contentRect, out Text text, out RectTransform textRect)
+    {
+        scroll = PanelScrollRegion(parent, name, position, size, out contentRect);
+        var textObject = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+        textObject.layer = InteractionLayer; textObject.transform.SetParent(contentRect, false);
+        textRect = textObject.GetComponent<RectTransform>(); textRect.anchorMin = new Vector2(0, 1); textRect.anchorMax = Vector2.one;
+        textRect.pivot = new Vector2(.5f, 1); textRect.sizeDelta = new Vector2(0, size.y); textRect.anchoredPosition = Vector2.zero;
+        text = textObject.GetComponent<Text>(); text.font = _font; text.fontSize = fontSize; text.color = color;
+        text.alignment = TextAnchor.UpperLeft; text.horizontalOverflow = HorizontalWrapMode.Wrap; text.verticalOverflow = VerticalWrapMode.Overflow;
+        text.supportRichText = false; text.raycastTarget = false;
+        return scroll.transform.gameObject;
+    }
+
+    private static void HideLegacyProgramControls(Transform root)
+    {
+        var analyzerSelector = root.Find("MovableWaveformPanel/SelectProgram_Canvas");
+        if (analyzerSelector != null) analyzerSelector.gameObject.SetActive(false);
+        foreach (string name in new[] { "SelectProgram_Canvas", "PRESET_PREVIOUS", "PRESET_NEXT", "PresetSelection", "PREVIOUS_PRESET", "NEXT_PRESET", "LOAD_PRESET", "LOAD_SELECTED_PRESET" })
+        {
+            var legacy = root.Find(name);
+            if (legacy != null) legacy.gameObject.SetActive(false);
+        }
+        var canvas = root.Find("ProgramPanel/ProgramCanvas");
+        if (canvas == null) canvas = root.Find("ProgramCanvas");
+        if (canvas != null)
+            foreach (string name in new[] { "PRESET_PREVIOUS", "PRESET_NEXT", "PresetSelection", "PREVIOUS_PRESET", "NEXT_PRESET", "LOAD_PRESET", "LOAD_SELECTED_PRESET" })
+            {
+                var legacy = canvas.Find(name);
+                if (legacy != null) legacy.gameObject.SetActive(false);
+            }
     }
 
     private static int IsaCode(JToken token)
@@ -1447,6 +1717,7 @@ public static class BuildCircuitLab
         ui.navigation = new Navigation { mode = Navigation.Mode.None };
         var handler = Behaviour<CircuitLabButton>(go); handler.target = target; handler.eventName = eventName; handler.coordinator = _coordinator; handler.uiButton = ui;
         handler.requireControl = target is CircuitLabSimulator || target is CircuitLabProbe || target is CircuitLabLayout || target is CircuitLabHierarchyRow || target is CircuitLabHierarchyTree
+            || (target is CircuitLabProgramBrowser && eventName != "ClaimControl") || target is CircuitLabProgramRow
             || (target is CircuitLabProgramPanel && eventName != "ClaimControl") || (target is CircuitLabStateTablet && eventName != "ClaimControl");
         UnityEventTools.AddStringPersistentListener(ui.onClick, UdonSharpEditorUtility.GetBackingUdonBehaviour(handler).SendCustomEvent, "Press");
         UiText(go.transform, "Label", label, Vector2.zero, size * .94f, fontSize, Color.white);

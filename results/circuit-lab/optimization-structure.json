@@ -2,10 +2,10 @@
   "passed": true,
   "userFloorPreserved": true,
   "modules": 20,
-  "checkedInteractionColliders": 3600,
+  "checkedInteractionColliders": 3602,
   "playerBlockingColliders": 0,
-  "rayUiShapes": 104,
-  "uiButtons": 526,
+  "rayUiShapes": 106,
+  "uiButtons": 548,
   "pickupReach": 10.0,
   "pickupVersion": "1.1",
   "nativeClientInputNotExercised": true

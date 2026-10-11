@@ -11,7 +11,8 @@
 | RUN / PAUSE / STEP | 连续运行、停在稳定周期边界、推进一个周期 |
 | SLOWER / FASTER | 0.25–256 周期/秒；显示目标、实际速度和追赶差额，实际速度取决于客户端 |
 | RESET | 同步复位 CPU，保留 RAM、终端文本和波形历史，取消复位拍的写入 |
-| RESTART / NEXT PROGRAM | 重新初始化或选择程序，恢复 initialRam 并清空实验记录 |
+| RESTART | 重新初始化当前程序，恢复 initialRam 并清空实验记录 |
+| 程序列表 / LOAD SELECTED TO ROM | 浏览预置源码、注释、HEX/BIN；明确点击 LOAD 才切换 ROM |
 | HEX / BIN / LOAD DRAFT | 按行输入 12 位程序，校验后原子加载；草稿共享 |
 | SIGNALS / GATES / ROM / RAM | 查看实际状态纹理、门编码、当前程序与 16×16 RAM |
 | BIND BIT / PROBE BYTE | 将选定电路位或 RAM 位/字节绑定到选中探头 |
@@ -46,9 +47,15 @@ BIT VIEW 的 0/1 字形按显示比例和行高保持宽高比。解析 AA 使�
 
 ## 程序与纹理平板
 
-程序板初始在左侧 `(-12, 3.7, -0.4)`，状态平板在右侧 `(12, 3.2, -0.4)`，各向场内偏转 60 度；均可移动并参加全局布局复位。顶部显示当前实际加载的程序、revision 与运行状态，预置选择和共享草稿可独立浏览；点击 LOAD 才替换执行映像。程序板右栏同时显示 HEX、12 位 BIN 和反汇编，支持翻页及跳到当前 PC。
+程序板初始在左侧 `(-12, 3.7, -0.4)`，状态平板在右侧 `(12, 3.2, -0.4)`，各向场内偏转 60 度；均可移动并参加全局布局复位。程序编辑板显示当前实际加载的程序、revision 与运行状态，以及共享 HEX/BIN 草稿。右栏显示实际 ROM 的 HEX、12 位 BIN 和反汇编，支持翻页及跳到当前 PC。预置程序选择已拆到独立浏览面板，原分析仪单个切换按钮和编辑板的前后选择按钮已隐藏。
 
 每行输入一个 12 位字，支持 HEX/BIN、`0x`/`0b` 前缀、空格/Tab/下划线分组，以及 `#`、`;`、`//` 注释。空白行忽略，未用 ROM 填 HALT；超过位宽/容量或非法字符会按行报错并保留当前程序。VR 可通过两排位键盘构造并追加指令。加载动作停在稳定边界，复位 CPU、应用 initialRam 并清空该实验的历史和终端。
+
+独立程序面板的可滚动列表包含全部 13 个预置。点击条目只更新浏览内容，展示原始汇编源码、注释、`.equ` 定义与对应 ROM 编码；源码和编码可分页查看。顶部的 CURRENT LOADED 与 BROWSING 分别表示实际运行程序和预览程序。只有 LOAD SELECTED TO ROM 才会原子切换程序并初始化实验。浏览选择、模式和页码共享，保持一人全局操作。
+
+关于面板展示项目介绍、作者和完整公开 GitHub 地址 `https://github.com/chiro2001/vrc-circuit-lab`，用于在 world 中了解与访问项目。两个新面板均可抓取移动，并纳入 RESET LAYOUT。初始位置分别为：关于板左侧 `(-12.2, 3.25, -5.35)`，程序列表板右侧 `(12.2, 3.75, -5.35)`。
+
+[关于面板截图](results/circuit-lab/about-panel.png)和[程序列表截图](results/circuit-lab/program-browser-panel.png)来自实际 PlayMode。已验证 27 个既有模块/工具/地板位姿保持不变；选择程序只浏览，明确加载 HELLO 后实际 GPU 输出 `HELLO\n`。共享反序列化恢复编码第 43 页（索引42），观察者不能加载，两个新板的位置复位不改变 CPU。报告：[场景](results/circuit-lab/presentation-authoring.json)、[点击与加载](results/circuit-lab/presentation-browse-load.json)、[共享与复位](results/circuit-lab/presentation-shared-layout.json)。
 
 状态平板按节点显示实际门输出，可查看门纹理编码与依赖信息、ROM 编码和 RAM 的地址/字节。RAW TEXTURE 展示实际 16×16 字节纹理，INIT/CURRENT 切换初始化与工作内容；在 RAM 网格选地址后可绑定单 bit 或整字节探头。RAM 测点用单独的虚拟 ID 映射 GPU 字节，不增加伪造的门节点。复位、运行和 STORE 的变化均来自模拟器的当前纹理。
 
@@ -115,6 +122,8 @@ python tools/unity_remote.py --check-result run_script --file AgentScripts/Build
 python tools/unity_remote.py --check-result run_script --file AgentScripts/BuildCircuitLab.cs --entry BuildCircuitLab.UpgradeScene
 ```
 
+新增关于/程序列表 UI 的既有场景使用 `BuildCircuitLab.AddPresentationPanels` 增量入口，不重建电路。
+
 `UpgradeScene` 只重新生成实验台拥有的对象，保留环境；它标记场景修改但不自动保存，先复核环境及结构再通过 Pipeline 保存。已有世界必须使用升级入口，`BuildScene` 会拒绝覆盖。
 
 进入 Play Mode 并等待 ClientSim 初始化后：
@@ -122,6 +131,8 @@ python tools/unity_remote.py --check-result run_script --file AgentScripts/Build
 ```sh
 python tools/run_circuit_lab_checks.py --suite ram
 python tools/run_circuit_lab_checks.py --suite gpu
+# 新一轮默认程序的 PlayMode 中检查程序浏览与加载
+python tools/run_circuit_lab_checks.py --suite presentation
 ```
 
 旧 `--suite programs` / `--suite all` 中的程序回归面向此前固定 ROM 示例；当前 CPU/RAM 使用 `--suite ram`，其余独立交互套件可按需运行。

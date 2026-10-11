@@ -41,6 +41,14 @@ public static class CaptureCircuitLabRam
         }
     }
     public static object Program() => Capture("ProgramPanel", "ram-program-panel.png", 4.1f);
+    public static async Task<object> Browser()
+    {
+        var browser = Object.FindObjectOfType<CircuitLabProgramBrowser>();
+        UdonSharpEditorUtility.GetBackingUdonBehaviour(browser).SendCustomEvent("ShowSource");
+        await Task.Delay(150);
+        return Capture("ProgramBrowserPanel", "program-browser-panel.png", 4.1f);
+    }
+    public static object About() => Capture("AboutPanel", "about-panel.png", 5.2f);
     public static object Terminal() => Capture("TerminalPanel", "ram-pi-terminal.png", 4.8f);
     public static object Analyzer() => Capture("MovableWaveformPanel", "ram-analyzer-control-top.png", 7.8f);
     public static async Task<object> Ram()

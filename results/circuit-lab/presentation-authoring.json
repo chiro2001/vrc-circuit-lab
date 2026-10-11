@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "preservedExistingPoses": 27,
+  "aboutUrl": "https://github.com/chiro2001/vrc-circuit-lab",
+  "programRows": 13,
+  "scrollableList": true,
+  "newPanelsInLayoutReset": true,
+  "legacySwitchHidden": true
+}

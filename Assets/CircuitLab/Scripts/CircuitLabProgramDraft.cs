@@ -6,12 +6,15 @@ using VRC.SDKBase;
 public class CircuitLabProgramDraft : UdonSharpBehaviour
 {
     public CircuitLabProgramPanel panel;
+    public CircuitLabProgramBrowser browser;
     public CircuitLabNetworkCoordinator coordinator;
     [UdonSynced] public string sourceText = "";
     [UdonSynced] public int sourceMode;
     [UdonSynced] public int selectedPreset;
     [UdonSynced] public int programPage;
     [UdonSynced] public int virtualWord;
+    [UdonSynced] public int browsePage;
+    [UdonSynced] public int browseMode;
     [UdonSynced] public int revision;
 
     public void Publish()
@@ -26,5 +29,6 @@ public class CircuitLabProgramDraft : UdonSharpBehaviour
     public override void OnDeserialization()
     {
         if (panel != null) panel.ApplySharedDraft(sourceText, sourceMode, selectedPreset, programPage, virtualWord, revision);
+        if (browser != null) browser.ApplySharedBrowserState(selectedPreset, browsePage, browseMode, revision);
     }
 }

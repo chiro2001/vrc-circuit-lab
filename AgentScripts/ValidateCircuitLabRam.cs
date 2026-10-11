@@ -43,6 +43,11 @@ public static class ValidateCircuitLabRam
     private static void Click(string eventName)
     {
         var handler = Object.FindObjectsOfType<CircuitLabButton>().FirstOrDefault(b => b.eventName == eventName && b.gameObject.scene.path == ScenePath);
+        Click(handler);
+    }
+    private static void Click(CircuitLabButton handler)
+    {
+        string eventName = handler == null ? "missing" : handler.eventName;
         Check(handler != null && handler.uiButton != null && handler.uiButton.IsInteractable(), "UI button unavailable: " + eventName);
         Check(handler.uiButton.onClick.GetPersistentTarget(0) == Vm(handler), "UI event bypasses backing Udon: " + eventName);
         ExecuteEvents.Execute(handler.gameObject, new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left }, ExecuteEvents.pointerClickHandler);
@@ -274,7 +279,13 @@ public static class ValidateCircuitLabRam
         int index = Enumerable.Range(0, programs.Count).First(i => ((string)programs[i]["expectedText"] ?? "").StartsWith("3.141592"));
         var panel = Panel(); var p = Vm(panel); var sim = Vm(Simulator());
         if (!Simulator().coordinator.HasControl()) Click("ClaimControl");
-        p.SetProgramVariable("selectedPreset", index);
+        var browser = Object.FindObjectOfType<CircuitLabProgramBrowser>();
+        if (browser != null)
+        {
+            var row = Object.FindObjectsOfType<CircuitLabProgramRow>().Single(r => r.browser == browser && r.programIndex == index);
+            Click(row.GetComponent<CircuitLabButton>());
+        }
+        else p.SetProgramVariable("selectedPreset", index);
         int revision = Int(sim, "programRevision"); Click("LoadSelectedPreset");
         await Until(() => Int(sim, "programRevision") > revision, "PI preset did not load.");
         await Quiescent();
