@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "environment": "Unity 2022.3.22f1 Play Mode / actual Udon VM / RTX 5080 / Direct3D11",
+  "scene": "Assets/CircuitLab/Scenes/CircuitLab.unity",
+  "modules": 19,
+  "nodes": 439,
+  "registers": 36,
+  "pinTargets": 1412,
+  "gpuComparedBits": 382369,
+  "gpuMismatches": 0,
+  "waveformSamples": 1742,
+  "waveformComparedValues": 6964,
+  "historyCapacity": 2048,
+  "checks": {
+    "gpu": true,
+    "waveform": true,
+    "controls": true,
+    "freeze-browse": true,
+    "modules-probes": true,
+    "programs-burst": true,
+    "deep-probe-wires": true,
+    "probe-lifecycle-formats": true,
+    "material-reload": true,
+    "frozen-rebinding": true,
+    "ring-wrap": true,
+    "automatic-bootstrap": true,
+    "shaders": true
+  },
+  "originalUnsavedScenePreserved": true,
+  "previewCameraDisabled": true,
+  "playModeStopped": true,
+  "hardwareVRInputTested": false
+}

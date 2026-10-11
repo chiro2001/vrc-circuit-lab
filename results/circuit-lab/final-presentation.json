@@ -1,0 +1,32 @@
+{
+  "adjusted": true,
+  "previousRootPosition": {
+    "x": -2.2,
+    "y": 1.8,
+    "z": 0.5
+  },
+  "rootPosition": {
+    "x": -3.85,
+    "y": 1.8,
+    "z": 0.5
+  },
+  "rootScale": {
+    "x": 0.65,
+    "y": 0.65,
+    "z": 0.65
+  },
+  "rootExpandedWidth": 4.04,
+  "waveformPosition": {
+    "x": 0.0,
+    "y": 4.87,
+    "z": 1.5
+  },
+  "buttonLabelsBestFit": 155,
+  "initialLayout": {
+    "updatedInitialPoses": 19,
+    "minimumVisibleFrameY": 0.0544998646,
+    "environmentUntouched": true,
+    "saved": false
+  },
+  "spawnViewControlsUnoccluded": true
+}

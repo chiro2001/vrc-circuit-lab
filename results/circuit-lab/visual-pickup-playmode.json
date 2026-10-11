@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "leaf": "teaching_cpu/alu/adder/fa0",
+  "attachedJunctionsVerified": 4,
+  "outputPortRoutesPresent": true,
+  "pickupCallbackRotationChangeDegrees": 0.0,
+  "orientation": "Any",
+  "nativeClientInputNotExercised": true
+}

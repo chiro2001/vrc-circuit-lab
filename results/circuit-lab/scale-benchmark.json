@@ -1,0 +1,52 @@
+{
+  "passed": true,
+  "device": "NVIDIA GeForce RTX 5080",
+  "api": "Direct3D11",
+  "measuredAt": "2026-10-11T16:13:49.1524039Z",
+  "measurement": "Wall time from CPU submission to GPU readback completion; includes dispatch, scheduling and one readback. No claim of isolated GPU kernel timing or actual LCVEX speed.",
+  "workload": "Synthetic independent 31-gate AND/OR/XOR feedback chains with atomic DFF commit; two 32-pass settles per cycle; no RAM, multiplier, geometry or network traffic.",
+  "rows": [
+    {
+      "nodes": 1024,
+      "textureWidth": 1024,
+      "textureHeight": 1,
+      "dffs": 31,
+      "cycles": 16,
+      "blitsPerCycle": 65,
+      "elapsedMilliseconds": 23.2115,
+      "cyclesPerSecond": 689.31348684919112,
+      "comparedBits": 1024,
+      "mismatches": 0,
+      "stateBufferBytes": 8192,
+      "instructionBytes": 16384
+    },
+    {
+      "nodes": 10000,
+      "textureWidth": 1024,
+      "textureHeight": 10,
+      "dffs": 312,
+      "cycles": 16,
+      "blitsPerCycle": 65,
+      "elapsedMilliseconds": 20.8673,
+      "cyclesPerSecond": 766.74989097774994,
+      "comparedBits": 10000,
+      "mismatches": 0,
+      "stateBufferBytes": 81920,
+      "instructionBytes": 163840
+    },
+    {
+      "nodes": 100000,
+      "textureWidth": 1024,
+      "textureHeight": 98,
+      "dffs": 3124,
+      "cycles": 16,
+      "blitsPerCycle": 65,
+      "elapsedMilliseconds": 20.1458,
+      "cyclesPerSecond": 794.21020758669306,
+      "comparedBits": 100000,
+      "mismatches": 0,
+      "stateBufferBytes": 802816,
+      "instructionBytes": 1605632
+    }
+  ]
+}

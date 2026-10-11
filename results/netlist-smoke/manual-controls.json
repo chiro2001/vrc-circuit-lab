@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "path": "UdonBehaviour.Interact -> button Udon -> simulator Udon -> GPU -> async readback",
+  "cases": [
+    {
+      "action": "RESET",
+      "expected": 0,
+      "actual": 0,
+      "cycle": 898
+    },
+    {
+      "action": "CLOCK +1",
+      "expected": 1,
+      "actual": 1,
+      "cycle": 899
+    },
+    {
+      "action": "CLOCK +1",
+      "expected": 2,
+      "actual": 2,
+      "cycle": 900
+    },
+    {
+      "action": "LOAD 9",
+      "expected": 9,
+      "actual": 9,
+      "cycle": 901
+    },
+    {
+      "action": "CLOCK +1",
+      "expected": 10,
+      "actual": 10,
+      "cycle": 902
+    },
+    {
+      "action": "RESET",
+      "expected": 0,
+      "actual": 0,
+      "cycle": 903
+    }
+  ]
+}

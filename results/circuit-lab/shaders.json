@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "graphicsDevice": "NVIDIA GeForce RTX 5080",
+  "graphicsApi": "Direct3D11",
+  "diagnostics": [
+    {
+      "name": "CircuitLabSim",
+      "supported": true,
+      "diagnostics": [
+        {
+          "message": "integer divides may be much slower, try using uints if possible.",
+          "severity": "Warning",
+          "line": 41
+        }
+      ]
+    },
+    {
+      "name": "CircuitLabHistory",
+      "supported": true,
+      "diagnostics": []
+    },
+    {
+      "name": "CircuitLabWaveform",
+      "supported": true,
+      "diagnostics": []
+    },
+    {
+      "name": "CircuitLabDisplay",
+      "supported": true,
+      "diagnostics": []
+    }
+  ]
+}

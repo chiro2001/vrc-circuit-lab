@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "text": "HELLO\n",
+  "actualWriteEvents": 6,
+  "repeatedCharacterRetained": true,
+  "firstWriteAfterResetRetained": true,
+  "haltDoesNotDuplicate": true,
+  "missedCycles": 0,
+  "readbackErrors": 0,
+  "aaToggleDoesNotChangeCircuit": true
+}

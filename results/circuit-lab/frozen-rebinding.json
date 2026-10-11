@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "frozenSignal": "teaching_cpu/out",
+  "physicalProbeSignal": "teaching_cpu/clk",
+  "snapshotUnchanged": true,
+  "backgroundCaptureContinued": true
+}

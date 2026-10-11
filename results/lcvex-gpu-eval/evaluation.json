@@ -1,0 +1,573 @@
+{
+  "schema": 1,
+  "task": "T-20261011-vrc-gpu-eval",
+  "sourceSha": "c7e44bd2afc4198e64e705cbea7495286eac569e",
+  "worktree": "/home/chiro/projects/mycpu/lcvex-wt-T-20261011-vrc-gpu-eval",
+  "branch": "verify/T-20261011-vrc-gpu-eval",
+  "reported_at": "2026-10-11T22:51:46+08:00",
+  "frontends": {
+    "yosys": "/usr/bin/yosys",
+    "sv2v": null,
+    "slang": null,
+    "surelog": null,
+    "iverilog": "/usr/bin/iverilog",
+    "verilator": "/home/chiro/miniforge3/envs/lcvex/bin/verilator"
+  },
+  "toolVersions": {
+    "yosys": "Yosys 0.66 (git sha1 86f2ddebc-dirty, g++ 16.1.1 -march=x86-64 -mtune=generic -O2 -fno-plt -fexceptions -fstack-clash-protection -fcf-protection -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -ffile-prefix-map=/build/yosys/src=/usr/src/debug/yosys -fPIC -O3) [startdir/yosys at makepkg]",
+    "verilator": "Verilator 5.050 2026-07-01 rev conda-forge build 0"
+  },
+  "runs": [
+    {
+      "name": "yosys-version",
+      "command": [
+        "yosys",
+        "-V"
+      ],
+      "cwd": "/home/chiro/projects/mycpu/lcvex-wt-T-20261011-vrc-gpu-eval",
+      "started_at": "2026-10-11T22:51:43+08:00",
+      "finished_at": "2026-10-11T22:51:43+08:00",
+      "wallSeconds": 0.005,
+      "exitCode": 0,
+      "timeout": false,
+      "log": "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/yosys-version.log",
+      "logSha256": "9833e05ef197cb8744fbde7d6d1de7bb07af9015db99becf9fe8dfbb03ca7680",
+      "resourceLock": null
+    },
+    {
+      "name": "verilator-version",
+      "command": [
+        "/home/chiro/miniforge3/envs/lcvex/bin/verilator",
+        "--version"
+      ],
+      "cwd": "/home/chiro/projects/mycpu/lcvex-wt-T-20261011-vrc-gpu-eval",
+      "started_at": "2026-10-11T22:51:43+08:00",
+      "finished_at": "2026-10-11T22:51:43+08:00",
+      "wallSeconds": 0.04,
+      "exitCode": 0,
+      "timeout": false,
+      "log": "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/verilator-version.log",
+      "logSha256": "99bec83d85e4be0b074a8ca71d69d13e9ac7356f0dcdb457664c4485fd003415",
+      "resourceLock": null
+    },
+    {
+      "name": "slang-plugin-probe",
+      "command": [
+        "yosys",
+        "-Q",
+        "-T",
+        "-p",
+        "plugin -i slang; help read_slang"
+      ],
+      "cwd": "/home/chiro/projects/mycpu/lcvex-wt-T-20261011-vrc-gpu-eval",
+      "started_at": "2026-10-11T22:51:43+08:00",
+      "finished_at": "2026-10-11T22:51:43+08:00",
+      "wallSeconds": 0.011,
+      "exitCode": 1,
+      "timeout": false,
+      "log": "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/slang-plugin-probe.log",
+      "logSha256": "2cf0917972c383951e5e42440539cacd7b19f9c5f8806e1f03c05ec3cfab6861",
+      "resourceLock": null
+    },
+    {
+      "name": "direct-full-soc",
+      "command": [
+        "/home/chiro/projects/.resource-locks/resource-lock",
+        "run",
+        "local",
+        "vrc-cpu-map",
+        "T-20261011-vrc-gpu-eval",
+        "teaching_cpu",
+        "--min-local-available-mib",
+        "4096",
+        "--meta",
+        "parallelism=1",
+        "--meta",
+        "experiment=direct-full-soc",
+        "--",
+        "yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/direct-full-soc.ys"
+      ],
+      "cwd": "/home/chiro/projects/mycpu/lcvex-wt-T-20261011-vrc-gpu-eval",
+      "started_at": "2026-10-11T22:51:43+08:00",
+      "finished_at": "2026-10-11T22:51:43+08:00",
+      "wallSeconds": 0.054,
+      "exitCode": 1,
+      "timeout": false,
+      "log": "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/direct-full-soc.log",
+      "logSha256": "fcceecd5f6ebf870bb9405cb13c5c68330478e8bd7a1ca2c37eac5b9431f98ca",
+      "resourceLock": "local"
+    },
+    {
+      "name": "calibration-gate",
+      "command": [
+        "/home/chiro/projects/.resource-locks/resource-lock",
+        "run",
+        "local",
+        "vrc-cpu-map",
+        "T-20261011-vrc-gpu-eval",
+        "teaching_cpu",
+        "--min-local-available-mib",
+        "4096",
+        "--meta",
+        "parallelism=1",
+        "--meta",
+        "experiment=calibration-gate",
+        "--",
+        "yosys",
+        "-Q",
+        "-T",
+        "-s",
+        "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/calibration-gate.ys"
+      ],
+      "cwd": "/home/chiro/projects/mycpu/lcvex-wt-T-20261011-vrc-gpu-eval",
+      "started_at": "2026-10-11T22:51:43+08:00",
+      "finished_at": "2026-10-11T22:51:43+08:00",
+      "wallSeconds": 0.099,
+      "exitCode": 0,
+      "timeout": false,
+      "log": "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/calibration-gate.log",
+      "logSha256": "d1d233b04e4e7adbf82a77967e6a0a00f59d42851792824560826787add6f8e8",
+      "resourceLock": "local"
+    },
+    {
+      "name": "full-soc",
+      "command": [
+        "/home/chiro/projects/.resource-locks/resource-lock",
+        "run",
+        "local",
+        "vrc-cpu-map",
+        "T-20261011-vrc-gpu-eval",
+        "teaching_cpu",
+        "--min-local-available-mib",
+        "4096",
+        "--meta",
+        "parallelism=1",
+        "--meta",
+        "experiment=full-soc",
+        "--",
+        "/home/chiro/miniforge3/envs/lcvex/bin/verilator",
+        "--json-only",
+        "--json-only-output",
+        "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/full-soc/design.tree.json",
+        "--json-only-meta-output",
+        "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/full-soc/design.meta.json",
+        "--assert",
+        "--stats",
+        "--stats-vars",
+        "-Wno-fatal",
+        "--top-module",
+        "lcvex_catapult_soc_top",
+        "-f",
+        "rtl/filelist.f",
+        "-Mdir",
+        "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/full-soc"
+      ],
+      "cwd": "/home/chiro/projects/mycpu/lcvex-wt-T-20261011-vrc-gpu-eval",
+      "started_at": "2026-10-11T22:51:43+08:00",
+      "finished_at": "2026-10-11T22:51:44+08:00",
+      "wallSeconds": 0.809,
+      "exitCode": 0,
+      "timeout": false,
+      "log": "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/full-soc.log",
+      "logSha256": "9f82ed0fb09420c94907588b36428d1a6cea465c52101faea4adddf1e98c996c",
+      "resourceLock": "local"
+    },
+    {
+      "name": "full-fp-board-128m",
+      "command": [
+        "/home/chiro/projects/.resource-locks/resource-lock",
+        "run",
+        "local",
+        "vrc-cpu-map",
+        "T-20261011-vrc-gpu-eval",
+        "teaching_cpu",
+        "--min-local-available-mib",
+        "4096",
+        "--meta",
+        "parallelism=1",
+        "--meta",
+        "experiment=full-fp-board-128m",
+        "--",
+        "/home/chiro/miniforge3/envs/lcvex/bin/verilator",
+        "--json-only",
+        "--json-only-output",
+        "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/full-fp-board-128m/design.tree.json",
+        "--json-only-meta-output",
+        "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/full-fp-board-128m/design.meta.json",
+        "--assert",
+        "--stats",
+        "--stats-vars",
+        "-Wno-fatal",
+        "--top-module",
+        "lcvex_catapult_soc_tb",
+        "-f",
+        "fpga/catapult_a10/tb/filelist_soc.f",
+        "-Mdir",
+        "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/full-fp-board-128m",
+        "--timing",
+        "-GLINUX_BOOT_TEST=1",
+        "-GA64_FP_SIMD=1",
+        "-GBOOT_HEX_FILE=\"\""
+      ],
+      "cwd": "/home/chiro/projects/mycpu/lcvex-wt-T-20261011-vrc-gpu-eval",
+      "started_at": "2026-10-11T22:51:45+08:00",
+      "finished_at": "2026-10-11T22:51:45+08:00",
+      "wallSeconds": 0.796,
+      "exitCode": 0,
+      "timeout": false,
+      "log": "/home/chiro/tmp/vrc-cpu-map/lcvex-gpu-eval/full-fp-board-128m.log",
+      "logSha256": "56147e72b367dbd684bb9fd85caf77440a8394f3ab8ccec0a63957fa67c8ce55",
+      "resourceLock": "local"
+    }
+  ],
+  "slangAvailable": false,
+  "nativeFullSoCReadPassed": false,
+  "fullHierarchyChecksPassed": true,
+  "fullSoCGateCount": null,
+  "calibrationGateLeafCellCounts": {
+    "$_OR_": 3,
+    "$_NOT_": 1,
+    "$_AND_": 1,
+    "$_DFF_PN0_": 6
+  },
+  "inventories": {
+    "full-soc": {
+      "top": "lcvex_catapult_soc_top",
+      "instanceCount": 34,
+      "specializedModuleCount": 34,
+      "topPortCount": 116,
+      "topPortBitsByDirection": {
+        "INPUT": 795,
+        "OUTPUT": 1903
+      },
+      "topParameters": {
+        "BRAM_BYTES": "32'h100000",
+        "L1_SETS": "32'sh40",
+        "L2_SETS": "32'sh100",
+        "L2_WAYS": "32'sh2",
+        "A64_FP_SIMD": "1'h1",
+        "TIMER_REALTIME": "1'h0",
+        "CNTFRQ_HZ": "64'h3b9aca00",
+        "FETCH_FIFO_ENABLE": "32'sh1",
+        "FETCH_FIFO_DEPTH": "32'sh2",
+        "FETCH_EPOCH_W": "32'sh8",
+        "BOOT_HEX_FILE": "\\\"\\\""
+      },
+      "moduleTypeCounts": {
+        "lcvex_alu": 1,
+        "lcvex_async_fifo_cdc": 2,
+        "lcvex_axi4_avalon_adapter": 1,
+        "lcvex_axi4_master": 1,
+        "lcvex_bram_boot": 1,
+        "lcvex_bram_boot_behav": 1,
+        "lcvex_cache_data_ram": 2,
+        "lcvex_calibration_gate": 1,
+        "lcvex_catapult_soc_axi_bridge": 1,
+        "lcvex_catapult_soc_coh": 1,
+        "lcvex_catapult_soc_epcq_csr": 1,
+        "lcvex_catapult_soc_epcq_mem": 1,
+        "lcvex_catapult_soc_jtag_uart": 1,
+        "lcvex_catapult_soc_rx_observer": 1,
+        "lcvex_catapult_soc_status": 1,
+        "lcvex_catapult_soc_top": 1,
+        "lcvex_core": 1,
+        "lcvex_decode": 1,
+        "lcvex_fp_divider": 1,
+        "lcvex_fp_exec": 1,
+        "lcvex_fp_iter_sqrt": 1,
+        "lcvex_fp_scalar": 1,
+        "lcvex_fp_state": 1,
+        "lcvex_gic": 1,
+        "lcvex_l1_d_wb": 1,
+        "lcvex_l1_i": 1,
+        "lcvex_l2_wb": 1,
+        "lcvex_mem_arb": 1,
+        "lcvex_mem_router": 1,
+        "lcvex_mmu": 1,
+        "lcvex_muldiv": 1,
+        "lcvex_neon_int": 1
+      },
+      "declaredUnpackedArrayBits": 8831620,
+      "nonblockingTargetDeclaredBits": 8819821,
+      "nonblockingTargetNonArrayDeclaredBits": 50537,
+      "edgeSensitivitySignals": [
+        [
+          "NEG",
+          "cpu_fifo_reset_req_n"
+        ],
+        [
+          "NEG",
+          "cpu_fsm_reset_req_n"
+        ],
+        [
+          "NEG",
+          "cpu_fsm_rst_n"
+        ],
+        [
+          "NEG",
+          "cpu_rst_n_sync"
+        ],
+        [
+          "NEG",
+          "emif_fifo_reset_req_n"
+        ],
+        [
+          "NEG",
+          "emif_fsm_reset_req_n"
+        ],
+        [
+          "NEG",
+          "emif_fsm_rst_n"
+        ],
+        [
+          "NEG",
+          "emif_rst_n_sync"
+        ],
+        [
+          "NEG",
+          "rd_rst_n"
+        ],
+        [
+          "NEG",
+          "rst_n"
+        ],
+        [
+          "NEG",
+          "wr_rst_n"
+        ],
+        [
+          "POS",
+          "clk"
+        ],
+        [
+          "POS",
+          "cpu_clk"
+        ],
+        [
+          "POS",
+          "emif_clk"
+        ],
+        [
+          "POS",
+          "rd_clk"
+        ],
+        [
+          "POS",
+          "wr_clk"
+        ]
+      ],
+      "note": "Elaborated declarations and NBA target sizes; includes RTL memories and observability state. Not optimized FF/gate counts; unpacked port aliases may be counted more than once.",
+      "treeSha256": "dd2d1a10730792e78abf28a1ff535dc9e984cba245cfe3a41c57615285faec02",
+      "treeBytes": 24238265,
+      "metaSha256": "ea81d909265c03a8d92f4e2b5c61d9d2953668bec3af3e863369f66ac242c93d",
+      "verilatorAllocatedMB": 86.691
+    },
+    "full-fp-board-128m": {
+      "top": "lcvex_catapult_soc_tb",
+      "instanceCount": 38,
+      "specializedModuleCount": 37,
+      "topPortCount": 0,
+      "topPortBitsByDirection": {},
+      "topParameters": {
+        "LINUX_BOOT_TEST": "1'h1",
+        "A64_FP_SIMD": "1'h1",
+        "JTAG_VENDOR_TIMING": "1'h0",
+        "BOOT_HEX_FILE": "\\\"\\\"",
+        "FLASH_WORDS_MEMH": "\\\"\\\"",
+        "FLASH_PAYLOAD_OFFSET": "64'h4000000",
+        "FLASH_LINE_CAPACITY": "32'sh16e36",
+        "DDR_MODEL_DEPTH_WORDS": "32'h200000",
+        "LINUX_JTAG_LOG_BYTES": "32'h100000",
+        "LINUX_BOOT_TIMEOUT_CYCLES": "32'shee6b280"
+      },
+      "moduleTypeCounts": {
+        "lcvex_alu": 1,
+        "lcvex_async_fifo_cdc": 2,
+        "lcvex_axi4_avalon_adapter": 1,
+        "lcvex_axi4_master": 1,
+        "lcvex_bram_boot": 1,
+        "lcvex_bram_boot_behav": 1,
+        "lcvex_cache_data_ram": 2,
+        "lcvex_calibration_gate": 1,
+        "lcvex_catapult_soc_axi_bridge": 1,
+        "lcvex_catapult_soc_coh": 1,
+        "lcvex_catapult_soc_epcq_csr": 1,
+        "lcvex_catapult_soc_epcq_mem": 1,
+        "lcvex_catapult_soc_jtag_uart": 1,
+        "lcvex_catapult_soc_rx_observer": 1,
+        "lcvex_catapult_soc_status": 1,
+        "lcvex_catapult_soc_tb": 1,
+        "lcvex_catapult_soc_top": 1,
+        "lcvex_core": 1,
+        "lcvex_decode": 1,
+        "lcvex_emif_smoke": 1,
+        "lcvex_epcq_csr_smoke": 1,
+        "lcvex_fp_divider": 1,
+        "lcvex_fp_exec": 1,
+        "lcvex_fp_iter_sqrt": 1,
+        "lcvex_fp_scalar": 1,
+        "lcvex_fp_state": 1,
+        "lcvex_gic": 1,
+        "lcvex_jtag_uart_model": 1,
+        "lcvex_l1_d_wb": 1,
+        "lcvex_l1_i": 1,
+        "lcvex_l2_wb": 1,
+        "lcvex_mem_arb": 1,
+        "lcvex_mem_router": 1,
+        "lcvex_mmu": 1,
+        "lcvex_muldiv": 1,
+        "lcvex_neon_int": 1
+      },
+      "declaredUnpackedArrayBits": 1130899492,
+      "nonblockingTargetDeclaredBits": 1082891572,
+      "nonblockingTargetNonArrayDeclaredBits": 54416,
+      "edgeSensitivitySignals": [
+        [
+          "NEG",
+          "clk"
+        ],
+        [
+          "NEG",
+          "cpu_fifo_reset_req_n"
+        ],
+        [
+          "NEG",
+          "cpu_fsm_reset_req_n"
+        ],
+        [
+          "NEG",
+          "cpu_fsm_rst_n"
+        ],
+        [
+          "NEG",
+          "cpu_rst_n_sync"
+        ],
+        [
+          "NEG",
+          "emif_fifo_reset_req_n"
+        ],
+        [
+          "NEG",
+          "emif_fsm_reset_req_n"
+        ],
+        [
+          "NEG",
+          "emif_fsm_rst_n"
+        ],
+        [
+          "NEG",
+          "emif_rst_n"
+        ],
+        [
+          "NEG",
+          "emif_rst_n_sync"
+        ],
+        [
+          "NEG",
+          "rd_rst_n"
+        ],
+        [
+          "NEG",
+          "rst_n"
+        ],
+        [
+          "NEG",
+          "wr_rst_n"
+        ],
+        [
+          "POS",
+          "clk"
+        ],
+        [
+          "POS",
+          "cpu_clk"
+        ],
+        [
+          "POS",
+          "emif_clk"
+        ],
+        [
+          "POS",
+          "rd_clk"
+        ],
+        [
+          "POS",
+          "wr_clk"
+        ]
+      ],
+      "note": "Elaborated declarations and NBA target sizes; includes RTL memories and observability state. Not optimized FF/gate counts; unpacked port aliases may be counted more than once.",
+      "treeSha256": "d18bdb1abdecb2339fcd93746bdbe256f0418001ae934422882a722a6e9eaba6",
+      "treeBytes": 22396840,
+      "metaSha256": "6c4ffe2f000f5068661ff28c7a56db65bde7276621071df352a9b15aa2283bb7",
+      "verilatorAllocatedMB": 85.246
+    }
+  },
+  "ram128MiB": {
+    "elaboratedBits": 1073741824,
+    "bytes": 134217728,
+    "doubleBufferedRFloatBytes": 8589934592,
+    "doubleBufferedRGBAFloatBytes": 34359738368,
+    "bitPackedBytes": 134217728
+  },
+  "sourceUnchanged": true,
+  "worktreeUnchanged": true,
+  "gitStatusBefore": "",
+  "gitStatusAfter": "",
+  "sourceFileSha256": {
+    "fpga/catapult_a10/tb/filelist_soc.f": "a138028b010d27ac4436f68e10c7ea596a266e6b3ea23e093e2833856efb04db",
+    "fpga/catapult_a10/tb/sv/lcvex_catapult_soc_tb.sv": "5321399c7b05a6e9206f33a14936fe872fecef79bc3cf853323d1ee72e27eeab",
+    "rtl/filelist.f": "23e27cb9249c08be6e5d11fd8daa0d315d9859dc12b459473ed8f39dea92f46e",
+    "rtl/lcvex_alu.sv": "e94b96a21f14a9b4f686e2893c18ff5e338dc4cc048fd9d20674adf993349584",
+    "rtl/lcvex_async_fifo.sv": "907b03b1932d83ff907e171554347127cc540f1f1c5adebca598fd4bac58c455",
+    "rtl/lcvex_axi4_avalon_adapter.sv": "cf42b896828fe4b769b2b808e2ff5823981de7bd68b0ef6add1e93f0b39acaf4",
+    "rtl/lcvex_axi4_avalon_pkg.sv": "4cfe940c499f8cc5b0f03c9e4944a56db0ba0967b9f6fde58899fbea7c6b693f",
+    "rtl/lcvex_axi4_master.sv": "0fdaf8e151a1136e0641f8fc073757a1b9c7bc3b5a5248ca71f5b76171892fe2",
+    "rtl/lcvex_axi4_pkg.sv": "ef4b8b201e1c1fdf555d901a26ab5645d05845e94f211e2c26a750201972b8ae",
+    "rtl/lcvex_axi4_sva.sv": "8e8257c6ef5463d79d1cba11ed924e8b84b9933ec12f523247dd5771968e7d66",
+    "rtl/lcvex_bram_boot.sv": "10c16f8abea0c23cfd51e069918ee8b1fe78ddff68afb41d9aa8d89d7c576cbf",
+    "rtl/lcvex_bram_boot_shim.sv": "2d76062d161d426f560bd1045d5e7709126c889ed68070c2021f07bac67d6109",
+    "rtl/lcvex_cache_data_ram.sv": "6ecd3c206a52a7cb270c3b58dd823f9e8d0d5bcc9df6b797766850f8b91fba19",
+    "rtl/lcvex_calibration_gate.sv": "bbdbd4047fa238f31afcfe0d54cdf805d9a3b70f3768f2e096e365a746ff26f0",
+    "rtl/lcvex_catapult_soc_axi.sv": "4f727768858b9f9f3f7058f0a27503dd13ef8145c5bcff76c50ad5f3d0f35b95",
+    "rtl/lcvex_catapult_soc_coh.sv": "b601d4e239eaf8dc265fddaa60b9a6073269cee581f3dc9ea0fb243564561f76",
+    "rtl/lcvex_catapult_soc_pkg.sv": "4847087468722b5d7dca1d2b99d630f6be0e500c6751abdd06b3fcb98ae81af4",
+    "rtl/lcvex_catapult_soc_top.sv": "644da43ab438de2a92bc068e0548883c86f2bf996df721aef436e7a2a9aaa3d9",
+    "rtl/lcvex_cluster_pkg.sv": "a09a28cd005cf55850d47272d974c7d135989a10c03bcae11101b22a649afd09",
+    "rtl/lcvex_core.sv": "da1a9ced9a204b5b78dd55218ba14115be7f1e3fe4eb5059ca59e838967ceccf",
+    "rtl/lcvex_decode.sv": "f559ef76c135fb028b41942c8d4c4d6de2171e07845f4e9d049a293d8d23cc16",
+    "rtl/lcvex_fp_scalar.sv": "c30396fef6f3bc55fef912a9d1e6ee807efb8a85eb72870763d63df4487521e4",
+    "rtl/lcvex_fp_state.sv": "5b4c4111be4152ea9fb2eb72fb8ebfad479ab10d322171061b6d9ad224f1dea3",
+    "rtl/lcvex_gic.sv": "d744ba560822dd25c48e6effbf4cf5db37295c4d55faf5ca168f7f6d77c6d83f",
+    "rtl/lcvex_l1_coherence.sv": "3f66069f192c351cfe1ab619aad7f37d1c3e4b95b9e314a32ca5e3befd5f2643",
+    "rtl/lcvex_l1_d.sv": "6596daa86da8354a4b456301b0b911d21f38e14f68a3dde45bf6c231ffcbfa1e",
+    "rtl/lcvex_l1_d_wb.sv": "6c1c5bf182d484330d11e3e20d346b2e58426df7bf599cbe76a2ab5a31278d92",
+    "rtl/lcvex_l1_i.sv": "76b1276b3cea3637d27aa10f3bff69bd472e97a38b6aaf9a5eb69769b3fcc2b3",
+    "rtl/lcvex_l2.sv": "2ac54aa357f04b8456cac86275308423b1dbb2dccb3154671e5049a54752d03a",
+    "rtl/lcvex_l2_probe.sv": "c0db4be20b541f8cc7cb6be3c5929ee6ea348a4fedb134525d2de42ae58fe10a",
+    "rtl/lcvex_l2_wb.sv": "4f6eb2d7c448a6ad30fef25ef518987f27a51af24cfa19fb089a640523e85b83",
+    "rtl/lcvex_mem.sv": "573231b8f5cd0cdbfc71289fc9aff1c4cc53dd44aaf89172d86804364aa29250",
+    "rtl/lcvex_mem_arb.sv": "9d9a876b6b737ffd948b16746579801c3b950bb0e0d38cd178647c76f35c0918",
+    "rtl/lcvex_mem_delay.sv": "e2ac38279e3b9dbfa77d613077f1e8f88dbf3273159613ce0b3be404fa9c360d",
+    "rtl/lcvex_mem_ram.sv": "dd9ca55979f4f8c4d8ba4b54fe88e4f6887f30f9d7649f06828f6ed4f9c9e0f6",
+    "rtl/lcvex_mem_router.sv": "10b5d87a79ae0a0f5dba1d1e3f81935423232d6f6b8e9ce5997eb494b131db9f",
+    "rtl/lcvex_mmio_fabric.sv": "d8bc02d965d27c1d062dd160bcf67e95eb1fd52a6315c31cec883af70aa62c30",
+    "rtl/lcvex_mmu.sv": "5d19da9c23fca3803931d698399c6ed610f33c2e4fd78978b4f46e56dc1afcc5",
+    "rtl/lcvex_muldiv.sv": "e4de6bbd51708ccebd9607df93dd9aaa0835038e7074f5cffbd9233f029ab954",
+    "rtl/lcvex_neon_fp.sv": "32a6d6948135240482274ac2a8111337cfbfc8ee9063dd2e37ff3d253963abee",
+    "rtl/lcvex_neon_int.sv": "46bd345a83fa6549a665c9450e5412a6a7e61fdd0c853e441fc7e988e5c34778",
+    "rtl/lcvex_pkg.sv": "de43ab7118605baa8e8d5c7a2072bcdd1b20bcc0317c4d04d6d7091090faab6b",
+    "rtl/lcvex_pl011.sv": "0029e6f51b7ee839fbc96310315ebf526bd925f878a439840166805a68370f8b",
+    "rtl/lcvex_pl061.sv": "37785ce97c45d6c9f6231c442829f18887ce5b4707251372ba9c260b446ae672",
+    "rtl/lcvex_regfile.sv": "9c52944af1534131a34a6175876aa75f804847df5db7f79cda8632e300254d61",
+    "tb/sv/lcvex_jtag_uart_model.sv": "e99c84f7e7d1e756c4e170cdadcdaa6ddf6b2c37e0b9eb91004a9c143d2f11e6"
+  },
+  "conclusions": {
+    "hierarchyBrowsing": "Real full-FP SoC elaboration provides a browseable RTL instance tree; a complete synthesized gate hierarchy still needs a capable SV synthesis frontend and memory/IP handling.",
+    "bareMetal": "Requires multi-clock edge scheduling, async reset, memory primitives, board bus functional models, image loading and commit/UART checks. Current teaching schema cannot directly execute this SoC.",
+    "linuxBoot": "Not demonstrated on the GPU. Requires real 128MiB functional RAM, interrupts/timer/flash/UART models and long-run differential validation. NoFP board Linux evidence does not validate current full-FP GPU behavior."
+  }
+}

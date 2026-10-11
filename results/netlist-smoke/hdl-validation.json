@@ -1,0 +1,19 @@
+{
+  "name": "smoke_accumulator",
+  "nodeCount": 69,
+  "maxDepth": 11,
+  "settlePasses": 12,
+  "registerCount": 4,
+  "vectorCount": 897,
+  "cellCounts": {
+    "$_NOT_": 7,
+    "$_AND_": 25,
+    "$_XOR_": 7,
+    "$_OR_": 16,
+    "$_DFF_P_": 4
+  },
+  "rtlPassed": true,
+  "synthesizedPassed": true,
+  "tracesEqual": true,
+  "allNodeReferencePassed": true
+}

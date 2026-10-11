@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "independentGpuBuffers": true,
+  "nodesCompared": 524,
+  "liveHistoryValuesCompared": 192,
+  "frozenHistoryValuesCompared": 128,
+  "restoredCycle": 153,
+  "catchupCycles": 16,
+  "permissionDenialVerified": true,
+  "terminalSnapshotVerified": true,
+  "transport": "Synced payload copied between two actual Udon/GPU instances in one Editor; real multiplayer transport and native ownership transfer not exercised."
+}

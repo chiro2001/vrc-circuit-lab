@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "path": "OnPickup -> nearby candidate -> OnPickupUseDown -> GPU gather",
+  "recordedClockSamples": 8,
+  "confirmedLowHigh": true,
+  "numericFormats": [
+    1,
+    2,
+    0
+  ],
+  "channelBitViews": [
+    0,
+    1,
+    2,
+    3,
+    -1
+  ],
+  "explicitDetachStoppedAcquisition": true,
+  "dropClearedPreselectionLabel": true
+}

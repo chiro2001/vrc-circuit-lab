@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "initialEnabledControls": 95,
+  "firstClickClaimsAndSteps": true,
+  "hierarchyClick": true,
+  "probeSelectionClick": true,
+  "freezeClick": true,
+  "observerLock": true,
+  "requestClick": true,
+  "physicsShapeRays": 4,
+  "inputPath": "Unity pointerClick -> Button.onClick -> backing Udon Press -> actual target",
+  "nativeMouseInputAndMultiplayerNotExercised": true
+}

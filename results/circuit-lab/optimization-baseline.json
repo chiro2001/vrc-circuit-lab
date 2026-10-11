@@ -1,0 +1,360 @@
+{
+  "capturedAt": "2026-10-11T14:30:01.9032679Z",
+  "playing": false,
+  "scenes": [
+    {
+      "path": "Assets/CircuitLab/Scenes/CircuitLab.unity",
+      "isDirty": false,
+      "isLoaded": true,
+      "roots": [
+        {
+          "name": "CircuitLabWorld",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      ]
+    }
+  ],
+  "environment": [
+    {
+      "path": "CircuitLabWorld/Floor",
+      "position": [
+        0.0,
+        -0.12,
+        2.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        100.0,
+        0.2,
+        100.0
+      ],
+      "active": true
+    }
+  ],
+  "colliders": [
+    {
+      "Key": {
+        "type": "SphereCollider",
+        "layer": "Default",
+        "isTrigger": false
+      },
+      "count": 1412
+    },
+    {
+      "Key": {
+        "type": "BoxCollider",
+        "layer": "Default",
+        "isTrigger": false
+      },
+      "count": 120
+    },
+    {
+      "Key": {
+        "type": "BoxCollider",
+        "layer": "Pickup",
+        "isTrigger": false
+      },
+      "count": 22
+    },
+    {
+      "Key": {
+        "type": "CapsuleCollider",
+        "layer": "Pickup",
+        "isTrigger": false
+      },
+      "count": 4
+    }
+  ],
+  "pickups": [
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_2_adder/ChildrenDock/Module_7_fa4",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Probe_B",
+      "version": "Version_1_1",
+      "proximity": 0.8,
+      "DisallowTheft": false,
+      "autoHold": "Yes",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_12_bit_or",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_2_adder/ChildrenDock/Module_8_fa5",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_11_bit_and",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Probe_C",
+      "version": "Version_1_1",
+      "proximity": 0.8,
+      "DisallowTheft": false,
+      "autoHold": "Yes",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_0_teaching_cpu",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_2_adder/ChildrenDock/Module_6_fa3",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_15_output_unit",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_14_control",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Probe_A",
+      "version": "Version_1_1",
+      "proximity": 0.8,
+      "DisallowTheft": false,
+      "autoHold": "Yes",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_18_rom",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_2_adder/ChildrenDock/Module_4_fa1",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_2_adder/ChildrenDock/Module_10_fa7",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_2_adder/ChildrenDock/Module_5_fa2",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Probe_D",
+      "version": "Version_1_1",
+      "proximity": 0.8,
+      "DisallowTheft": false,
+      "autoHold": "Yes",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_2_adder",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_2_adder/ChildrenDock/Module_3_fa0",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_2_adder/ChildrenDock/Module_9_fa6",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/MovableWaveformPanel",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_16_pc_unit",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_17_registers",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    },
+    {
+      "path": "CircuitLabWorld/Workspace/Module_1_alu/ChildrenDock/Module_13_bit_xor",
+      "version": "Version_1_1",
+      "proximity": 2.8,
+      "DisallowTheft": false,
+      "autoHold": "AutoDetect",
+      "grip": null,
+      "layer": "Pickup"
+    }
+  ],
+  "playerCollisionLayers": [
+    {
+      "name": "Default",
+      "layer": 0,
+      "playerCollision": true,
+      "localCollision": true
+    },
+    {
+      "name": "Pickup",
+      "layer": 13,
+      "playerCollision": false,
+      "localCollision": false
+    },
+    {
+      "name": "PickupNoEnvironment",
+      "layer": 14,
+      "playerCollision": false,
+      "localCollision": false
+    },
+    {
+      "name": "Walkthrough",
+      "layer": 17,
+      "playerCollision": false,
+      "localCollision": false
+    },
+    {
+      "name": "UI",
+      "layer": 5,
+      "playerCollision": false,
+      "localCollision": false
+    },
+    {
+      "name": "Player",
+      "layer": 9,
+      "playerCollision": false,
+      "localCollision": false
+    },
+    {
+      "name": "PlayerLocal",
+      "layer": 10,
+      "playerCollision": false,
+      "localCollision": false
+    }
+  ],
+  "sdk": {
+    "readback": [
+      "Boolean TryGetData(Byte[], Int32)",
+      "Boolean TryGetData(Single[], Int32)",
+      "Boolean TryGetData(UnityEngine.Color32[], Int32)",
+      "Boolean TryGetData(UnityEngine.Color[], Int32)"
+    ],
+    "pickupVersions": [
+      "Version_1_0",
+      "Version_1_1"
+    ]
+  }
+}

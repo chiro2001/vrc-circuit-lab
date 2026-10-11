@@ -1,0 +1,21 @@
+{
+  "circuits/teaching_cpu.v": "720ff760c2caf0b48a5c9a70a6e249faa43b77c44b8e880f22510aba8201ede6",
+  "circuits/teaching_cpu_tb.sv": "8bf624661df0fe6e973343d6a48be0c841ee5e057707fec153ad61b0d4913c23",
+  "circuits/teaching_cpu_units_tb.sv": "7238d51d1a1518eb943511f6239cb615796be084220865bdbdb7c1dd8c187984",
+  "tools/build_teaching_cpu.py": "eb8ed59a7a13e1a26062b79e1ea7c875e7a8812cd19aebfbf6dd2162ef842d2b",
+  "tools/deploy_circuit_lab.py": "3e5419276147f20060d0d58ed7f5bef0def0b3065d97687d76fcc35ec0c5018e",
+  "tools/run_circuit_lab_checks.py": "cfa812e73592c42305d9361844a9c54abc1e649e445a16b986319a2a93f00939",
+  "unity/AgentScripts/BuildCircuitLab.cs": "bb9dadfaed6a3b6d24a9e69f3559fa55651deb06d8678c6e47890e1ff87a290b",
+  "unity/AgentScripts/ValidateCircuitLab.cs": "69929c879702ca65ef27ef7f886aa3742e559e70a761bde2e4fa6150902ece27",
+  "unity/Assets/CircuitLab/Editor/CircuitLabPlayModeBootstrap.cs": "23535c43f76003145654da1bac3ac0d3dc409882e4b58aff668818526cc761e1",
+  "unity/Assets/CircuitLab/Scripts/CircuitLabButton.cs": "0c3bedf75605c44f01919107ec1f5c2898f576e462ac99d7270bf926fcd9790f",
+  "unity/Assets/CircuitLab/Scripts/CircuitLabModule.cs": "a81f55b1a70f3502885c7b773ab1a0399e3a11c4b82bdd340a97531d46baa0b9",
+  "unity/Assets/CircuitLab/Scripts/CircuitLabProbe.cs": "180f0e21e9a2ef0f51791864de631467f6eb29d335424101cfdd9d28497463eb",
+  "unity/Assets/CircuitLab/Scripts/CircuitLabSignalTarget.cs": "516b667e97bf2def2c276e329536f5d7f64c2b8815fc31d153ebe30ebba01b45",
+  "unity/Assets/CircuitLab/Scripts/CircuitLabSimulator.cs": "10a6d4fc3cce69c67b6f9aea07a78cc3a43e765cb8d1bbfe2258d1f77fb85687",
+  "unity/Assets/CircuitLab/Scripts/CircuitLabWire.cs": "1503372e19ba96edea9a209f22f21b4c4c520984f824533081dea085455d6481",
+  "unity/Assets/CircuitLab/Shaders/CircuitLabDisplay.shader": "647f5e7c4c050f92183d954f84b37a99a1599590dc475f62f69f32f3e302b461",
+  "unity/Assets/CircuitLab/Shaders/CircuitLabHistory.shader": "a3c8e5cd5605ff7a881b5a6b3dd3ac483da6b09ccf2d4e0447dc958a19963717",
+  "unity/Assets/CircuitLab/Shaders/CircuitLabSim.shader": "e7aec34754a735b41f9c2834e1e9d953e38246f107a760f076d8ba7d7e2e13c4",
+  "unity/Assets/CircuitLab/Shaders/CircuitLabWaveform.shader": "0c9c16cf3fcebe35878e263b18881e88844c3a5dd2ad236c7293552f70db7ae2"
+}

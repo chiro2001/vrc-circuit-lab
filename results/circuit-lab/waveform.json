@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "source": "independent RTL/gate low/high trace",
+  "samples": 1892,
+  "comparedValues": 7564,
+  "channels": [
+    "pc",
+    "instruction",
+    "acc",
+    "out"
+  ],
+  "capacity": 2048,
+  "invalidInitialLowSkipped": true
+}

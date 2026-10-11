@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "path": "backing Udon events + SignalTarget.Interact -> Probe.BindTarget -> Simulator.BindProbe",
+  "extractedPlacementPreserved": true,
+  "hiddenDescendants": true,
+  "foldedBindingPreserved": true,
+  "explicitDetach": true
+}

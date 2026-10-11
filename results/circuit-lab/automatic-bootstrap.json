@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "noManualIsolationCommand": true,
+  "actualUdonStarted": true,
+  "defaultPaused": true,
+  "resetZeroFlag": 1,
+  "singleStepCycle": 1,
+  "editorOnly": true
+}

@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "channelsUnbound": 4,
+  "frozenPixelsCompared": 8192,
+  "frozenWaveformUnchanged": true,
+  "cpuUnaffected": true
+}

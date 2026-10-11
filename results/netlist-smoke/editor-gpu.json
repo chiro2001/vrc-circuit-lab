@@ -1,0 +1,19 @@
+{
+  "playing": true,
+  "statusCode": 2,
+  "completedVectors": 897,
+  "mismatchCount": 0,
+  "observedQ": 7,
+  "cycleCount": 897,
+  "elapsedMilliseconds": 19958.6484,
+  "smokeRunId": 2,
+  "dataValue": 1,
+  "proxyDataValue": 1,
+  "inputMask": 125,
+  "readbackPending": false,
+  "shaderSupported": true,
+  "shaderDiagnostics": [],
+  "statusText": "PASS   897 / 897 vectors\nGPU q = 7   cycle = 897   mismatches = 0",
+  "graphicsDevice": "NVIDIA GeForce RTX 5080",
+  "graphicsApi": "Direct3D11"
+}

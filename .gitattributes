@@ -1,0 +1,17 @@
+* text=auto eol=lf
+*.unity text
+*.prefab text
+*.mat text
+*.meta text
+# Unity emits trailing spaces for empty YAML values; preserve its serialization.
+*.unity whitespace=-blank-at-eol
+*.prefab whitespace=-blank-at-eol
+*.mat whitespace=-blank-at-eol
+*.asset whitespace=-blank-at-eol
+*.meta whitespace=-blank-at-eol
+*.cs text
+*.shader text
+*.dll binary
+*.png binary
+*.jpg binary
+*.ttf binary

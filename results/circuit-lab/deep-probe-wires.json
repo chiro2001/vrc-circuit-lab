@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "modulesSimultaneouslyExpanded": 4,
+  "extractedModule": "teaching_cpu/alu/adder/fa0",
+  "target": "teaching_cpu/alu/adder/fa0/sum",
+  "movingPreservedAllStateBits": true,
+  "followingBoundaryWires": 4,
+  "hiddenTargetStillRecorded": true,
+  "poseRestoredAfterExpansion": true,
+  "retrieved": true
+}

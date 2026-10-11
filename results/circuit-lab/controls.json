@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "initialCycle": 96,
+  "pausedCycle": 99,
+  "sampleCount": 198,
+  "observedAcc": 16,
+  "observedPc": 4,
+  "eventPath": "UdonBehaviour.Interact -> button Udon -> simulator Udon -> GPU"
+}

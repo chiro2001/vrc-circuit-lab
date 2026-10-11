@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "queuedSteps": 16,
+  "haltedAcc": 170,
+  "haltedOut": 170,
+  "haltPc": 15,
+  "resetRetainedHistory": true,
+  "countingAcc": 5,
+  "countingOut": 5,
+  "cyclesPerSecond": 2.0
+}

@@ -1,0 +1,13 @@
+{
+  "acceptanceEnvironment": "Unity Play Mode / Udon VM / Direct3D11",
+  "rtlAndSynthesizedTestsPassed": true,
+  "vectors": 897,
+  "signals": 69,
+  "comparedBits": 61893,
+  "gpuMismatches": 0,
+  "manualControlsPassed": true,
+  "queuedClocksPassed": 16,
+  "runTestButtonPassed": true,
+  "gpuDevice": "NVIDIA GeForce RTX 5080",
+  "elapsedMilliseconds": 19958.6484
+}
