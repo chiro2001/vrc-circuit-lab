@@ -4,6 +4,9 @@ Shader "VrcCpuWorld/CircuitLabSim"
     {
         _MainTex ("Previous state", 2D) = "black" {}
         _Gates ("Gate instructions", 2D) = "black" {}
+        _ProgramTex ("Program ROM", 2D) = "black" {}
+        _RamTex ("Current RAM", 2D) = "black" {}
+        _RestoreState ("DFF restore state", 2D) = "black" {}
     }
     SubShader
     {
@@ -15,14 +18,58 @@ Shader "VrcCpuWorld/CircuitLabSim"
             #pragma fragment frag
             #pragma target 3.5
             #include "UnityCG.cginc"
-            sampler2D _MainTex, _Gates;
-            sampler2D _RestoreIndices;
+            sampler2D _MainTex, _Gates, _ProgramTex, _RamTex;
+            sampler2D _RestoreState;
             int _NodeCount, _TextureWidth, _Mode, _InputMask;
-            float4 _RestoreWords;
+            float4 _RomAddressA, _RomAddressB, _RomAddressC;
+            float4 _RamReadAddressA, _RamReadAddressB;
 
             uint Bit(float id)
             {
+                if (id < 0 || id >= _NodeCount) return 0u;
                 return tex2Dlod(_MainTex, float4((id + 0.5) / _TextureWidth, 0.5, 0, 0)).r > 0.5 ? 1u : 0u;
+            }
+
+            float AddressSignal(float4 a, float4 b, float4 c, int bit)
+            {
+                if (bit < 4) return a[bit & 3];
+                if (bit < 8) return b[bit & 3];
+                return c[bit & 3];
+            }
+
+            uint BusBit(float4 a, float4 b, float4 c, int bit)
+            {
+                return Bit(AddressSignal(a, b, c, bit));
+            }
+
+            uint RomAddress()
+            {
+                uint address = 0u;
+                [unroll] for (int bit = 0; bit < 9; bit++) address |= BusBit(_RomAddressA, _RomAddressB, _RomAddressC, bit) << bit;
+                return address;
+            }
+
+            uint RamReadAddress()
+            {
+                uint address = 0u;
+                [unroll] for (int bit = 0; bit < 8; bit++) address |= BusBit(_RamReadAddressA, _RamReadAddressB, float4(-1, -1, -1, -1), bit) << bit;
+                return address;
+            }
+
+            uint RomBit(uint bit)
+            {
+                uint address = RomAddress();
+                float4 encoded = tex2Dlod(_ProgramTex, float4((address + 0.5) / 512.0, 0.5, 0, 0));
+                uint word = (uint)round(encoded.r * 255.0) | ((uint)round(encoded.g * 255.0) << 8);
+                return (word >> bit) & 1u;
+            }
+
+            uint RamBit(uint bit)
+            {
+                uint address = RamReadAddress();
+                float2 uv = float2((address % 16u + 0.5) / 16.0, (address / 16u + 0.5) / 16.0);
+                uint value = (uint)round(tex2Dlod(_RamTex, float4(uv, 0, 0)).r * 255.0);
+                return (value >> bit) & 1u;
             }
 
             float4 frag(v2f_img input) : SV_Target
@@ -36,9 +83,8 @@ Shader "VrcCpuWorld/CircuitLabSim"
                 else if (op == 2u) value = ((uint)_InputMask >> (uint)round(instruction.y)) & 1u;
                 else if (_Mode == 3)
                 {
-                    int index = (int)round(tex2Dlod(_RestoreIndices, float4((id + 0.5) / _TextureWidth, 0.5, 0, 0)).r);
-                    if (op == 3u && index >= 0 && index < 64)
-                        value = ((uint)round(_RestoreWords[index / 16]) >> (index & 15)) & 1u;
+                    if (op == 3u) value = tex2Dlod(_RestoreState, float4((id + 0.5) / _TextureWidth, 0.5, 0, 0)).r > 0.5 ? 1u : 0u;
+                    else value = Bit(id);
                 }
                 else if (_Mode == 0) value = 0u;
                 // Mode 2 reads every D from the same old state, so all DFFs commit atomically.
@@ -58,6 +104,8 @@ Shader "VrcCpuWorld/CircuitLabSim"
                     else if (op == 12u) value = 1u - (a | b);
                     else if (op == 13u) value = a & (1u - b);
                     else if (op == 14u) value = a | (1u - b);
+                    else if (op == 15u) value = RomBit((uint)round(instruction.y));
+                    else if (op == 16u) value = RamBit((uint)round(instruction.y));
                 }
                 return float4(value, 0, 0, 1);
             }

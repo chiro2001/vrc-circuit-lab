@@ -1,170 +1,80 @@
-# 8 位教学 CPU 与层次网表
+# 8 位教学 CPU、RAM 与 π 演示
 
-CPU 源码为 [circuits/teaching_cpu.v](circuits/teaching_cpu.v)，构建入口为
-[tools/build_teaching_cpu.py](tools/build_teaching_cpu.py)。它把一个可逐拍观察的小型 CPU
-综合为基础门，同时保留实例树，供电路实验室的层次浏览、模块取出和信号探针使用。
+CPU RTL 位于 [circuits/teaching_cpu.v](circuits/teaching_cpu.v)，汇编与指令参考模型位于 [tools/teaching_cpu_assembler.py](tools/teaching_cpu_assembler.py)。[tools/build_teaching_cpu.py](tools/build_teaching_cpu.py) 执行 RTL、综合网表和参考模型比较，并导出 schema 3 GPU 数据。
 
-## 执行规则
+## 硬件与执行
 
-顶层模块 `teaching_cpu` 的输入为 `clk`、`reset`、`program_select[1:0]`。
-输出 `pc[3:0]`、`instruction[11:0]`、`phase`、`acc[7:0]`、`out[7:0]`、
-`zero`、`carry`、`halt` 是真实电路信号。向量的信号 ID 列表均按低位到高位排列。
+ACC、X、SP、OUT 均为 8 位，PC 为 9 位，程序为 512×12 位，数据 RAM 为 256×8 位。CPU 为单时钟、同步复位、二值零延迟模型。普通指令 FETCH/EXEC 两拍；长跳转、CALL/RET 使用额外微步，真实 phase 是三位总线。
 
-所有状态都在同一个时钟的上升沿更新，复位为同步复位，优先于写使能。
-复位结果为 PC、指令、ACC、OUT、phase、carry、halt 清零，zero 置一。
+RESET 清零 CPU 寄存器、标志和执行状态（Z 置一），保留全部 RAM；复位拍写使能被关闭，不能提交此前待执行的 STORE。冷启动、RESTART 和加载程序才应用该程序的 initialRam。CALL/RET 在 RAM 中保存和恢复九位返回地址；X 支持间接访存。
 
-每条指令分两拍：
+指令第一字仍为 opcode[11:8] + operand[7:0]，每字三位 HEX。跳转第二字低九位给出长地址。
 
-1. `phase=0` 表示 FETCH；下一次上升沿读取 `ROM[pc]`，锁存指令，进入 EXEC。
-2. `phase=1` 表示 EXEC；下一次上升沿提交运算、输出或跳转，然后返回 FETCH。
-
-PC 在 EXEC 提交时递增或跳转，在 FETCH 时保持。HALT 提交后 PC 和所有状态保持，
-phase 保持为 1；再次同步复位可恢复执行。`program_select` 选择三套 16×12 位 ROM，
-FETCH 使用该拍输入的选择值；切换示例程序时通常同时复位。
-
-指令高 4 位为 opcode，低 8 位为立即数。跳转使用立即数的低 4 位。
-
-| Opcode | 指令 | EXEC 操作 |
+| Opcode | 指令 | 说明 |
 | --- | --- | --- |
-| 0 | LDI imm | ACC ← imm |
-| 1 | ADDI imm | ACC ← ACC + imm，保留第 9 位进位 |
-| 2 | ANDI imm | ACC ← ACC & imm |
-| 3 | ORI imm | ACC ← ACC \| imm |
-| 4 | XORI imm | ACC ← ACC ^ imm |
-| 5 | OUT | OUT ← ACC |
-| 6 | JMP addr | PC ← addr |
-| 7 | JZ addr | zero=1 时跳转，否则 PC 递增 |
-| F | HALT | 停止提交 |
+| 0 | LDI imm | ACC←imm，更新Z，清C |
+| 1 | ADDI imm | 立即数加法，更新Z/C |
+| 2/3/4 | ANDI/ORI/XORI imm | 逻辑操作，更新Z，清C |
+| 5 | OUT | 输出ACC，产生独立终端写事务 |
+| 6/7 | JMP/JZ addr8 | 低八位绝对跳转/零条件跳转 |
+| 8/9 | LD/ST addr8 | 读写RAM；LD更新Z并保留C，ST保留标志 |
+| A/B | ADD/SUB addr8 | ACC与RAM运算；SUB的C=1表示无借位 |
+| C/D | ADC/SBC addr8 | 加入进位，或减去(1-C)，支持多字运算 |
+| E | EXT | 子操作见下表 |
+| F | HALT | 停止CPU提交，保持状态 |
 
-LDI、ADDI、ANDI、ORI、XORI 更新 zero；只有 ADDI 可以置 carry，其他四条清 carry。
-OUT、跳转和 HALT 保持两个标志。8～E 作为空操作处理，PC 正常递增。
+EXT 使用 operand 高四位选择子操作：
 
-## 两套示例程序
+| 子操作 | 指令 |
+| --- | --- |
+| 0/1 | SHL/SHR，C为移出位 |
+| 2/3 | TAX/TXA |
+| 4/5 | LDAX/STAX，访问RAM[X] |
+| 6/7 | INX/DEX，更新Z，保留C |
+| 8/9 | ADDX/SUBX |
+| A/B | JC/JNC，第二字为长地址 |
+| C/D | JMP9/JZ9，第二字为长地址 |
+| E/F | CALL（第二字地址）/RET |
 
-`program_select=0` 为计数循环：先 `LDI 0; OUT`，再循环执行
-`ADDI 1; OUT; JMP 2`。每六个上升沿输出增加一，8 位溢出时变为零并置进位。
+## 计算 π
 
-`program_select=1` 为逻辑与条件跳转示例：
+默认程序 [pi_355_113.asm](circuits/programs/pi_355_113.asm) 使用 π≈355/113，通过CPU求整数商3和余数16，再运行十进制长除法逐位输出 `3.141592\n`。每位用十次有界8位累加、比较和减法产生，数字来自执行过程；程序未预置π数字串，也未由Udon代算。
 
-| 地址 | 指令 | 结果或作用 |
-| --- | --- | --- |
-| 0 | LDI A5 | ACC=A5 |
-| 1 | ANDI 0F | ACC=05 |
-| 2 | ORI 80 | ACC=85 |
-| 3 | XORI 85 | ACC=00，zero=1 |
-| 4 | JZ 6 | 跳过地址 5 |
-| 5 | LDI FF | 被跳过 |
-| 6 | ORI 3C | ACC=3C |
-| 7 | OUT | OUT=3C |
-| 8 | ADDI C4 | ACC=00，carry=1，zero=1 |
-| 9 | JZ B | 跳过地址 A |
-| A | LDI EE | 被跳过 |
-| B | OUT | OUT=00 |
-| C | LDI 55 | ACC=55，carry=0 |
-| D | XORI FF | ACC=AA |
-| E | OUT | OUT=AA |
-| F | HALT | PC=F，phase=1，halt=1 |
+该近似的前六位小数与π一致，第七位起不一致，UI程序说明明确这一界限。`~/tmp/simple-cpu-pi` 的长除法实现是只读参考，本工程适配了不同的C/LDI语义；其Machin示例的级数项由汇编期预算，本轮没有把它称为CPU执行完整反正切级数。
 
-`program_select=2` 为文字输出程序，实际执行 LDI/OUT，输出六个 ASCII 字节 `HELLO\n`。
-两个 `L` 来自地址 5、6 的独立 OUT 指令；第二次 OUT 没有改变 ACC 或 OUT 数据，仍产生事件。
-选择值 3 的 ROM 全为 HALT，不产生字符写入。
+RTL与综合网表均执行2020个运行周期（另有1个初始化RESET周期）输出九个字节 `[51,46,49,52,49,53,57,50,10]`，并比较全部256字节末RAM。RAM[0:9]为 `[113,104,104,2,0,0,0,16,3]`。
 
-## 字符写事务
+## 预置程序
 
-`terminal_data[7:0]` 与 `out[7:0]` 共用实际信号 ID。
-`terminal_write` 是真实 RTL 注册的一拍写脉冲：EXEC OUT 的上升沿提交后为 1，
-下一个上升沿在没有 OUT 写入时归零。`terminal_sequence[7:0]` 每次 OUT 递增，模 256 回绕。
-同步复位同时清零写脉冲、序号和数据；HALT 不产生写入。
+目录 [circuits/programs](circuits/programs) 提供π长除法、循环计数、逻辑运算、HELLO、HALT、流水灯、55/AA交替、FF+1、倒计时、ASCII数字、步长计数、九位CALL/RET和CPU/RAM验证程序，共13项。程序元数据同时保存名称、说明、512字程序映像、256字节初始化映像及适用时的独立验证结果。
 
-终端在上升沿提交后的高电平稳定状态读取 `terminal_write=1` 的事件，每次追加一个字节，
-不以数据是否改变作为判断条件。低电平采样可能仍看到上一拍写脉冲和序号，不能再次追加字符。
-需要同时采样多个相位时，可用序号去重；复位后的序号从零重新开始。
+## GPU 边界与层次
 
-## 保留的模块结构
+CPU控制、PC、寄存器、输出单元、ALU及八个full-adder保留真实RTL实例，合成成基础门和DFF。ROM/RAM作为明确的存储器原语保留，综合网表测试连接同语义的RTL行为模型。GPU状态纹理保存实际电路节点，独立RAM纹理保存字节，RAM读写由真实CPU端口驱动。
 
-```text
-teaching_cpu
-├── rom                  teaching_rom
-├── control              teaching_control
-├── pc_unit              teaching_pc
-├── registers            teaching_registers
-├── output_unit          teaching_output
-└── alu                  teaching_alu
-    ├── bit_and          teaching_and8
-    ├── bit_or           teaching_or8
-    ├── bit_xor          teaching_xor8
-    └── adder            teaching_adder8
-        └── fa0～fa7     teaching_full_adder（八个独立实例）
-```
+schema 3保留nodes/modules/signals/ports，新增memoryPorts、programs、isa、fixturePrograms、fixtureRamReset。op15=ROM_READ、op16=RAM_READ，a是输出位下标，组合依赖是对应读地址总线。所有ID位序低位先；nodes.level和modules.ports来自真实综合拓扑。RAM测点虚拟ID为nodeCount+address×8+bit，直接由GPU历史采样RAM纹理，未伪装成网表门节点。
 
-ROM 为组合 case 逻辑，不使用存储器单元。综合不执行 flatten，ABC 在各模块内映射基础门。
-`dffunmap` 将同步复位和写使能展开成 MUX + `$_DFF_P_`。
-导出器拒绝锁存器、存储器、未知门型、组合环和非顶层统一时钟。
+当前规模：1127节点、77个DFF、20个模块，状态纹理宽2048，组合深度42、稳定迭代43。独立RAM为16×16 ARGB32线性Point采样，每像素R通道保存一个字节。ROM的RGBA32纹理以R保存低八位、G保存高四位。
 
-## 生成与验证
+## 构建与验证
 
-本地需要 Python 3、Yosys、Icarus Verilog：
+需要Python 3、Yosys、Icarus Verilog。临时文件使用项目专属目录：
 
 ```sh
 python tools/build_teaching_cpu.py
+python tools/deploy_circuit_lab.py
+python tools/unity_remote.py --check-result run_script --file AgentScripts/BuildCircuitLab.cs --entry BuildCircuitLab.CompileUdon
+python tools/unity_remote.py --check-result run_script --file AgentScripts/BuildCircuitLab.cs --entry BuildCircuitLab.UpgradeScene
 ```
 
-默认输出到 `~/tmp/vrc-cpu-map/circuit-lab/hdl/`，子进程的 `TMPDIR` 也设在该目录。
-可用 `--output <目录>` 修改路径。主要结果为：
+默认产物为 `~/tmp/vrc-cpu-map/circuit-lab/hdl/`。本轮集成产物使用 `~/tmp/vrc-cpu-map/cpu-hdl-build/`，部署时显式传入 `--data`。UpgradeScene保留环境、原模块和工具摆放，标记修改但不自动保存。
 
-| 文件 | 内容 |
-| --- | --- |
-| `gpu-netlist.json` | schema 2 网表、层次元数据、全部节点 GPU 参考状态 |
-| `netlist.json` | Yosys 原始层次 JSON |
-| `synthesized.v` | 可由 Icarus 再次仿真的层次综合网表 |
-| `test-report.json` | 测试结果与规模统计 |
-| `waveform-reference.json` | GPU fixture 每拍低、高电平的顶层 RTL 参考 |
-| `rtl-*.csv`、`gate-*.csv` | 完整与 fixture 的顶层逐拍/半拍轨迹 |
-| `*-compile.log`、`*-test.log`、`yosys.log` | 工具日志 |
+RTL、综合网表和指令参考模型比较真实端口、终端事件和RAM；短GPU fixture有128个向量，覆盖访存、进借位、间接地址、移位、长跳转、CALL/RET和reset取消写入。完整π单独验证，避免把全运行轨迹乘全部节点生成巨量fixture。Unity 验证入口为 `ValidateCircuitLabRam` 与 `ValidateCircuitLabRamReplica`。已通过 128 周期 × 1127 节点的 144,256 位 GPU 对照，以及 256 个低/高相位样本、1020 个有效端口值的独立 RTL 波形核对。实际 GPU π 输出 `3.141592\n`，九次 OUT、全部 256 字节末 RAM 与参考一致；256 Hz 下约 8–9 秒完成，终端读回错误和漏采均为 0。
 
-测试包括全部 327680 组 ALU 运算、全部 131072 组带输入进位的加法、32 组控制译码
-（16 个 opcode × 两种 zero）、256 组 PC 控制，以及 2234 拍 CPU 程序与复位测试。
-长计数测试覆盖 ACC 从 FF 溢出到 00；逻辑程序覆盖两次条件跳转、进位、OUT、HALT 保持；
-文字用例检查 `HELLO\n` 六次写入、重复字符、HALT 保持和待提交 OUT 被复位取消；
-确定性随机序列覆盖运行中同步复位和全部 ROM 选择。RTL 和综合网表分别执行这些测试，
-并逐字节比较输出 CSV，包括低、高电平采样。
+HEX/BIN 及注释/前缀加载、非法输入不改变程序、RESET 保留 RAM/取消待写、RESTART 初始化 RAM、RAM 探头与冻结均经实际 Udon/GPU 验证。独立副本恢复 1127 节点、77 DFF、512 字程序与 256 字节 RAM，随后本地计算追赶 16 周期并验证实际 RAM 写入。报告位于 [results/circuit-lab](results/circuit-lab)；真实多人传输和原生 PC/VR 输入尚需客户端验收。
 
-GPU fixture 是另外连续执行的 946 拍短测试，保留 512 拍计数、完整逻辑/文字程序与随机序列。
-Python 网表解释器先稳定组合逻辑，再同时提交所有 DFF，再次稳定；它逐拍检查全部顶层状态，
-也检查低电平参考，然后生成每拍所有节点的二值参考。独立 RTL 半拍参考共 1892 个采样。
-第一个低电平采样标为 `valid=false`，因为 GPU 的初始全零状态尚未经过同步复位；
-第一个高电平及后续所有采样都有效。
-
-2026-10-11 实际验证通过，使用 Yosys 0.66 与 Icarus 13.0：524 个节点、19 个模块实例、
-45 个 DFF、纹理宽度 1024、组合最大深度 25、稳定迭代次数 26。
-
-## schema 2 接口
-
-保留旧仿真指令编号：0 CONST0、1 CONST1、2 INPUT、3 DFF、4 BUF、5 NOT、6 AND、
-7 OR、8 XOR、9 XNOR、10 MUX、11 NAND、12 NOR、13 ANDNOT、14 ORNOT。
-MUX 为 `c ? b : a`，ANDNOT 为 `a & ~b`，ORNOT 为 `a | ~b`。
-
-- `nodes[id]` 与 signal ID 一一对应。0、1 为共享常量；节点含 `id/op/a/b/c/name/level/moduleId`。
-  INPUT 的 `a` 是输入 mask 中的偏移，DFF 的 `a` 是 D 输入信号 ID。level 为全局组合深度，
-  输入、常量、DFF 为 0。
-- `ports` 将顶层端口名映射为信号 ID 列表。`inputOffsets` 固定为
-  `{ "clk": 0, "reset": 1, "program_select": 2 }`。
-  program_select 占 mask 的 bit 2、3；mask 最多四个输入位。
-- `modules` 是完整实例树，ID、parentId、moduleId 都是整数。根 ID=0，parentId=-1。
-  每项含 `path/type/name/ports/children/nodes`；ports 是 `{name,direction,signals}` 列表，
-  nodes 只包含该实例实际驱动的节点。
-- `signals` 只包含综合网表实际保留的网名，键如 `teaching_cpu/alu/adder/fa0/propagate`。
-  不为已优化消失的 RTL 信号伪造探针。模块端口别名共享同一个 ID；跨模块连接不会重复状态。
-- `inputMasks` 每项代表一次完整上升沿，clk 位为 1；模拟器执行低电平稳定、上升沿提交、
-  高电平稳定。`expectedStates` 按 `vectorCount × nodeCount` 展平，每项为 0/1 字节整数，
-  对应上升沿后的稳定状态。
-- `dffSignals` 按 signal ID 排列全部 45 个 DFF，用于保存和恢复完整 CPU 状态。
-  `outputWriteSignal` 是 terminal_write 的信号 ID，`outSignals` 是输出数据的低位到高位 ID 列表，
-  `terminalSequenceSignals` 是事务序号。`terminalTextFixture` 给出文字程序的首末 vector index
-  （从 0 开始，包含端点）和六个预期字节。
-- `waveform-reference.json` 的 sample 含 `cycle/half/clk/pc/instruction/phase/acc/out/zero/carry/halt/valid`，
-  并包含 `terminal_data/terminal_write/terminal_sequence`。
-  cycle 从 1 开始；half=0 表示提交前低电平，half=1 表示提交后高电平。
-
-别名归属由实际驱动实例决定：例如顶层 `acc` 和 `registers/acc` 共用 ID，节点的
-moduleId 属于 registers。父模块中的端口是浏览与连线的边界，父模块不复制子模块的驱动门。
+```sh
+# 新一轮 PlayMode（默认暂停/LIVE）中执行
+python tools/run_circuit_lab_checks.py --suite ram
+python tools/run_circuit_lab_checks.py --suite gpu
+```

@@ -31,6 +31,18 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _ProgramTex:
+        m_Texture: {fileID: 2800000, guid: bc6da7b3a21656049a18584bac2759e3, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RamTex:
+        m_Texture: {fileID: 8400000, guid: 43abdcb1ac8d2184588373c97436797d, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RestoreState:
+        m_Texture: {fileID: 2800000, guid: f23ae2fe11e5928488dbf708ba34b72f, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats: []
     m_Colors: []

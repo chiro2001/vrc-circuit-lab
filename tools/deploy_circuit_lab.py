@@ -33,19 +33,33 @@ def main():
     data = None
     if not options.builder_only:
         data = json.loads(options.data.read_text())
-        if data.get("schema") != 2:
-            raise ValueError("Expected a hierarchy-preserving schema 2 fixture")
+        if data.get("schema") not in (2, 3):
+            raise ValueError("Expected a hierarchy-preserving schema 2 or 3 fixture")
         if len(data["expectedStates"]) != data["nodeCount"] * data["vectorCount"]:
             raise ValueError("Reference state length differs from node/vector counts")
         if len(data["nodes"]) != data["nodeCount"] or not data.get("modules"):
             raise ValueError("Invalid node or module metadata")
+        if data["schema"] == 3:
+            required_ports = ("romAddress", "romData", "ramReadAddress", "ramReadData", "ramWriteAddress", "ramWriteData", "ramWriteEnable")
+            if any(name not in data.get("memoryPorts", {}) for name in required_ports):
+                raise ValueError("Schema 3 is missing its real memory-port signal mapping")
+            for program in data.get("programs", []):
+                if len(program["words"]) != 512 or any(not 0 <= word <= 4095 for word in program["words"]):
+                    raise ValueError("Program image must contain 512 valid 12-bit words")
+                if len(program["initialRam"]) != 256 or any(not 0 <= value <= 255 for value in program["initialRam"]):
+                    raise ValueError("Program RAM image must contain 256 bytes")
+            if not data.get("programs"):
+                raise ValueError("Schema 3 needs at least one loadable program")
+            for name in ("fixturePrograms", "fixtureRamReset"):
+                if len(data.get(name, [])) != data["vectorCount"]:
+                    raise ValueError(f"Schema 3 fixture length is invalid: {name}")
     TASK_TMP.mkdir(parents=True, exist_ok=True)
     remote_root = checked_pwsh(
         "$taskRoot = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'tmp\\vrc-cpu-world\\circuit-lab'; "
         "New-Item -ItemType Directory -Path $taskRoot -Force | Out-Null; Write-Output $taskRoot",
         options.host,
     )
-    name = "sources-" + uuid.uuid4().hex
+    deployment_name = "sources-" + uuid.uuid4().hex
     with tempfile.TemporaryDirectory(prefix="deploy-", dir=TASK_TMP) as temporary:
         stage = Path(temporary)
         if data is not None:
@@ -56,17 +70,17 @@ def main():
                     raise ValueError(f"Only text sources may be deployed: {path}")
             (source / "Data").mkdir(exist_ok=True)
             (source / "Data/gpu-netlist.json").write_text(json.dumps(data, separators=(",", ":")) + "\n")
-            for name in ("waveform-reference.json", "test-report.json"):
-                reference = options.data.parent / name
+            for reference_name in ("waveform-reference.json", "test-report.json"):
+                reference = options.data.parent / reference_name
                 if reference.is_file():
-                    shutil.copy2(reference, source / "Data" / name)
+                    shutil.copy2(reference, source / "Data" / reference_name)
         scripts = stage / "AgentScripts"
         scripts.mkdir()
         for script in (ROOT / "AgentScripts").glob("*CircuitLab*.cs"):
             shutil.copy2(script, scripts / script.name)
         if not list(scripts.glob("*.cs")):
             raise RuntimeError("CircuitLab builder has not been created yet")
-        archive = stage / (name + ".tgz")
+        archive = stage / (deployment_name + ".tgz")
         with tarfile.open(archive, "w:gz") as tar:
             if data is not None:
                 tar.add(stage / "Assets", arcname="Assets")
@@ -76,7 +90,7 @@ def main():
     checked_pwsh(f"""
 $project = {pwsh_literal(options.project_path)}
 $archive = {pwsh_literal(remote_archive)}
-$stage = Join-Path {pwsh_literal(remote_root)} {pwsh_literal(name)}
+$stage = Join-Path {pwsh_literal(remote_root)} {pwsh_literal(deployment_name)}
 New-Item -ItemType Directory -Path $stage | Out-Null
 try {{
   tar -xzf $archive -C $stage

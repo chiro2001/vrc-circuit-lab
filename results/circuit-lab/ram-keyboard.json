@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "bitOrdering": true,
+  "appendHexAndBinary": true,
+  "clearsVirtualWord": true,
+  "deletesTrailingNewlineWord": true,
+  "inputPath": "actual Unity pointerClick -> backing Udon"
+}

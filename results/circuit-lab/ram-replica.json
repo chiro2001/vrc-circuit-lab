@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "setup": "source paused with loaded program, nonzero actual RAM, and frozen live/frozen waveforms",
+  "independentGpuBuffersAndMutableTextures": true,
+  "staticGateAndRestoreIndexTexturesShared": true,
+  "netlistNodesCompared": 1127,
+  "dffBitsCompared": 77,
+  "dffWordsCopied": 3,
+  "activeProgramWordsCompared": 512,
+  "ramBytesCompared": 256,
+  "ramChangedDuringCatchup": true,
+  "sourceCycle": 4,
+  "catchupCycles": 16,
+  "liveHistorySamplesCompared": 8,
+  "frozenHistorySamplesCompared": 8,
+  "terminalEvents": 0,
+  "programName": "CUSTOM DRAFT",
+  "transport": "Synced arrays copied locally between independent Udon/GPU instances in one Editor; real multiplayer serialization and ownership transfer are not exercised."
+}

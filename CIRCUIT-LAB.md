@@ -9,9 +9,12 @@
 | 控件 | 行为 |
 | --- | --- |
 | RUN / PAUSE / STEP | 连续运行、停在稳定周期边界、推进一个周期 |
-| SLOWER / FASTER | 0.25–32 周期/秒；实际速度取决于客户端 |
-| RESET | 同步复位电路，保留终端文本和波形历史 |
-| RESTART / PROGRAM | 重新初始化或选择程序，清空该实验的记录 |
+| SLOWER / FASTER | 0.25–256 周期/秒；显示目标、实际速度和追赶差额，实际速度取决于客户端 |
+| RESET | 同步复位 CPU，保留 RAM、终端文本和波形历史，取消复位拍的写入 |
+| RESTART / NEXT PROGRAM | 重新初始化或选择程序，恢复 initialRam 并清空实验记录 |
+| HEX / BIN / LOAD DRAFT | 按行输入 12 位程序，校验后原子加载；草稿共享 |
+| SIGNALS / GATES / ROM / RAM | 查看实际状态纹理、门编码、当前程序与 16×16 RAM |
+| BIND BIT / PROBE BYTE | 将选定电路位或 RAM 位/字节绑定到选中探头 |
 | EXPAND / FOLD | 展开或收起场景模块，保留信号身份和探头绑定 |
 | EXTRACT / RETRIEVE | 取出子模块独立摆放，或恢复停靠关系 |
 | RESET LAYOUT | 恢复初始位置、旋转、尺度、停靠和展开状态，保留电路及波形 |
@@ -31,13 +34,23 @@
 
 ## 电路与波形
 
-[教学 CPU](TEACHING-CPU.md)包含 8 位数据、4 位 PC、16×12 位 ROM、FETCH / EXEC 两阶段，以及 LDI / ADDI / ANDI / ORI / XORI / OUT / JMP / JZ / HALT。程序 0 循环计数，程序 1 验证逻辑与条件跳转，程序 2 实际执行指令输出 `HELLO\n`，程序 3 保留为 HALT。
+[教学 CPU](TEACHING-CPU.md)保留 8 位 ACC，新增 X、SP 和 256×8 位 RAM；PC 扩为 9 位、ROM 为 512×12 位。普通指令 FETCH/EXEC 两拍，长跳转和 CALL/RET 有额外微步。13 个预置程序涵盖 π 长除法、计数、逻辑、HELLO、流水灯、倒计时、进借位与长地址栈操作。
 
-综合保留 19 个 module 实例，包括 8 个全加器。当前为 524 个信号节点、45 个 DFF，状态纹理宽度 1024，最大组合深度 25，稳定传播 26 轮。一个周期先求低相位稳定值，再原子提交触发器并求高相位稳定值，仅记录两次稳定结果。模型为二值、单时钟、零延迟；传播轮次不表示物理门延迟或毛刺。
+默认 π 程序从 355 和 113 计算整数商、余数，再用十进制长除法输出 `3.141592\n`。前六位小数与 π 一致，第七位起偏离；程序说明显示这一边界。数字由实际 CPU 算法生成，Udon 只加载程序、调度 GPU 并读取 OUT 事务。
+
+综合保留 20 个 module 实例，包括 8 个全加器，以及明确的 ROM/RAM 原语。当前为 1127 个节点、77 个 DFF，状态纹理宽 2048，最大组合深度 42，稳定传播 43 轮。RAM 是独立的 16×16 字节纹理。一个周期先求低相位稳定值，CPU 寄存器与 RAM 写入从同一份旧状态提交，再求高相位稳定值；只记录两次稳定结果。二值、单时钟、零延迟模型不包含物理门延迟或毛刺。
 
 逻辑分析仪启动时默认 LIVE、跟随最新记录，启动提示在 Udon 初始化前也显示 LIVE。四通道 GPU 环形历史记录真实值、有效性、绑定段及绝对采样编号，容量为 2048 个半周期样本，每通道最多 16 位。冻结保留独立纹理及测点名、宽度和段信息。重绑从新片段开始，不补造此前未采集的数据；探头归架不改写冻结纹理。
 
 BIT VIEW 的 0/1 字形按显示比例和行高保持宽高比。解析 AA 使用像素导数处理线条与字形，开关只改变显示；状态和历史纹理继续 Point 采样。
+
+## 程序与纹理平板
+
+程序板初始在左侧 `(-12, 3.7, -0.4)`，状态平板在右侧 `(12, 3.2, -0.4)`，各向场内偏转 60 度；均可移动并参加全局布局复位。顶部显示当前实际加载的程序、revision 与运行状态，预置选择和共享草稿可独立浏览；点击 LOAD 才替换执行映像。程序板右栏同时显示 HEX、12 位 BIN 和反汇编，支持翻页及跳到当前 PC。
+
+每行输入一个 12 位字，支持 HEX/BIN、`0x`/`0b` 前缀、空格/Tab/下划线分组，以及 `#`、`;`、`//` 注释。空白行忽略，未用 ROM 填 HALT；超过位宽/容量或非法字符会按行报错并保留当前程序。VR 可通过两排位键盘构造并追加指令。加载动作停在稳定边界，复位 CPU、应用 initialRam 并清空该实验的历史和终端。
+
+状态平板按节点显示实际门输出，可查看门纹理编码与依赖信息、ROM 编码和 RAM 的地址/字节。RAW TEXTURE 展示实际 16×16 字节纹理，INIT/CURRENT 切换初始化与工作内容；在 RAM 网格选地址后可绑定单 bit 或整字节探头。RAM 测点用单独的虚拟 ID 映射 GPU 字节，不增加伪造的门节点。复位、运行和 STORE 的变化均来自模拟器的当前纹理。
 
 ## 字符终端
 
@@ -53,26 +66,37 @@ CPU 的 `terminal_data[7:0]`、真实 `terminal_write` 脉冲和事务序号来�
 
 控制者发布精简的周期与视图信息；其它客户端在自己的 GPU 上计算并追到权威周期。程序切换、复位、换绑和冻结通过稳定边界的检查点同步。检查点包含真实 DFF 位、当前输入、通道元数据、有效历史及冻结数据，适用于晚加入和失步恢复。控制权交接等待对应 revision / epoch 的序列化确认，旧回执不能解除新检查点的屏障。
 
-当前恢复协议支持最多 64 个 DFF、四通道各 16 位。2048 样本的 live 数据约 18 KiB，live 加 frozen 约 36 KiB，另有标签和终端元数据。周期检查点间隔为配置值与 `payloadBytes / 2500` 的较大者；普通单步、运行和视图变化使用小型连续状态。恢复每帧重建 32 个历史槽，再每帧追赶最多 4 个电路周期。网络延迟、晚加入耗时和所有权竞争仍需真实多人客户端验收；owner 退出时未发布的私有尾部周期不保证保留。
+DFF 检查点按 32 位字数组打包，已取消原来的 64 位限制；当前 77 位使用 3 个字。检查点还保存全部 512 个程序字、256 字节 initialRam、256 字节当前 RAM、程序名称和 revision。程序草稿、输入模式、预置选择、ROM 页面、位键盘和状态平板选项也共享。
+
+2048 样本的 live 数据约 18 KiB，live 加 frozen 约 36 KiB，程序和存储器另约 2.5 KiB，加标签和终端元数据。检查点间隔为配置值与 `payloadBytes / 2500` 的较大者；普通运行和视图变化使用小型连续状态。恢复每帧重建 32 个历史槽，再按帧预算执行本地 GPU 周期追赶。真实网络延迟、晚加入耗时和所有权竞争仍需多人客户端验收；owner 退出时未发布的私有尾部周期不保证保留。
 
 ## 验证与边界
 
-分支圆点已修复为与实际走线交点重合，148 个交点审计均无悬空偏移，并补齐 117 条实际门输出至模块端口的显示连线。卡片的固定握持朝向已取消；最内层全加器实际 Udon 拾取回调验证方向变化为 0 度。真实客户端鼠标/手柄的最终抓取行为仍需设备验证。
+此前交互版本中分支圆点已修复为与实际走线交点重合，148 个交点审计均无悬空偏移，并补齐 117 条实际门输出至模块端口的显示连线。卡片的固定握持朝向已取消；最内层全加器实际 Udon 拾取回调验证方向变化为 0 度。真实客户端鼠标/手柄的最终抓取行为仍需设备验证。
 
-[最终出生视角](results/circuit-lab/optimized-spawn-view.png)显示完整顶层面板和无遮挡的运行控制；[实际波形截图](results/circuit-lab/optimized-waveform.png)来自 Play Mode。最终场景已保存，Editor 停在 Edit Mode。
+本轮截图：[程序与 ISA 板](results/circuit-lab/ram-program-panel.png)、[RAM 状态平板](results/circuit-lab/ram-state-tablet.png)、[原始 RAM 纹理](results/circuit-lab/ram-raw-texture.png)、[实际 π 终端](results/circuit-lab/ram-pi-terminal.png)、[分析仪顶部控制栏](results/circuit-lab/ram-analyzer-control-top.png)。面板近照通过预览相机裁掉前景工具，未移动场景对象；最终 Editor 停在 Edit Mode。
 
 探头归架解绑回归核对 8,192 个冻结纹理 RGBA 像素完全不变，电路周期和冻结元数据保留。独立二维纹理实验在 1024、10000、100000 节点下各执行 16 周期、每周期 65 次 Blit，结果零差异；提交至读回完成耗时约 20–23 ms。短批次受固定提交及调度开销影响，不能用节点数间的微小耗时差判断扩展效率，也不能换算实际 SoC 速度。
 
-完整 GPU 自检通过 946 个测试周期、495,704 个节点位比较，零差异；1,892 个低/高相位采样的独立 RTL 波形对照通过。
+本轮 GPU 自检覆盖 128 个测试周期、144,256 个节点位比较，全部一致；256 个低/高相位样本、1020 个有效端口值与独立 RTL 波形一致。完整 π 程序真实输出九个字节 `3.141592\n`，末态全部 256 字节 RAM 与独立 RTL/综合网表/指令模型一致。目标速度为 256 Hz，RTX 5080 / D3D11 上观察到约 256 Hz；HALT 停止 CPU 提交，仿真时钟可继续运行直到 PAUSE。
 
-已通过独立 Udon/GPU 实例的 524 节点状态恢复、192 个实时和 128 个冻结有效采样值对照，以及恢复后 16 周期的本地 GPU 追赶。实例状态纹理引用互不相同；测试没有直接修改副本周期或 epoch。非控制者单步被拒绝，终端快照一致。
+独立 Udon/GPU 实例恢复比较全部 1127 节点、77 个 DFF、512 个程序字和 256 字节 RAM，实时与冻结各 8 个有效 RAM 采样值一致；随后 16 周期追赶中的 RAM 写入与主实例相同。可修改纹理、材质和 GPU 状态缓冲互不共用；静态门数据可共享。这是 Editor 内复制共享载荷的验证，尚未测试真实多人传输。
+
+HEX、带前缀/注释输入和分组 BIN 均经实际 UI pointerClick → backing Udon → GPU 执行验证，非法输入保持当前程序。RESET 取消待提交 STORE 且保留 RAM；RESTART 清除工作 RAM。RAM 探头只在提交后的高相位看到新值；探头归架保留冻结像素。
+其它未更新的历史报告对应此前 524 节点 CPU；本轮以 ram-*、gpu、waveform 和结构/布局报告为准。交付前会恢复测试更改的材质/可写纹理，并核对默认 π 程序、初始 RAM、暂停/LIVE、未占用控制权和材质着色器。
 
 Unity 环境为 2022.3.22f1、VRChat SDK 3.10.5、Direct3D 11 / RTX 5080。报告位于 `results/circuit-lab/`，远端为 `Reports/CircuitLab/`。
 
 - [结构、碰撞与射线 UI](results/circuit-lab/optimization-structure.json)
 - [倾斜展开、布局复位与层级树](results/circuit-lab/optimization-geometry-tree.json)
 - [真实 GPU 字符事件](results/circuit-lab/optimization-terminal.json)
-- [独立 GPU 实例的共享恢复](results/circuit-lab/optimization-shared-gpu.json)
+- [本轮 CPU/RAM 共享恢复](results/circuit-lab/ram-replica.json)
+- [GPU π 输出与全 RAM 末态](results/circuit-lab/ram-pi-gpu.json)
+- [HEX/BIN 编辑与 RESET](results/circuit-lab/ram-edit-reset.json)
+- [位键盘追加与删行](results/circuit-lab/ram-keyboard.json)
+- [真实 RAM 波形](results/circuit-lab/ram-probe.json)
+- [顶部控制栏与键盘布局](results/circuit-lab/ram-ui-layout.json)
+- [已保存场景与初始资产验收](results/circuit-lab/ram-final-authoring.json)
 - [探头复位保留冻结](results/circuit-lab/optimization-probe-reset.json)
 - [GPU 与 HDL 对照](results/circuit-lab/gpu.json)
 - [独立 RTL 波形对照](results/circuit-lab/waveform.json)
@@ -96,8 +120,11 @@ python tools/unity_remote.py --check-result run_script --file AgentScripts/Build
 进入 Play Mode 并等待 ClientSim 初始化后：
 
 ```sh
-python tools/run_circuit_lab_checks.py --suite all
+python tools/run_circuit_lab_checks.py --suite ram
+python tools/run_circuit_lab_checks.py --suite gpu
 ```
+
+旧 `--suite programs` / `--suite all` 中的程序回归面向此前固定 ROM 示例；当前 CPU/RAM 使用 `--suite ram`，其余独立交互套件可按需运行。
 
 独立规模实验先在 Edit Mode 调用 `BenchmarkCircuitLab.Prepare`，再在 Play Mode 执行 `--suite scale`。它使用独立资产，不改变生产模拟器的一维纹理架构。
 

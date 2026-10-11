@@ -22,13 +22,29 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--project-path", default=DEFAULT_PROJECT)
-    parser.add_argument("--suite", choices=("all", "gpu", "finish-gpu", "controls", "interactions", "freeze", "programs", "deep-probes", "probe-lifecycle", "optimizations", "scale"), default="all")
+    parser.add_argument("--suite", choices=("all", "ram", "gpu", "finish-gpu", "controls", "interactions", "freeze", "programs", "deep-probes", "probe-lifecycle", "optimizations", "scale"), default="ram")
     options = parser.parse_args()
     state = pipeline(options, "editor_status")
     if state.get("playMode") != "playing":
         raise RuntimeError("Enter Play Mode before running CircuitLab checks.")
     output = Path(__file__).resolve().parents[1] / "results/circuit-lab"
     output.mkdir(parents=True, exist_ok=True)
+    if options.suite == "ram":
+        for entry, name in (
+            ("ValidateCircuitLabRam.Initialization", "ram-initialization"),
+            ("ValidateCircuitLabRam.EditingAndReset", "ram-edit-reset"),
+            ("ValidateCircuitLabRam.VirtualKeyboard", "ram-keyboard"),
+            ("ValidateCircuitLabRam.RamProbe", "ram-probe"),
+            ("ValidateCircuitLabRam.PrepareReplica", None),
+            ("ValidateCircuitLabRamReplica.SharedGpuRestoreAndCatchup", "ram-replica"),
+            ("ValidateCircuitLabRam.RunPi", "ram-pi-gpu"),
+            ("ValidateCircuitLabRam.AuthoringLayout", "ram-ui-layout"),
+        ):
+            result = script(options, entry)
+            if name:
+                (output / (name + ".json")).write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+            print(entry + " passed", flush=True)
+        return
     script(options, "ValidateCircuitLab.IsolatePlayMode")
     script(options, "ValidateCircuitLab.WaitForInitialization")
     script(options, "ValidateCircuitLabOptimizations.ClaimControl")

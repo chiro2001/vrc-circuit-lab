@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "algorithm": "355/113 decimal long division; first six PI decimals agree",
+  "program": "π：355/113 十进制长除法",
+  "output": "3.141592\n",
+  "writes": 9,
+  "targetHz": 256.0,
+  "cycles": 2085,
+  "finalRamBytesCompared": 256,
+  "source": "actual synthesized CPU + separate GPU RAM + real OUT event readback",
+  "nativeClientAndRealMultiplayerNotExercised": true,
+  "wallSeconds": 8.6803191,
+  "peakObservedHz": 272.965851,
+  "expectedCpuRunCycles": 2020,
+  "clockContinuesAfterHalt": true,
+  "terminalReadbackErrors": 0,
+  "terminalMissedCycles": 0
+}

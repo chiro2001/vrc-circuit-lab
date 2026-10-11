@@ -4,6 +4,7 @@ Shader "VrcCpuWorld/CircuitLabHistory"
     {
         _MainTex ("Previous history", 2D) = "black" {}
         _StateTex ("Stable GPU state", 2D) = "black" {}
+        _RamTex ("Stable GPU RAM", 2D) = "black" {}
     }
     SubShader
     {
@@ -15,7 +16,7 @@ Shader "VrcCpuWorld/CircuitLabHistory"
             #pragma fragment frag
             #pragma target 3.5
             #include "UnityCG.cginc"
-            sampler2D _MainTex, _StateTex;
+            sampler2D _MainTex, _StateTex, _RamTex;
             int _TextureWidth, _NodeCount, _HistoryCapacity, _WriteSlot, _SampleIndex, _ClearMode, _CopyMode;
             int _RestoreMode, _EventMode, _EventCapacity, _EventCycle, _WriteSignal;
             float4 _RestoreValues, _RestoreValidity, _OutputSignalsA, _OutputSignalsB, _SequenceSignalsA, _SequenceSignalsB, _EventCycleBytes;
@@ -33,6 +34,16 @@ Shader "VrcCpuWorld/CircuitLabHistory"
                 else if (channel == 2) ids = bit < 4 ? _Probe2A : bit < 8 ? _Probe2B : bit < 12 ? _Probe2C : _Probe2D;
                 else ids = bit < 4 ? _Probe3A : bit < 8 ? _Probe3B : bit < 12 ? _Probe3C : _Probe3D;
                 return ids[bit & 3];
+            }
+
+            float RamSignal(float id)
+            {
+                int virtualId = (int)round(id) - _NodeCount;
+                int address = virtualId / 8;
+                int bit = virtualId & 7;
+                float2 uv = float2((address % 16 + 0.5) / 16.0, (address / 16 + 0.5) / 16.0);
+                uint value = (uint)round(tex2Dlod(_RamTex, float4(uv, 0, 0)).r * 255.0);
+                return (value >> bit) & 1u;
             }
 
             float4 frag(v2f_img input) : SV_Target
@@ -67,10 +78,12 @@ Shader "VrcCpuWorld/CircuitLabHistory"
                     if (bit < width)
                     {
                         float id = Id(channel, bit);
-                        if (id < 0 || id >= _NodeCount) valid = 0;
+                        if (id < 0 || id >= _NodeCount + 2048) valid = 0;
                         else
                         {
-                            float state = tex2Dlod(_StateTex, float4((id + 0.5) / _TextureWidth, 0.5, 0, 0)).r;
+                            float state = id < _NodeCount
+                                ? tex2Dlod(_StateTex, float4((id + 0.5) / _TextureWidth, 0.5, 0, 0)).r
+                                : RamSignal(id);
                             value += (state > 0.5 ? 1 : 0) * (1u << bit);
                         }
                     }

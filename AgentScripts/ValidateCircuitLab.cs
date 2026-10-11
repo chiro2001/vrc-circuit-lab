@@ -126,7 +126,7 @@ public static class ValidateCircuitLab
 
     public static object ShaderStatus()
     {
-        var names = new[] { "CircuitLabSim", "CircuitLabHistory", "CircuitLabWaveform", "CircuitLabDisplay" };
+        var names = new[] { "CircuitLabSim", "CircuitLabRam", "CircuitLabHistory", "CircuitLabWaveform", "CircuitLabDisplay", "CircuitLabTabletDisplay" };
         var diagnostics = names.Select(name =>
         {
             var shader = Shader.Find("VrcCpuWorld/" + name);

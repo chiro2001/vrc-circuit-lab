@@ -28,7 +28,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--project-path", default=DEFAULT_PROJECT)
+    parser.add_argument(
+        "--accept-editor-file", action="append", default=[], metavar="PATH",
+        help="Adopt this exact saved Editor asset or generated meta when its local mirror differs; preserve the local file in the task backup directory.",
+    )
     options = parser.parse_args()
+    accepted = set(options.accept_editor_file)
+    for path in accepted:
+        relative = Path(path)
+        if relative.is_absolute() or ".." in relative.parts or not path.startswith("Assets/"):
+            parser.error("--accept-editor-file must name an exact relative Assets/ path")
+        if relative.suffix not in (".unity", ".prefab", ".asset", ".mat", ".meta"):
+            parser.error("--accept-editor-file applies only to Editor-owned serialized assets or generated metadata")
     state = pipeline(options, "editor_status")
     if state.get("playMode") != "stopped" or state.get("compiling"):
         raise RuntimeError("Stop Play Mode and finish compilation before taking a snapshot.")
@@ -62,8 +73,18 @@ def main():
                 for args in commands:
                     changed.extend(subprocess.check_output(["git", *args], cwd=ROOT).decode().split("\0"))
             conflicts = [path for path in changed if path and any(path == base or path.startswith(base + "/") for base in (*TREES, *MANIFESTS)) and digest(ROOT / path) != digest(unpacked / path)]
-            if conflicts:
-                raise RuntimeError("Local edits differ from the Editor snapshot; deploy or resolve them first: " + ", ".join(conflicts))
+            unresolved = [path for path in conflicts if path not in accepted]
+            if unresolved:
+                raise RuntimeError("Local edits differ from the Editor snapshot; deploy or resolve them first: " + ", ".join(unresolved))
+            adopted = []
+            for path in conflicts:
+                if not (unpacked / path).is_file():
+                    raise RuntimeError("Cannot adopt a missing Editor asset: " + path)
+                backup = TASK_TMP / (name.removesuffix(".tgz") + "-local-backup") / path
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                if (ROOT / path).is_file():
+                    shutil.copy2(ROOT / path, backup)
+                adopted.append({"path": path, "backup": str(backup)})
             copied = removed = 0
             for base in TREES:
                 source, target = unpacked / base, ROOT / base
@@ -81,7 +102,7 @@ def main():
                 destination = ROOT / name
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(unpacked / name, destination)
-            print(json.dumps({"captured": True, "copiedFiles": copied, "removedStaleMirrorFiles": removed, "scenePaths": [scene["path"] for scene in scenes["result"]], "preservedUnityMeta": True, "vrchatPackagesRestoredByVCC": True}, indent=2))
+            print(json.dumps({"captured": True, "copiedFiles": copied, "removedStaleMirrorFiles": removed, "adoptedEditorFiles": adopted, "scenePaths": [scene["path"] for scene in scenes["result"]], "preservedUnityMeta": True, "vrchatPackagesRestoredByVCC": True}, indent=2))
     finally:
         checked_pwsh(f"Remove-Item -LiteralPath {pwsh_literal(remote_archive)} -Force", options.host)
 

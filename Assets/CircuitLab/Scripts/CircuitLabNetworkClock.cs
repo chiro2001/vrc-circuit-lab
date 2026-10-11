@@ -21,4 +21,7 @@ public class CircuitLabNetworkClock : UdonSharpBehaviour
     [UdonSynced] public bool analyticAA = true;
     [UdonSynced] public float edgeWidth = 1f;
     [UdonSynced] public float speed = 2f;
+    [UdonSynced] public int programSelect;
+    [UdonSynced] public int programRevision;
+    [UdonSynced] public string activeProgramName = "";
 }

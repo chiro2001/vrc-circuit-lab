@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "startsLive": true,
+  "ramBytes": 256,
+  "separateStateTextures": true,
+  "initialProgram": "π：355/113 十进制长除法"
+}

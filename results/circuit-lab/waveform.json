@@ -1,8 +1,8 @@
 {
   "passed": true,
   "source": "independent RTL/gate low/high trace",
-  "samples": 1892,
-  "comparedValues": 7564,
+  "samples": 256,
+  "comparedValues": 1020,
   "channels": [
     "pc",
     "instruction",

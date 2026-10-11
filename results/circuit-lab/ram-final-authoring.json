@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "editorStopped": true,
+  "sceneSaved": true,
+  "startsPausedAndLive": true,
+  "unclaimedControl": true,
+  "defaultPi": true,
+  "noTestDraftOrTerminal": true,
+  "validMaterialShaders": 125,
+  "initialProgramWordsCompared": 512,
+  "initialRamBytesCompared": 256,
+  "userFloorPreserved": true
+}

@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "stableHalfSamples": 8,
+  "storeVisibleOnlyAfterExecEdge": true,
+  "virtualRamPointReadsGpuMemory": true,
+  "frozenHistoryPreservedOnReturn": true
+}

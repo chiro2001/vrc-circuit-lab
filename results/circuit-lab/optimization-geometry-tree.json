@@ -5,6 +5,6 @@
   "scrollable": true,
   "layoutResetRestoredInitialState": true,
   "cpuStateUnaffected": true,
-  "handleRayHitDistance": 7.94149971,
+  "handleRayHitDistance": 7.9415,
   "nativeClientPickupNotExercised": true
 }

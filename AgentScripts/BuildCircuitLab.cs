@@ -23,7 +23,7 @@ public static class BuildCircuitLab
 {
     private const string Root = "Assets/CircuitLab";
     private const string ScenePath = Root + "/Scenes/CircuitLab.unity";
-    private static readonly string[] ProgramNames = { "CircuitLabSimulator", "CircuitLabModule", "CircuitLabProbe", "CircuitLabSignalTarget", "CircuitLabButton", "CircuitLabWire", "CircuitLabLayout", "CircuitLabMovableTool", "CircuitLabPlayerSetup", "CircuitLabHierarchyTree", "CircuitLabHierarchyRow", "CircuitLabNetworkCoordinator", "CircuitLabNetworkClock", "CircuitLabControlRequest", "CircuitLabTerminal", "CircuitLabObjectState" };
+    private static readonly string[] ProgramNames = { "CircuitLabSimulator", "CircuitLabModule", "CircuitLabProbe", "CircuitLabSignalTarget", "CircuitLabButton", "CircuitLabWire", "CircuitLabLayout", "CircuitLabMovableTool", "CircuitLabPlayerSetup", "CircuitLabHierarchyTree", "CircuitLabHierarchyRow", "CircuitLabNetworkCoordinator", "CircuitLabNetworkClock", "CircuitLabControlRequest", "CircuitLabTerminal", "CircuitLabObjectState", "CircuitLabProgramPanel", "CircuitLabProgramDraft", "CircuitLabStateTablet", "CircuitLabTabletCell", "CircuitLabTabletSharedState" };
     private static Font _font;
     private static Material _board, _edge, _textDark, _highlight, _handle;
     private static Material _display;
@@ -126,6 +126,116 @@ public static class BuildCircuitLab
     public static object BuildScene() { return BuildSceneInternal(false); }
     public static object UpgradeScene() { return BuildSceneInternal(true); }
 
+    private static RectTransform SetProgramRect(Transform canvas, string name, Vector2 position, Vector2 size)
+    {
+        var child = canvas.Find(name);
+        if (child == null) throw new InvalidOperationException("Missing panel UI element " + name);
+        var rect = child.GetComponent<RectTransform>();
+        if (rect == null) throw new InvalidOperationException("Panel UI element has no RectTransform: " + name);
+        Undo.RecordObject(rect, "Repair Panel Layout");
+        rect.anchoredPosition = position; rect.sizeDelta = size;
+        EditorUtility.SetDirty(rect);
+        return rect;
+    }
+
+    private static Transform SetPanelLocalY(Transform panel, string name, float value)
+    {
+        var child = panel.Find(name);
+        if (child == null) throw new InvalidOperationException("Missing panel layout element " + name);
+        Vector3 position = child.localPosition;
+        position.y = value;
+        Undo.RecordObject(child, "Repair Panel Layout");
+        child.localPosition = position;
+        EditorUtility.SetDirty(child);
+        return child;
+    }
+
+    public static object RepairProgramPanelLayout()
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (EditorApplication.isPlaying || scene.path != ScenePath)
+            throw new InvalidOperationException("Activate the CircuitLab scene in Edit Mode before repairing the ProgramPanel.");
+        var world = scene.GetRootGameObjects().FirstOrDefault(root => root.name == "CircuitLabWorld");
+        if (world == null) throw new InvalidOperationException("CircuitLabWorld is missing.");
+        var panel = world.transform.Find("ProgramPanel");
+        var canvas = panel == null ? null : panel.Find("ProgramCanvas");
+        if (canvas == null) throw new InvalidOperationException("ProgramPanel/ProgramCanvas is missing.");
+
+        SetProgramRect(canvas, "CurrentProgramTitle", new Vector2(-120, 314), new Vector2(440, 42));
+        SetProgramRect(canvas, "REQUEST_PROGRAM_CONTROL", new Vector2(230, 316), new Vector2(220, 25));
+        var title = canvas.Find("CurrentProgramTitle").GetComponent<Text>();
+        Undo.RecordObject(title, "Repair Program Panel Title");
+        title.resizeTextForBestFit = true; title.resizeTextMinSize = 9; title.resizeTextMaxSize = 17;
+        title.horizontalOverflow = HorizontalWrapMode.Wrap; title.verticalOverflow = VerticalWrapMode.Truncate;
+        EditorUtility.SetDirty(title);
+        SetProgramRect(canvas, "CurrentProgramDescription", new Vector2(0, 274), new Vector2(680, 30));
+        var description = canvas.Find("CurrentProgramDescription").GetComponent<Text>();
+        Undo.RecordObject(description, "Repair Program Description Text");
+        description.resizeTextForBestFit = true; description.resizeTextMinSize = 8; description.resizeTextMaxSize = 11;
+        description.horizontalOverflow = HorizontalWrapMode.Wrap; description.verticalOverflow = VerticalWrapMode.Truncate;
+        EditorUtility.SetDirty(description);
+
+        for (int bit = 0; bit < 12; bit++)
+        {
+            int row = bit / 6, column = bit % 6;
+            SetProgramRect(canvas, "VIRTUAL_BIT_" + (11 - bit), new Vector2(-23 + column * 67, -88 - row * 34), new Vector2(62, 31));
+        }
+        SetProgramRect(canvas, "VirtualWordPreview", new Vector2(145, -58), new Vector2(410, 22));
+        SetProgramRect(canvas, "VIRTUAL_BACKSPACE", new Vector2(-17, -160), new Vector2(84, 24));
+        SetProgramRect(canvas, "VIRTUAL_COMMIT", new Vector2(86, -160), new Vector2(114, 24));
+        SetProgramRect(canvas, "LOAD_DRAFT", new Vector2(244, -160), new Vector2(200, 24));
+        RepairSingleLineButtonLabel(canvas, "VIRTUAL_BACKSPACE", "DELETE LINE", 8);
+        RepairSingleLineButtonLabel(canvas, "VIRTUAL_COMMIT", "APPEND WORD", 8);
+        RepairSingleLineButtonLabel(canvas, "LOAD_DRAFT", "LOAD DRAFT", 8);
+        SetProgramRect(canvas, "ISAHeading", new Vector2(145, -184), new Vector2(410, 20));
+        SetProgramRect(canvas, "ISADetails", new Vector2(145, -236), new Vector2(410, 74));
+
+        var tabletCanvas = world.transform.Find("StateTablet/StateTabletCanvas");
+        if (tabletCanvas != null)
+        {
+            SetProgramRect(tabletCanvas, "TabletTitle", new Vector2(-110, 267), new Vector2(420, 24));
+            SetProgramRect(tabletCanvas, "TABLET_REQUEST_CONTROL", new Vector2(224, 267), new Vector2(212, 25));
+            var tabletTitle = tabletCanvas.Find("TabletTitle").GetComponent<Text>();
+            Undo.RecordObject(tabletTitle, "Repair State Tablet Title");
+            tabletTitle.resizeTextForBestFit = true; tabletTitle.resizeTextMinSize = 12; tabletTitle.resizeTextMaxSize = 17;
+            tabletTitle.horizontalOverflow = HorizontalWrapMode.Overflow; tabletTitle.verticalOverflow = VerticalWrapMode.Truncate;
+            EditorUtility.SetDirty(tabletTitle);
+        }
+
+        var waveformPanel = world.transform.Find("MovableWaveformPanel");
+        if (waveformPanel != null)
+        {
+            SetPanelLocalY(waveformPanel, "WaveformScreen", 1.09f);
+            SetPanelLocalY(waveformPanel, "ControlStatus", 2.10f);
+            SetPanelLocalY(waveformPanel, "RequestControl_Canvas", 2.33f);
+            SetPanelLocalY(waveformPanel, "GrantControl_Canvas", 2.33f);
+            SetPanelLocalY(waveformPanel, "ReleaseControl_Canvas", 2.33f);
+            var simulator = world.GetComponentInChildren<CircuitLabSimulator>(true);
+            if (simulator != null && simulator.simHudText != null)
+            {
+                Undo.RecordObject(simulator.simHudText, "Repair Analyzer Status Text");
+                simulator.simHudText.resizeTextForBestFit = true;
+                simulator.simHudText.resizeTextMinSize = 9; simulator.simHudText.resizeTextMaxSize = 13;
+                simulator.simHudText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                simulator.simHudText.verticalOverflow = VerticalWrapMode.Truncate;
+                RectTransform statusRect = simulator.simHudText.GetComponent<RectTransform>();
+                Undo.RecordObject(statusRect, "Repair Analyzer Status Rect");
+                statusRect.sizeDelta = new Vector2(520, 48);
+                EditorUtility.SetDirty(simulator.simHudText); EditorUtility.SetDirty(statusRect);
+            }
+            var nextProgramLabel = waveformPanel.Find("SelectProgram_Canvas/SelectProgram/Label");
+            if (nextProgramLabel != null)
+            {
+                var label = nextProgramLabel.GetComponent<Text>();
+                Undo.RecordObject(label, "Rename Analyzer Program Control");
+                label.text = "NEXT PROGRAM";
+                EditorUtility.SetDirty(label);
+            }
+        }
+        EditorSceneManager.MarkSceneDirty(scene);
+        return new { repaired = true, scene = scene.path, keyboardButtons = 12, draftActions = 3, movedISA = true, analyzerControlsAtTop = waveformPanel != null, titleBestFit = true, descriptionBestFit = true };
+    }
+
     private static object BuildSceneInternal(bool upgrade)
     {
         var scene = SceneManager.GetActiveScene();
@@ -133,11 +243,49 @@ public static class BuildCircuitLab
             throw new InvalidOperationException("Activate the additive CircuitLab scene in Edit Mode before building; other scenes are preserved.");
         foreach (string folder in new[] { "/Materials", "/Meshes", "/Textures", "/Programs" }) Folder(Root + folder);
         var source = AssetDatabase.LoadAssetAtPath<TextAsset>(Root + "/Data/gpu-netlist.json");
-        if (source == null) throw new InvalidOperationException("Generate schema2 gpu-netlist.json first.");
+        if (source == null) throw new InvalidOperationException("Generate schema3 gpu-netlist.json first.");
         var data = JObject.Parse(source.text);
-        if ((int?)data["schemaVersion"] != 2 && (int?)data["schema"] != 2) throw new InvalidOperationException("Expected schema2 teaching CPU data.");
+        if ((int?)data["schemaVersion"] != 3 && (int?)data["schema"] != 3) throw new InvalidOperationException("Expected schema3 teaching CPU data.");
         int width = (int)data["textureWidth"], count = (int)data["nodeCount"];
         var nodes = ((JArray)data["nodes"]).Cast<JObject>().ToDictionary(node => (int)node["id"]);
+        var programData = ((JArray)data["programs"]).Cast<JObject>().ToArray();
+        if (programData.Length == 0) throw new InvalidOperationException("Schema3 requires at least one program.");
+        int defaultProgramIndex = (int?)data["defaultProgramIndex"] ?? -1;
+        string defaultProgramId = data["defaultProgramId"] == null ? null : data["defaultProgramId"].ToString();
+        if (defaultProgramIndex < 0 && defaultProgramId != null)
+            for (int i = 0; i < programData.Length; i++) if (programData[i]["id"] != null && programData[i]["id"].ToString() == defaultProgramId) { defaultProgramIndex = i; break; }
+        if (defaultProgramIndex < 0) defaultProgramIndex = 0;
+        if (defaultProgramIndex >= programData.Length) throw new InvalidOperationException("defaultProgramIndex is outside the program catalog.");
+        var programWords = new int[programData.Length][];
+        var initialRam = new byte[programData.Length][];
+        var programNames = new string[programData.Length];
+        var programDescriptions = new string[programData.Length];
+        var flatProgramWords = new int[programData.Length * 512];
+        var flatInitialRam = new byte[programData.Length * 256];
+        for (int program = 0; program < programData.Length; program++)
+        {
+            programWords[program] = programData[program]["words"].ToObject<int[]>();
+            initialRam[program] = programData[program]["initialRam"].ToObject<byte[]>();
+            if (programWords[program].Length != 512 || initialRam[program].Length != 256)
+                throw new InvalidOperationException("Program " + program + " must contain 512 words and 256 initial RAM bytes.");
+            for (int word = 0; word < 512; word++)
+            {
+                if (programWords[program][word] < 0 || programWords[program][word] > 0xFFF)
+                    throw new InvalidOperationException("Program word outside 12 bits: id=" + program + " address=" + word);
+                flatProgramWords[program * 512 + word] = programWords[program][word];
+            }
+            for (int address = 0; address < 256; address++) flatInitialRam[program * 256 + address] = initialRam[program][address];
+            programNames[program] = (string)programData[program]["name"] ?? ("Program " + program);
+            programDescriptions[program] = (string)programData[program]["description"] ?? "";
+            string lowerName = programNames[program].ToLowerInvariant();
+            string lowerDescription = programDescriptions[program].ToLowerInvariant();
+            bool statesFirstSix = lowerDescription.Contains("first six") || lowerDescription.Contains("前六") || lowerDescription.Contains("前 6");
+            bool statesSeventh = lowerDescription.Contains("seventh") || lowerDescription.Contains("第七") || lowerDescription.Contains("第 7");
+            if ((lowerName.Contains("pi") || lowerName.Contains("π"))
+                && (!statesFirstSix || !statesSeventh))
+                programDescriptions[program] += " 【近似】355/113 长除法：小数前六位与 π 一致，第七位起不同。";
+        }
+        var memoryPorts = (JObject)data["memoryPorts"];
         var previous = scene.GetRootGameObjects().FirstOrDefault(root => root.name == "CircuitLabWorld");
         if (upgrade && previous == null) throw new InvalidOperationException("Upgrade requires an existing CircuitLabWorld; environment is never recreated.");
         if (!upgrade && previous != null) throw new InvalidOperationException("Existing worlds must use UpgradeScene to preserve the environment.");
@@ -146,7 +294,7 @@ public static class BuildCircuitLab
         var preservedWorkspaceChildren = new List<Transform>();
         if (upgrade)
         {
-            foreach (string name in new[] { "MovableWaveformPanel", "ProbeAndHierarchyRack", "HierarchyPanel", "ANSISymbolGuide", "TerminalPanel" })
+            foreach (string name in new[] { "MovableWaveformPanel", "ProbeAndHierarchyRack", "HierarchyPanel", "ANSISymbolGuide", "TerminalPanel", "ProgramPanel", "StateTablet" })
             {
                 var owned = previous.transform.Find(name);
                 if (owned == null) continue;
@@ -178,17 +326,44 @@ public static class BuildCircuitLab
         var simulation = Material("Simulation", "VrcCpuWorld/CircuitLabSim", Color.white);
         var history = Material("History", "VrcCpuWorld/CircuitLabHistory", Color.white);
         var wave = Material("Waveform", "VrcCpuWorld/CircuitLabWaveform", Color.white);
+        var tabletMaterial = Material("TabletDisplay", "VrcCpuWorld/CircuitLabTabletDisplay", Color.white);
+        var ramMaterial = Material("RAM", "VrcCpuWorld/CircuitLabRam", Color.white);
         var gates = Asset(Root + "/Textures/GateInstructions.asset", () => new Texture2D(width, 1, TextureFormat.RGBAFloat, false, true));
         if (gates.width != width) gates.Reinitialize(width, 1, TextureFormat.RGBAFloat, false);
         gates.filterMode = FilterMode.Point; gates.wrapMode = TextureWrapMode.Clamp;
         var pixels = new Color[width];
         foreach (var node in nodes.Values) pixels[(int)node["id"]] = new Color((int)node["op"], (int)node["a"], (int)node["b"], (int)node["c"]);
         gates.SetPixels(pixels); gates.Apply(false, false); EditorUtility.SetDirty(gates);
+        var programTexture = Texture2DAsset("ProgramROM", 512, 1, TextureFormat.RGBA32);
+        var programPixels = new Color32[512];
+        for (int address = 0; address < 512; address++)
+        {
+            int word = programWords[defaultProgramIndex][address];
+            programPixels[address] = new Color32((byte)(word & 255), (byte)((word >> 8) & 15), 0, 255);
+        }
+        programTexture.SetPixels32(programPixels); programTexture.Apply(false, false); EditorUtility.SetDirty(programTexture);
+        var ramInitialTexture = Texture2DAsset("RAMInitial", 16, 16, TextureFormat.RGBA32);
+        var ramInitialPixels = new Color32[256];
+        var restoreRamPixels = new Color32[256];
+        for (int address = 0; address < 256; address++)
+        {
+            ramInitialPixels[address] = new Color32(initialRam[defaultProgramIndex][address], 0, 0, 255);
+            restoreRamPixels[address] = new Color32(0, 0, 0, 255);
+        }
+        ramInitialTexture.SetPixels32(ramInitialPixels); ramInitialTexture.Apply(false, false); EditorUtility.SetDirty(ramInitialTexture);
+        var restoreRamTexture = Texture2DAsset("RAMRestore", 16, 16, TextureFormat.RGBA32);
+        restoreRamTexture.SetPixels32(restoreRamPixels); restoreRamTexture.Apply(false, false); EditorUtility.SetDirty(restoreRamTexture);
+        var restoreStateTexture = Texture2DAsset("DffRestoreState", width, 1, TextureFormat.RGBA32);
+        var stateRestorePixels = new Color32[width];
+        for (int i = 0; i < width; i++) stateRestorePixels[i] = new Color32(0, 0, 0, 255);
+        restoreStateTexture.SetPixels32(stateRestorePixels); restoreStateTexture.Apply(false, false); EditorUtility.SetDirty(restoreStateTexture);
         var stateA = RenderTexture("StateA", width, 1, RenderTextureFormat.ARGB32);
         var stateB = RenderTexture("StateB", width, 1, RenderTextureFormat.ARGB32);
         var historyA = RenderTexture("HistoryA", 2048, 4, RenderTextureFormat.ARGBFloat);
         var historyB = RenderTexture("HistoryB", 2048, 4, RenderTextureFormat.ARGBFloat);
         var frozen = RenderTexture("FrozenHistory", 2048, 4, RenderTextureFormat.ARGBFloat);
+        var ramA = RenderTexture("RamA", 16, 16, RenderTextureFormat.ARGB32);
+        var ramB = RenderTexture("RamB", 16, 16, RenderTextureFormat.ARGB32);
         _display.SetTexture("_StateTex", stateA);
         simulation.SetTexture("_Gates", gates);
 
@@ -209,20 +384,36 @@ public static class BuildCircuitLab
         simulator.historyMaterial = history; simulator.waveformMaterial = wave;
         simulator.gateTexture = gates; simulator.stateA = stateA; simulator.stateB = stateB;
         simulator.historyA = historyA; simulator.historyB = historyB; simulator.frozenHistory = frozen;
+        simulator.ramMaterial = ramMaterial; simulator.programTexture = programTexture; simulator.ramInitialTexture = ramInitialTexture;
+        simulator.restoreRamTexture = restoreRamTexture; simulator.restoreStateTexture = restoreStateTexture;
+        simulator.ramA = ramA; simulator.ramB = ramB; simulator.currentRam = ramA;
+        simulator.programCount = programData.Length; simulator.presetProgramWords = flatProgramWords; simulator.presetInitialRam = flatInitialRam;
+        simulator.programNames = programNames; simulator.programDescriptions = programDescriptions;
+        simulator.programWords = programWords[defaultProgramIndex]; simulator.initialRam = initialRam[defaultProgramIndex]; simulator.activeProgramName = programNames[defaultProgramIndex]; simulator.programSelect = defaultProgramIndex; simulator.programRevision = 1;
+        simulator.romAddressSignals = memoryPorts["romAddress"].ToObject<int[]>();
+        simulator.ramReadAddressSignals = memoryPorts["ramReadAddress"].ToObject<int[]>();
+        simulator.ramReadDataSignals = memoryPorts["ramReadData"].ToObject<int[]>();
+        simulator.ramWriteAddressSignals = memoryPorts["ramWriteAddress"].ToObject<int[]>();
+        simulator.ramWriteDataSignals = memoryPorts["ramWriteData"].ToObject<int[]>();
+        simulator.ramWriteEnableSignal = (int)memoryPorts["ramWriteEnable"];
+        simulator.fixturePrograms = data["fixturePrograms"] == null ? new int[0] : data["fixturePrograms"].ToObject<int[]>();
+        simulator.fixtureRamReset = data["fixtureRamReset"] == null ? new bool[0] : data["fixtureRamReset"].ToObject<bool[]>();
         simulator.nodeCount = count; simulator.textureWidth = width; simulator.settlePasses = (int)data["settlePasses"];
-        simulator.inputMasks = data["inputMasks"].ToObject<int[]>();
-        simulator.expectedStates = data["expectedStates"].ToObject<byte[]>();
-        simulator.vectorCount = (int)data["vectorCount"];
+        simulator.inputMasks = data["inputMasks"] == null ? new int[0] : data["inputMasks"].ToObject<int[]>();
+        simulator.expectedStates = data["expectedStates"] == null ? new byte[0] : data["expectedStates"].ToObject<byte[]>();
+        simulator.vectorCount = (int?)data["vectorCount"] ?? 0;
         simulator.accSignals = data["ports"]["acc"].ToObject<int[]>();
         simulator.pcSignals = data["ports"]["pc"].ToObject<int[]>();
         simulator.outSignals = data["ports"]["out"].ToObject<int[]>();
         simulator.instructionSignals = data["ports"]["instruction"].ToObject<int[]>();
-        simulator.phaseSignal = (int)data["ports"]["phase"][0];
+        simulator.xSignals = data["ports"]["x"] == null ? new int[0] : data["ports"]["x"].ToObject<int[]>();
+        simulator.spSignals = data["ports"]["sp"] == null ? new int[0] : data["ports"]["sp"].ToObject<int[]>();
+        simulator.phaseSignals = data["ports"]["phaseSignals"] == null ? data["ports"]["phase"].ToObject<int[]>() : data["ports"]["phaseSignals"].ToObject<int[]>();
+        simulator.phaseSignal = simulator.phaseSignals.Length > 0 ? simulator.phaseSignals[0] : -1;
         simulator.zeroSignal = (int)data["ports"]["zero"][0];
         simulator.carrySignal = (int)data["ports"]["carry"][0];
         simulator.haltSignal = (int)data["ports"]["halt"][0];
         simulator.dffSignals = nodes.Values.Where(node => (int)node["op"] == 3).Select(node => (int)node["id"]).OrderBy(id => id).ToArray();
-        if (simulator.dffSignals.Length > 64) throw new InvalidOperationException("Network snapshot supports up to 64 DFFs.");
         var restoreIndex = Asset(Root + "/Textures/DffIndexTexture.asset", () => new Texture2D(width, 1, TextureFormat.RGBAFloat, false, true));
         if (restoreIndex.width != width) restoreIndex.Reinitialize(width, 1, TextureFormat.RGBAFloat, false);
         var restorePixels = Enumerable.Repeat(new Color(-1, 0, 0, 0), width).ToArray();
@@ -263,8 +454,17 @@ public static class BuildCircuitLab
         var wireMaterials = BuildExternalWires(ordered, nodes, width);
         simulator.displayMaterials = (new[] { _display }).Concat(wireMaterials).Distinct().ToArray();
         var probes = BuildPanel(world.transform, simulator, wave, allModules);
+        BuildTerminal(world.transform, simulator, data);
+        var programPanel = BuildProgramPanel(world.transform, simulator, data, programData, programNames, programDescriptions, defaultProgramIndex);
+        var stateTablet = BuildStateTablet(world.transform, simulator, data, nodes, tabletMaterial);
+        var waveformPanel = world.transform.Find("MovableWaveformPanel");
+        programPanel.analyzerProgramTitle = WorldText(waveformPanel, "WaveProgramName", "PROGRAM", new Vector3(0, 2.53f, -.14f), new Vector2(5.2f, .16f), 12, new Color(.76f, .91f, .78f));
         for (int i = 0; i < Targets.Count; i++) { Targets[i].targetIndex = i; Targets[i].probes = probes; }
-        foreach (var probe in probes) { probe.probes = probes; probe.signalTargets = Targets.ToArray(); probe.coordinator = _coordinator; }
+        CircuitLabSignalTarget[] signalTargets = Targets.ToArray();
+        foreach (var probe in probes) { probe.probes = probes; probe.signalTargets = signalTargets; probe.coordinator = _coordinator; }
+        programPanel.coordinator = _coordinator; programPanel.simulator = simulator;
+        stateTablet.coordinator = _coordinator; stateTablet.simulator = simulator; stateTablet.probes = probes; stateTablet.signalTargets = signalTargets;
+        stateTablet.ApplySharedRamTargets();
         var rootView = ordered.First(view => view.behaviour.logicalParent == null);
         rootView.behaviour.header.Find("ModuleName").GetComponent<Text>().text = "TEACHING CPU  /  " + views.Count + " MODULES";
         var initialNames = new[] { "pc", "instruction", "acc", "out" };
@@ -279,7 +479,6 @@ public static class BuildCircuitLab
         simulator.probe2Signals = simulator.accSignals; simulator.probe2Label = "teaching_cpu/acc";
         simulator.probe3Signals = simulator.outSignals; simulator.probe3Label = "teaching_cpu/out";
         _layout.modules = allModules; _layout.probes = probes;
-        BuildTerminal(world.transform, simulator, data);
         _layout.tools = world.GetComponentsInChildren<CircuitLabMovableTool>(true);
         foreach (var tool in _layout.tools)
         {
@@ -296,7 +495,7 @@ public static class BuildCircuitLab
         AssetDatabase.SaveAssets();
         EditorSceneManager.MarkSceneDirty(scene);
         if (!upgrade) EditorSceneManager.SaveScene(scene);
-        return new { upgraded = upgrade, saved = !upgrade, preservedEnvironment = upgrade, scene = scene.path, modules = views.Count, nodes = count, signalTargets = Targets.Count, udonBehaviours = Behaviours.Count, externalWires = Object.FindObjectsOfType<CircuitLabWire>(true).Length, shadersSupported = new[] { simulation, history, wave, _display }.All(material => material.shader.isSupported), previewCameraEnabled = false };
+        return new { upgraded = upgrade, saved = !upgrade, preservedEnvironment = upgrade, scene = scene.path, modules = views.Count, nodes = count, programs = programData.Length, dffs = simulator.dffSignals.Length, signalTargets = Targets.Count, udonBehaviours = Behaviours.Count, externalWires = Object.FindObjectsOfType<CircuitLabWire>(true).Length, shadersSupported = new[] { simulation, history, wave, _display, tabletMaterial, ramMaterial }.All(material => material.shader.isSupported), previewCameraEnabled = false };
     }
 
     private static RenderTexture RenderTexture(string name, int width, int height, RenderTextureFormat format)
@@ -306,6 +505,14 @@ public static class BuildCircuitLab
         { texture.Release(); texture.width = width; texture.height = height; texture.format = format; }
         texture.name = name; texture.filterMode = FilterMode.Point; texture.wrapMode = TextureWrapMode.Clamp;
         texture.useMipMap = false; texture.autoGenerateMips = false; texture.antiAliasing = 1;
+        EditorUtility.SetDirty(texture); return texture;
+    }
+
+    private static Texture2D Texture2DAsset(string name, int width, int height, TextureFormat format)
+    {
+        var texture = Asset(Root + "/Textures/" + name + ".asset", () => new Texture2D(width, height, format, false, true));
+        if (texture.width != width || texture.height != height || texture.format != format) texture.Reinitialize(width, height, format, false);
+        texture.name = name; texture.filterMode = FilterMode.Point; texture.wrapMode = TextureWrapMode.Clamp;
         EditorUtility.SetDirty(texture); return texture;
     }
 
@@ -429,6 +636,7 @@ public static class BuildCircuitLab
                 view.gatePositions[ids[row]] = new Vector3((column - (columns.Length - 1) * .5f) * .88f * view.gateScale, ((ids.Length - 1) * .5f - row) * .64f * view.gateScale - .17f + view.dockArea * .5f, -.12f);
         }
         var symbols = new Geometry(); var traces = new Geometry();
+        var memoryHints = new HashSet<int>();
         foreach (int signal in driven)
         {
             var node = nodes[signal]; var position = view.gatePositions[signal]; int op = (int)node["op"];
@@ -442,6 +650,8 @@ public static class BuildCircuitLab
             var gateLabel = WorldText(module.interior.transform, "GateLabel_" + signal, GateName(op) + "  #" + signal, position + new Vector3(0, .23f * view.gateScale, -.012f), new Vector2(.7f, .12f), 10, new Color(.67f, .81f, .9f));
             gateLabel.transform.localScale = Vector3.one * .01f * view.gateScale;
             int[] inputs = Inputs(node);
+            if ((op == 15 || op == 16) && memoryHints.Add(op))
+                WorldText(module.interior.transform, "MemoryAddressHint_" + signal, op == 15 ? "ROM  /  9-BIT ADDRESS" : "RAM  /  8-BIT ADDRESS", position + new Vector3(0, -.09f * view.gateScale, -.02f), new Vector2(.62f, .12f), 7, new Color(.72f, .86f, .94f));
             for (int pin = 0; pin < inputs.Length; pin++)
             {
                 Vector3 input = InputPosition(position, op, pin, inputs.Length, view.gateScale);
@@ -654,15 +864,17 @@ public static class BuildCircuitLab
         var body = panel.AddComponent<Rigidbody>(); body.useGravity = false; body.isKinematic = true;
         AddMovableTool(panel, handle.transform);
         WorldText(panel.transform, "WaveTitle", "4 CHANNEL LOGIC ANALYZER", new Vector3(0, 2.78f, -.08f), new Vector2(5.3f, .32f), 27, Color.white);
-        var screen = Primitive(panel.transform, "WaveformScreen", PrimitiveType.Quad, new Vector3(0, 1.12f, -.10f), new Vector3(5.05f, 1.85f, 1), waveform, false);
+        var screen = Primitive(panel.transform, "WaveformScreen", PrimitiveType.Quad, new Vector3(0, 1.09f, -.10f), new Vector3(5.05f, 1.85f, 1), waveform, false);
         simulator.waveHudText = WorldText(panel.transform, "WaveHud", "LIVE  /  FOLLOWING LATEST  /  FREEZE LOCKS THE VIEW", new Vector3(0, -.06f, -.14f), new Vector2(5.2f, .38f), 14, new Color(.6f, .83f, .9f));
-        simulator.simHudText = WorldText(panel.transform, "SimulationHud", "PAUSED  /  STEP TO EXECUTE ONE CLOCK", new Vector3(0, -1.52f, -.14f), new Vector2(5.2f, .40f), 16, new Color(.68f, .90f, .82f));
+        simulator.simHudText = WorldText(panel.transform, "SimulationHud", "PAUSED  /  STEP TO EXECUTE ONE CLOCK", new Vector3(0, -1.52f, -.14f), new Vector2(5.2f, .48f), 13, new Color(.68f, .90f, .82f));
+        simulator.simHudText.resizeTextForBestFit = true; simulator.simHudText.resizeTextMinSize = 9; simulator.simHudText.resizeTextMaxSize = 13;
+        simulator.simHudText.horizontalOverflow = HorizontalWrapMode.Wrap; simulator.simHudText.verticalOverflow = VerticalWrapMode.Truncate;
         simulator.statusText = WorldText(panel.transform, "TestStatus", "SELF TEST READY", new Vector3(0, -2.52f, -.14f), new Vector2(5.3f, .18f), 12, new Color(.55f, .78f, .86f));
         Controls(panel.transform, simulator, new[] { "FreezeWaveform", "ResumeWaveform", "ZoomIn", "ZoomOut", "PanLeft", "PanRight", "FollowLatest" }, new[] { "FREEZE", "LIVE", "ZOOM +", "ZOOM -", "< PAN", "PAN >", "LATEST" }, -.45f, 5.05f);
         Controls(panel.transform, simulator, new[] { "MoveCursorALeft", "MoveCursorARight", "MoveCursorBLeft", "MoveCursorBRight" }, new[] { "CURSOR A <", "A >", "CURSOR B <", "B >" }, -.78f, 5.05f);
         Controls(panel.transform, simulator, new[] { "CycleBitView", "CycleNumberFormat", "ToggleAA", "EdgeWidthDown", "EdgeWidthUp" }, new[] { "BUS / BITS", "HEX / BIN / DEC", "SMOOTH", "EDGE -", "EDGE +" }, -1.11f, 5.05f);
         Controls(panel.transform, simulator, new[] { "Run", "Pause", "Step", "SpeedDown", "SpeedUp", "ResetCircuit" }, new[] { "RUN", "PAUSE", "STEP", "SLOWER", "FASTER", "RESET" }, -1.94f, 5.05f);
-        Controls(panel.transform, simulator, new[] { "SelectProgram", "RestartExperiment", "RunSelfTest" }, new[] { "PROGRAM 0-3", "RESTART", "SELF TEST" }, -2.28f, 5.05f);
+        Controls(panel.transform, simulator, new[] { "SelectProgram", "RestartExperiment", "RunSelfTest" }, new[] { "NEXT PROGRAM", "RESTART", "SELF TEST" }, -2.28f, 5.05f);
         WorldText(panel.transform, "Hints", "VR: GRAB = DETACH, TOUCH PIN + USE = LOCK   /   DESKTOP: SELECT A-D, CLICK PIN", new Vector3(0, -3.0f, -.13f), new Vector2(5.3f, .15f), 9, new Color(.5f, .65f, .73f));
         var rack = Child(world, "ProbeAndHierarchyRack"); rack.transform.position = new Vector3(0, .92f, -1.17f); rack.transform.eulerAngles = new Vector3(65, 0, 0);
         Backing(rack.transform, 5.7f, 1.65f);
@@ -698,8 +910,8 @@ public static class BuildCircuitLab
         Button(rack.transform, "RETURN_ALL_PROBES", "RETURN ALL PROBES", _layout, "ReturnAllProbes", new Vector3(-1.45f, -.70f, -.12f), new Vector2(2.45f, .24f), 12);
         Button(rack.transform, "RESET_LAYOUT", "RESET LAYOUT", _layout, "ResetLayout", new Vector3(1.35f, -.70f, -.12f), new Vector2(2.45f, .24f), 12);
         BuildHierarchy(world, modules);
-        _coordinator.statusText = WorldText(panel.transform, "ControlStatus", "CONTROL: UNCLAIMED | CLICK A CONTROL TO BEGIN", new Vector3(0, 2.53f, -.14f), new Vector2(5.2f, .15f), 12, new Color(.65f, .90f, .8f));
-        Controls(panel.transform, _coordinator, new[] { "RequestControl", "GrantControl", "ReleaseControl" }, new[] { "REQUEST CONTROL", "GRANT REQUEST", "RELEASE CONTROL" }, 2.27f, 5.05f);
+        _coordinator.statusText = WorldText(panel.transform, "ControlStatus", "CONTROL: UNCLAIMED | CLICK A CONTROL TO BEGIN", new Vector3(0, 2.10f, -.14f), new Vector2(5.2f, .15f), 11, new Color(.65f, .90f, .8f));
+        Controls(panel.transform, _coordinator, new[] { "RequestControl", "GrantControl", "ReleaseControl" }, new[] { "REQUEST CONTROL", "GRANT REQUEST", "RELEASE CONTROL" }, 2.33f, 5.05f);
         return probes;
     }
 
@@ -786,6 +998,304 @@ public static class BuildCircuitLab
         Button(panel.transform, "CLEAR_TERMINAL", "CLEAR TERMINAL", simulator, "ClearTerminal", new Vector3(0, -1.44f, -.14f), new Vector2(3.15f, .23f), 12);
     }
 
+    private static GameObject MovablePanel(Transform world, string name, Vector3 position, Vector3 euler, float width, float height)
+    {
+        var panel = Child(world, name); panel.layer = InteractionLayer; panel.transform.position = position; panel.transform.eulerAngles = euler;
+        Backing(panel.transform, width, height);
+        var handle = Primitive(panel.transform, "PanelGrabHandle", PrimitiveType.Cube, new Vector3(0, -height * .5f + .13f, 0), new Vector3(1.45f, .17f, .22f), _handle, false);
+        var collider = panel.AddComponent<BoxCollider>(); collider.center = handle.transform.localPosition; collider.size = new Vector3(1.45f, .17f, .22f);
+        WorldText(panel.transform, "PanelGrabHint", "GRAB PANEL", handle.transform.localPosition + new Vector3(0, 0, -.12f), new Vector2(1.3f, .13f), 11, Color.white);
+        var body = panel.AddComponent<Rigidbody>(); body.useGravity = false; body.isKinematic = true;
+        AddMovableTool(panel, handle.transform);
+        return panel;
+    }
+
+    private static GameObject PanelCanvas(Transform panel, string name, float width, float height)
+    {
+        return CreateCanvas(panel, name, new Vector3(0, 0, -.105f), new Vector2(width, height));
+    }
+
+    private static Text PanelText(Transform parent, string name, string value, Vector2 position, Vector2 size, int fontSize, Color color, TextAnchor alignment = TextAnchor.MiddleCenter)
+    {
+        var text = UiText(parent, name, value, position, size, fontSize, color);
+        text.alignment = alignment; text.horizontalOverflow = HorizontalWrapMode.Wrap; text.verticalOverflow = VerticalWrapMode.Overflow;
+        return text;
+    }
+
+    private static CircuitLabButton PanelButton(Transform canvas, string name, string label, UdonSharpBehaviour target, string eventName, Vector2 position, Vector2 size, int fontSize)
+    {
+        return UiButton(canvas, name, label, target, eventName, position, size, fontSize);
+    }
+
+    private static void SetSingleLineButtonLabel(CircuitLabButton button, int fontSize)
+    {
+        var label = button == null ? null : button.GetComponentInChildren<Text>();
+        if (label == null) throw new InvalidOperationException("Button is missing its label.");
+        label.resizeTextForBestFit = false;
+        label.fontSize = fontSize;
+        label.horizontalOverflow = HorizontalWrapMode.Overflow;
+        label.verticalOverflow = VerticalWrapMode.Truncate;
+        label.supportRichText = false;
+        EditorUtility.SetDirty(label);
+    }
+
+    private static void RepairSingleLineButtonLabel(Transform canvas, string buttonName, string labelText, int fontSize)
+    {
+        var labelTransform = canvas.Find(buttonName + "/Label");
+        if (labelTransform == null) throw new InvalidOperationException("Missing button label " + buttonName);
+        var label = labelTransform.GetComponent<Text>();
+        if (label == null) throw new InvalidOperationException("Button label has no Text component: " + buttonName);
+        Undo.RecordObject(label, "Repair Program Button Label");
+        label.text = labelText;
+        label.resizeTextForBestFit = false;
+        label.fontSize = fontSize;
+        label.horizontalOverflow = HorizontalWrapMode.Overflow;
+        label.verticalOverflow = VerticalWrapMode.Truncate;
+        label.supportRichText = false;
+        EditorUtility.SetDirty(label);
+    }
+
+    private static InputField PanelInputField(Transform canvas, string name, string placeholderValue, Vector2 position, Vector2 size, out Text contentText)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(InputField));
+        go.layer = InteractionLayer; go.transform.SetParent(canvas, false);
+        var rect = go.GetComponent<RectTransform>(); rect.anchoredPosition = position; rect.sizeDelta = size;
+        var image = go.GetComponent<Image>(); image.color = new Color(.018f, .038f, .055f, .96f); image.raycastTarget = true;
+        var viewportObject = new GameObject("TextViewport", typeof(RectTransform), typeof(RectMask2D));
+        viewportObject.layer = InteractionLayer; viewportObject.transform.SetParent(go.transform, false);
+        var viewportRect = viewportObject.GetComponent<RectTransform>(); viewportRect.anchorMin = Vector2.zero; viewportRect.anchorMax = Vector2.one; viewportRect.pivot = new Vector2(.5f, .5f); viewportRect.offsetMin = new Vector2(8, 7); viewportRect.offsetMax = new Vector2(-8, -7);
+        var contentObject = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+        contentObject.layer = InteractionLayer; contentObject.transform.SetParent(viewportObject.transform, false);
+        var contentRect = contentObject.GetComponent<RectTransform>(); contentRect.anchorMin = Vector2.zero; contentRect.anchorMax = Vector2.one; contentRect.pivot = new Vector2(.5f, .5f); contentRect.offsetMin = Vector2.zero; contentRect.offsetMax = Vector2.zero;
+        contentText = contentObject.GetComponent<Text>(); contentText.font = _font; contentText.fontSize = 12; contentText.color = new Color(.78f, .91f, .92f); contentText.alignment = TextAnchor.UpperLeft; contentText.horizontalOverflow = HorizontalWrapMode.Wrap; contentText.verticalOverflow = VerticalWrapMode.Overflow; contentText.supportRichText = false; contentText.raycastTarget = false;
+        var placeholderObject = new GameObject("Placeholder", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+        placeholderObject.layer = InteractionLayer; placeholderObject.transform.SetParent(viewportObject.transform, false);
+        var placeholderRect = placeholderObject.GetComponent<RectTransform>(); placeholderRect.anchorMin = Vector2.zero; placeholderRect.anchorMax = Vector2.one; placeholderRect.pivot = new Vector2(.5f, .5f); placeholderRect.offsetMin = new Vector2(8, 7); placeholderRect.offsetMax = new Vector2(-8, -7);
+        var placeholder = placeholderObject.GetComponent<Text>(); placeholder.font = _font; placeholder.fontSize = 11; placeholder.color = new Color(.38f, .55f, .62f); placeholder.alignment = TextAnchor.UpperLeft; placeholder.horizontalOverflow = HorizontalWrapMode.Wrap; placeholder.verticalOverflow = VerticalWrapMode.Overflow; placeholder.text = placeholderValue; placeholder.raycastTarget = false;
+        var field = go.GetComponent<InputField>(); field.textComponent = contentText; field.placeholder = placeholder; field.targetGraphic = image; field.lineType = InputField.LineType.MultiLineNewline; field.contentType = InputField.ContentType.Standard; field.characterLimit = 8192; field.caretColor = Color.white; field.selectionColor = new Color(.18f, .58f, .68f, .65f); field.interactable = true; field.navigation = new Navigation { mode = Navigation.Mode.None };
+        return field;
+    }
+
+    private static void DirectCellButton(Transform canvas, string name, string label, Vector2 position, Vector2 size, CircuitLabStateTablet tablet, int slot, bool ramAddressCell, out GameObject cellObject, out Text cellText)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(UnityEngine.UI.Button));
+        go.layer = InteractionLayer; go.transform.SetParent(canvas, false);
+        var rect = go.GetComponent<RectTransform>(); rect.anchoredPosition = position; rect.sizeDelta = size;
+        var image = go.GetComponent<Image>(); image.color = new Color(.02f, .05f, .07f, .05f); image.raycastTarget = true;
+        var ui = go.GetComponent<UnityEngine.UI.Button>(); ui.targetGraphic = image; ui.navigation = new Navigation { mode = Navigation.Mode.None };
+        var cell = Behaviour<CircuitLabTabletCell>(go); cell.tablet = tablet; cell.slot = slot; cell.ramAddressCell = ramAddressCell;
+        UnityEventTools.AddStringPersistentListener(ui.onClick, UdonSharpEditorUtility.GetBackingUdonBehaviour(cell).SendCustomEvent, "Select");
+        cellText = UiText(go.transform, "Label", label, Vector2.zero, size * .94f, 8, Color.white);
+        cellText.resizeTextForBestFit = true; cellText.resizeTextMinSize = 5; cellText.resizeTextMaxSize = 8;
+        cellObject = go;
+    }
+
+    private static CircuitLabProgramPanel BuildProgramPanel(Transform world, CircuitLabSimulator simulator, JObject data, JObject[] programs, string[] names, string[] descriptions, int defaultPreset)
+    {
+        var panel = MovablePanel(world, "ProgramPanel", new Vector3(-12f, 3.7f, -.4f), new Vector3(0, -60f, 0), 7.2f, 6.8f);
+        var canvas = PanelCanvas(panel.transform, "ProgramCanvas", 7.2f, 6.8f);
+        var program = Behaviour<CircuitLabProgramPanel>(panel);
+        program.simulator = simulator; program.coordinator = _coordinator; program.pageSize = 8;
+        program.programNames = names; program.programDescriptions = descriptions; program.programWordCount = 512;
+        program.expectedText = new string[programs.Length]; program.expectedCycles = new int[programs.Length];
+        for (int index = 0; index < programs.Length; index++)
+        {
+            program.expectedText[index] = (string)programs[index]["expectedText"] ?? "";
+            program.expectedCycles[index] = (int?)programs[index]["expectedCycles"] ?? 0;
+        }
+        program.opcodeValues = new int[16]; program.opcodeNames = new string[16];
+        for (int i = 0; i < 16; i++) { program.opcodeValues[i] = i; program.opcodeNames[i] = "OP" + i; }
+        program.extensionNames = new string[16];
+        JObject isa = data["isa"] as JObject;
+        var isaLines = new List<string>();
+        if (isa != null && isa["opcodes"] is JArray opcodeData)
+            foreach (JObject opcode in opcodeData.Cast<JObject>())
+            {
+                int code = IsaCode(opcode["code"]);
+                string mnemonic = (string)opcode["mnemonic"] ?? "OP";
+                string format = (string)opcode["format"] ?? "";
+                string label = code >= 0xE0 ? "E." + (code & 15).ToString("X") : code.ToString("X");
+                isaLines.Add(label + " " + mnemonic + " " + format);
+                if (code >= 0xE0 && code <= 0xEF) program.extensionNames[code & 15] = mnemonic;
+                else if (code >= 0 && code <= 15) program.opcodeNames[code] = mnemonic;
+            }
+        if (isa != null && isa["extensions"] is JArray extensionData)
+            foreach (JObject extension in extensionData.Cast<JObject>())
+            {
+                int subopcode = (int)extension["subopcode"];
+                if (subopcode < 0 || subopcode >= program.extensionNames.Length) continue;
+                string mnemonic = (string)extension["mnemonic"] ?? "EXT";
+                string label = "E." + subopcode.ToString("X");
+                program.extensionNames[subopcode] = mnemonic;
+                isaLines.Add(label + " " + mnemonic);
+            }
+        if (isa != null)
+        {
+            isaLines.Insert(0, "12-bit instructions  /  9-bit PC  /  512 ROM words  /  256 RAM bytes  /  ACC,X,SP = 8 bits");
+            if (isa["registers"] is JObject registers)
+            {
+                string registerLine = "REGISTERS  ";
+                foreach (var register in registers.Properties()) registerLine += register.Name.ToUpperInvariant() + "=" + register.Value + "  ";
+                isaLines.Insert(1, registerLine);
+            }
+        }
+        for (int code = 0; code < 16; code++) program.opcodeValues[code] = code;
+
+        program.programCurrentTitle = PanelText(canvas.transform, "CurrentProgramTitle", "CURRENT PROGRAM", new Vector2(-120, 314), new Vector2(440, 42), 17, Color.white);
+        program.programCurrentTitle.resizeTextForBestFit = true; program.programCurrentTitle.resizeTextMinSize = 9; program.programCurrentTitle.resizeTextMaxSize = 17;
+        program.programCurrentTitle.horizontalOverflow = HorizontalWrapMode.Wrap; program.programCurrentTitle.verticalOverflow = VerticalWrapMode.Truncate;
+        program.currentDescription = PanelText(canvas.transform, "CurrentProgramDescription", "", new Vector2(0, 274), new Vector2(680, 30), 11, new Color(.63f, .83f, .87f));
+        program.currentDescription.resizeTextForBestFit = true; program.currentDescription.resizeTextMinSize = 8; program.currentDescription.resizeTextMaxSize = 11;
+        program.currentDescription.horizontalOverflow = HorizontalWrapMode.Wrap; program.currentDescription.verticalOverflow = VerticalWrapMode.Truncate;
+        PanelButton(canvas.transform, "REQUEST_PROGRAM_CONTROL", "REQUEST / CLAIM CONTROL", program, "ClaimControl", new Vector2(230, 316), new Vector2(220, 25), 10);
+        PanelText(canvas.transform, "DraftTitle", "SHARED DRAFT  /  ONE 12-BIT WORD PER LINE", new Vector2(-207, 246), new Vector2(284, 26), 12, new Color(.66f, .88f, .88f));
+        program.draftInput = PanelInputField(canvas.transform, "DraftInput", "HEX or BIN, one word per line\n0x prefix accepted; #, ; and // comments\nEmpty lines are ignored. Capacity: 512 words.", new Vector2(-207, 46), new Vector2(284, 362), out Text draftContent);
+        program.editorStatus = PanelText(canvas.transform, "EditorStatus", "DRAFT READY  /  RUNNING PROGRAM SHOWN AT RIGHT", new Vector2(-207, -151), new Vector2(284, 44), 10, new Color(.75f, .84f, .78f), TextAnchor.MiddleLeft);
+        program.editorStatus.fontSize = 8;
+        program.selectedPresetText = PanelText(canvas.transform, "PresetSelection", "SELECTED PRESET 0", new Vector2(-207, -192), new Vector2(284, 20), 10, new Color(.7f, .88f, .92f));
+        PanelButton(canvas.transform, "PRESET_PREVIOUS", "<", program, "PreviousPreset", new Vector2(-297, -219), new Vector2(42, 28), 12);
+        PanelButton(canvas.transform, "PRESET_NEXT", ">", program, "NextPreset", new Vector2(-251, -219), new Vector2(42, 28), 12);
+        PanelButton(canvas.transform, "LOAD_PRESET", "LOAD PRESET + RESET", program, "LoadSelectedPreset", new Vector2(-115, -219), new Vector2(218, 28), 10);
+        PanelButton(canvas.transform, "INPUT_HEX", "HEX", program, "SetInputHex", new Vector2(-281, -253), new Vector2(66, 27), 10);
+        PanelButton(canvas.transform, "INPUT_BINARY", "BIN", program, "SetInputBinary", new Vector2(-207, -253), new Vector2(66, 27), 10);
+
+        PanelText(canvas.transform, "LoadedProgramTitle", "LOADED ROM  /  HEX · BIN · DISASSEMBLY", new Vector2(145, 246), new Vector2(410, 24), 12, new Color(.66f, .88f, .88f));
+        program.listingText = PanelText(canvas.transform, "ProgramListingHeader", "ROM VIEW", new Vector2(145, 222), new Vector2(410, 19), 10, new Color(.64f, .80f, .86f));
+        program.instructionRows = new Text[8];
+        for (int row = 0; row < program.instructionRows.Length; row++)
+        {
+            var line = PanelText(canvas.transform, "ProgramWord_" + row, "", new Vector2(145, 192 - row * 24), new Vector2(410, 23), 9, new Color(.83f, .91f, .89f), TextAnchor.MiddleLeft);
+            line.horizontalOverflow = HorizontalWrapMode.Overflow; program.instructionRows[row] = line;
+        }
+        PanelButton(canvas.transform, "PROGRAM_PAGE_PREVIOUS", "< PAGE", program, "PreviousPage", new Vector2(26, -18), new Vector2(115, 27), 10);
+        PanelButton(canvas.transform, "PROGRAM_PAGE_PC", "GO TO PC", program, "GoToPcPage", new Vector2(145, -18), new Vector2(115, 27), 10);
+        PanelButton(canvas.transform, "PROGRAM_PAGE_NEXT", "PAGE >", program, "NextPage", new Vector2(264, -18), new Vector2(115, 27), 10);
+        program.virtualWordText = PanelText(canvas.transform, "VirtualWordPreview", "WORD 0x000  /  000000000000", new Vector2(145, -58), new Vector2(410, 22), 11, new Color(.78f, .90f, .75f));
+        program.bitTexts = new Text[12];
+        for (int bit = 0; bit < 12; bit++)
+        {
+            int column = bit % 6;
+            int row = bit / 6;
+            var button = PanelButton(canvas.transform, "VIRTUAL_BIT_" + (11 - bit), "B" + (11 - bit) + " 0", program, "InsertBit" + (11 - bit), new Vector2(-23 + column * 67, -88 - row * 34), new Vector2(62, 31), 8);
+            program.bitTexts[bit] = button.GetComponentInChildren<Text>();
+        }
+        SetSingleLineButtonLabel(PanelButton(canvas.transform, "VIRTUAL_BACKSPACE", "DELETE LINE", program, "BackspaceBit", new Vector2(-17, -160), new Vector2(84, 24), 8), 8);
+        SetSingleLineButtonLabel(PanelButton(canvas.transform, "VIRTUAL_COMMIT", "APPEND WORD", program, "CommitWord", new Vector2(86, -160), new Vector2(114, 24), 8), 8);
+        SetSingleLineButtonLabel(PanelButton(canvas.transform, "LOAD_DRAFT", "LOAD DRAFT", program, "LoadDraft", new Vector2(244, -160), new Vector2(200, 24), 8), 8);
+        PanelText(canvas.transform, "ISAHeading", "ISA  /  CPU EXECUTES THE LOADED 12-BIT ROM", new Vector2(145, -184), new Vector2(410, 20), 10, new Color(.66f, .88f, .88f));
+        program.isaText = PanelText(canvas.transform, "ISADetails", string.Join("   |   ", isaLines.ToArray()), new Vector2(145, -236), new Vector2(410, 74), 7, new Color(.69f, .81f, .85f), TextAnchor.UpperLeft);
+        program.isaText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        var draftState = Behaviour<CircuitLabProgramDraft>(Child(panel.transform, "SharedDraftState"));
+        draftState.panel = program; draftState.coordinator = _coordinator; program.sharedDraft = draftState;
+        program.inputMode = 0; program.selectedPreset = defaultPreset; program.programPage = 0; program.virtualWord = 0;
+        return program;
+    }
+
+    private static int IsaCode(JToken token)
+    {
+        if (token == null) return -1;
+        if (token.Type == JTokenType.Integer) return (int)token;
+        string text = ((string)token ?? "").Trim();
+        if (text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) return Convert.ToInt32(text.Substring(2), 16);
+        if (text.StartsWith("E.", StringComparison.OrdinalIgnoreCase)) return 0xE0 + Convert.ToInt32(text.Substring(2), 16);
+        return Convert.ToInt32(text, 16);
+    }
+
+    private static CircuitLabStateTablet BuildStateTablet(Transform world, CircuitLabSimulator simulator, JObject data, Dictionary<int, JObject> nodes, Material tabletMaterial)
+    {
+        var panel = MovablePanel(world, "StateTablet", new Vector3(12f, 3.2f, -.4f), new Vector3(0, 60f, 0), 6.8f, 5.8f);
+        var canvas = PanelCanvas(panel.transform, "StateTabletCanvas", 6.8f, 5.8f);
+        var tablet = Behaviour<CircuitLabStateTablet>(panel); tablet.simulator = simulator; tablet.coordinator = _coordinator;
+        tablet.nodeCount = simulator.nodeCount; tablet.signalIds = Enumerable.Range(0, simulator.nodeCount).ToArray();
+        tablet.signalNames = new string[simulator.nodeCount]; tablet.signalModules = new string[simulator.nodeCount];
+        tablet.signalTypes = new string[simulator.nodeCount]; tablet.signalInputs = new string[simulator.nodeCount]; tablet.signalOpcodes = new int[simulator.nodeCount];
+        var modulePaths = ((JArray)data["modules"]).Cast<JObject>().ToDictionary(module => (int)module["id"], module => (string)module["path"]);
+        int[] romAddress = data["memoryPorts"]["romAddress"].ToObject<int[]>();
+        int[] ramAddress = data["memoryPorts"]["ramReadAddress"].ToObject<int[]>();
+        foreach (var pair in nodes)
+        {
+            int id = pair.Key; JObject node = pair.Value; int op = (int)node["op"];
+            tablet.signalNames[id] = (string)node["name"] ?? ("signal_" + id);
+            int moduleId = (int?)node["moduleId"] ?? -1;
+            tablet.signalModules[id] = modulePaths.ContainsKey(moduleId) ? modulePaths[moduleId] : "module " + moduleId;
+            tablet.signalTypes[id] = GateName(op);
+            tablet.signalOpcodes[id] = op;
+            int[] inputs = op == 15 ? romAddress : op == 16 ? ramAddress : Inputs(node);
+            if (op == 3)
+            {
+                int[] clockSignals = data["ports"]["clk"].ToObject<int[]>();
+                int[] dffInputs = new int[inputs.Length + clockSignals.Length];
+                for (int bit = 0; bit < inputs.Length; bit++) dffInputs[bit] = inputs[bit];
+                for (int bit = 0; bit < clockSignals.Length; bit++) dffInputs[inputs.Length + bit] = clockSignals[bit];
+                inputs = dffInputs;
+            }
+            string inputText = "";
+            for (int pin = 0; pin < inputs.Length; pin++)
+            {
+                int inputId = inputs[pin];
+                string inputName = nodes.ContainsKey(inputId) ? (string)nodes[inputId]["name"] : "signal_" + inputId;
+                inputText += (pin == 0 ? "" : ", ") + inputName + " (#" + inputId + ")";
+            }
+            tablet.signalInputs[id] = inputText.Length == 0 ? "(none)" : inputText;
+        }
+        tablet.displayMaterial = tabletMaterial;
+        var displayObject = new GameObject("TextureView", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+        displayObject.layer = InteractionLayer; displayObject.transform.SetParent(canvas.transform, false);
+        var displayRect = displayObject.GetComponent<RectTransform>(); displayRect.anchoredPosition = new Vector2(-124, 2); displayRect.sizeDelta = new Vector2(352, 352);
+        tablet.textureView = displayObject.GetComponent<RawImage>(); tablet.textureView.texture = Texture2D.whiteTexture; tablet.textureView.material = tabletMaterial; tablet.textureView.raycastTarget = false;
+        PanelText(canvas.transform, "TabletTitle", "LIVE STATE  /  RAM  /  ROM", new Vector2(-110, 267), new Vector2(420, 24), 17, Color.white);
+        PanelButton(canvas.transform, "TABLET_REQUEST_CONTROL", "REQUEST / CLAIM CONTROL", tablet, "ClaimControl", new Vector2(224, 267), new Vector2(212, 25), 9);
+        PanelText(canvas.transform, "TabletStatus", "VALUES ARE GPU READBACKS  /  STABLE SAMPLE AFTER RAM + CPU COMMIT", new Vector2(0, 241), new Vector2(640, 18), 9, new Color(.59f, .80f, .85f));
+        tablet.pageText = PanelText(canvas.transform, "TabletPage", "SIGNALS", new Vector2(-124, 194), new Vector2(352, 18), 9, new Color(.69f, .87f, .88f));
+        tablet.tabText = PanelText(canvas.transform, "TabletTab", "LIVE SIGNAL STATE", new Vector2(190, 194), new Vector2(250, 20), 11, new Color(.75f, .9f, .84f));
+        tablet.detailText = PanelText(canvas.transform, "SelectedSignalDetails", "SELECT A SIGNAL FROM THE GRID", new Vector2(190, 95), new Vector2(250, 110), 9, new Color(.81f, .90f, .90f), TextAnchor.UpperLeft);
+        tablet.memoryStatusText = PanelText(canvas.transform, "MemoryPortStatus", "A READ  /  B WRITE", new Vector2(190, -18), new Vector2(250, 112), 9, new Color(.71f, .85f, .89f), TextAnchor.UpperLeft);
+        tablet.ramDetailText = PanelText(canvas.transform, "SelectedRamDetails", "RAM[00]", new Vector2(190, -132), new Vector2(250, 58), 10, new Color(.88f, .91f, .68f), TextAnchor.UpperLeft);
+        PanelButton(canvas.transform, "TABLET_SHOW_SIGNALS", "SIGNALS", tablet, "ShowSignals", new Vector2(-250, 218), new Vector2(90, 24), 9);
+        PanelButton(canvas.transform, "TABLET_SHOW_GATES", "GATES", tablet, "ShowGates", new Vector2(-150, 218), new Vector2(82, 24), 9);
+        PanelButton(canvas.transform, "TABLET_SHOW_ROM", "ROM", tablet, "ShowRom", new Vector2(-59, 218), new Vector2(62, 24), 9);
+        PanelButton(canvas.transform, "TABLET_SHOW_RAM", "RAM", tablet, "ShowRam", new Vector2(13, 218), new Vector2(62, 24), 9);
+        PanelButton(canvas.transform, "TABLET_SELECT_NODE", "SHOW NODE", tablet, "SelectNode", new Vector2(131, 163), new Vector2(102, 22), 8);
+        PanelButton(canvas.transform, "TABLET_SELECT_RAM_ADDRESS", "SELECT ADDRESS", tablet, "SelectRamAddress", new Vector2(248, 163), new Vector2(118, 22), 8);
+        PanelButton(canvas.transform, "TABLET_PAGE_PREVIOUS", "<", tablet, "PreviousPage", new Vector2(-250, -192), new Vector2(48, 23), 10);
+        PanelButton(canvas.transform, "TABLET_PAGE_NEXT", ">", tablet, "NextPage", new Vector2(-196, -192), new Vector2(48, 23), 10);
+        PanelButton(canvas.transform, "TABLET_TOGGLE_RAW", "RAW TEXTURE", tablet, "ToggleRawRam", new Vector2(128, -194), new Vector2(104, 22), 8);
+        PanelButton(canvas.transform, "TABLET_TOGGLE_INITIAL", "INIT / CURRENT", tablet, "ToggleInitialRam", new Vector2(246, -194), new Vector2(112, 22), 8);
+        PanelButton(canvas.transform, "TABLET_BIND_SELECTED", "BIND BIT", tablet, "BindSelectedToProbe", new Vector2(128, -221), new Vector2(104, 24), 8);
+        PanelButton(canvas.transform, "TABLET_BIND_RAM_BYTE", "PROBE BYTE", tablet, "BindSelectedRamByte", new Vector2(246, -221), new Vector2(112, 24), 8);
+        for (int bit = 0; bit < 8; bit++)
+            PanelButton(canvas.transform, "TABLET_RAM_BIT_" + bit, "B" + bit, tablet, "SelectRamBit" + bit, new Vector2(108 + bit * 24, -172), new Vector2(22, 20), 7);
+
+        tablet.signalCellLabels = new Text[64]; tablet.signalCellObjects = new GameObject[64];
+        float signalCell = 352f / 8f;
+        for (int slot = 0; slot < 64; slot++)
+        {
+            int row = slot / 8, column = slot % 8;
+            Vector2 pos = new Vector2(-124 - 176 + (column + .5f) * signalCell, 2 + 176 - (row + .5f) * signalCell);
+            DirectCellButton(canvas.transform, "SignalCell_" + slot, "", pos, new Vector2(signalCell, signalCell), tablet, slot, false, out tablet.signalCellObjects[slot], out tablet.signalCellLabels[slot]);
+        }
+        tablet.ramCellLabels = new Text[256]; tablet.ramCellObjects = new GameObject[256];
+        float ramCell = 352f / 16f;
+        for (int address = 0; address < 256; address++)
+        {
+            int row = address / 16, column = address % 16;
+            Vector2 pos = new Vector2(-124 - 176 + (column + .5f) * ramCell, 2 + 176 - (row + .5f) * ramCell);
+            DirectCellButton(canvas.transform, "RamCell_" + address.ToString("X2"), "00", pos, new Vector2(ramCell, ramCell), tablet, address, true, out tablet.ramCellObjects[address], out tablet.ramCellLabels[address]);
+        }
+        var ramTargets = new CircuitLabSignalTarget[4];
+        for (int channel = 0; channel < ramTargets.Length; channel++)
+        {
+            Vector3 point = new Vector3(2.55f + channel * .20f, -2.36f, -.18f);
+            ramTargets[channel] = SignalTarget(panel.transform, "RAMProbeTarget_" + (char)('A' + channel), new[] { simulator.nodeCount }, "RAM[00].0", null, false, point, .035f);
+        }
+        tablet.ramProbeTargets = ramTargets;
+        var shared = Behaviour<CircuitLabTabletSharedState>(Child(panel.transform, "SharedState"));
+        shared.tablet = tablet; shared.coordinator = _coordinator; tablet.sharedState = shared;
+        shared.ramSignalA = simulator.nodeCount; shared.ramSignalB = simulator.nodeCount; shared.ramSignalC = simulator.nodeCount; shared.ramSignalD = simulator.nodeCount;
+        tablet.activeTab = 0; tablet.selectNode = 0; tablet.selectRamAddress = 0; tablet.selectedRamBit = 0;
+        return tablet;
+    }
+
     private static void Controls(Transform parent, UdonSharpBehaviour target, string[] events, string[] labels, float y, float width)
     {
         for (int i = 0; i < events.Length; i++)
@@ -799,6 +1309,7 @@ public static class BuildCircuitLab
     private static int[] Inputs(JObject node)
     {
         int op = (int)node["op"];
+        if (op == 15 || op == 16) return new int[0];
         if (op <= 2) return new int[0];
         if (op <= 5) return new[] { (int)node["a"] };
         if (op == 10) return new[] { (int)node["a"], (int)node["b"], (int)node["c"] };
@@ -807,7 +1318,10 @@ public static class BuildCircuitLab
 
     private static string GateName(int op)
     {
-        return new[] { "0", "1", "IN", "DFF", "BUF", "NOT", "AND", "OR", "XOR", "XNOR", "MUX", "NAND", "NOR", "ANDNOT", "ORNOT" }[op];
+        if (op >= 0 && op <= 14) return new[] { "0", "1", "IN", "DFF", "BUF", "NOT", "AND", "OR", "XOR", "XNOR", "MUX", "NAND", "NOR", "ANDNOT", "ORNOT" }[op];
+        if (op == 15) return "ROM_READ";
+        if (op == 16) return "RAM_READ";
+        return "OP_" + op;
     }
 
     private static string PinName(int op, int pin)
@@ -932,7 +1446,8 @@ public static class BuildCircuitLab
         var ui = go.GetComponent<UnityEngine.UI.Button>(); ui.targetGraphic = image;
         ui.navigation = new Navigation { mode = Navigation.Mode.None };
         var handler = Behaviour<CircuitLabButton>(go); handler.target = target; handler.eventName = eventName; handler.coordinator = _coordinator; handler.uiButton = ui;
-        handler.requireControl = target is CircuitLabSimulator || target is CircuitLabProbe || target is CircuitLabLayout || target is CircuitLabHierarchyRow || target is CircuitLabHierarchyTree;
+        handler.requireControl = target is CircuitLabSimulator || target is CircuitLabProbe || target is CircuitLabLayout || target is CircuitLabHierarchyRow || target is CircuitLabHierarchyTree
+            || (target is CircuitLabProgramPanel && eventName != "ClaimControl") || (target is CircuitLabStateTablet && eventName != "ClaimControl");
         UnityEventTools.AddStringPersistentListener(ui.onClick, UdonSharpEditorUtility.GetBackingUdonBehaviour(handler).SendCustomEvent, "Press");
         UiText(go.transform, "Label", label, Vector2.zero, size * .94f, fontSize, Color.white);
         return handler;
@@ -983,6 +1498,8 @@ public static class BuildCircuitLab
         if (simulator == null) throw new InvalidOperationException("CircuitLab simulator not found.");
         var udon = UdonSharpEditorUtility.GetBackingUdonBehaviour(simulator);
         var modules = Object.FindObjectsOfType<CircuitLabModule>(true).OrderBy(module => module.moduleId).ToArray();
+        var programPanel = Object.FindObjectOfType<CircuitLabProgramPanel>();
+        var stateTablet = Object.FindObjectOfType<CircuitLabStateTablet>();
         return new
         {
             scene = simulator.gameObject.scene.path, playing = EditorApplication.isPlaying,
@@ -993,7 +1510,11 @@ public static class BuildCircuitLab
             signalTargets = Object.FindObjectsOfType<CircuitLabSignalTarget>(true).Length,
             previewCameraEnabled = GameObject.Find("CircuitLabPreviewCamera").GetComponent<Camera>().enabled,
             simHud = simulator.simHudText.text, waveHud = simulator.waveHudText.text,
-            shaders = new[] { "CircuitLabSim", "CircuitLabHistory", "CircuitLabWaveform", "CircuitLabDisplay" }.Select(name => { var shader = Shader.Find("VrcCpuWorld/" + name); return new { name, supported = shader != null && shader.isSupported, messages = shader == null ? new string[0] : ShaderUtil.GetShaderMessages(shader).Select(message => message.message).ToArray() }; }).ToArray()
+            currentProgram = simulator.activeProgramName, programRevision = simulator.programRevision,
+            ramSampleStable = simulator.observedRamStable, ramSampleCycle = simulator.observedRamCycle,
+            programPanel = programPanel == null ? null : new { currentProgram = programPanel.currentProgramName, title = programPanel.programCurrentTitle.text, draftCharacters = programPanel.draftInput.text.Length },
+            stateTablet = stateTablet == null ? null : new { selectedNode = stateTablet.selectNode, selectedRamAddress = stateTablet.selectRamAddress, tab = stateTablet.activeTab },
+            shaders = new[] { "CircuitLabSim", "CircuitLabRam", "CircuitLabHistory", "CircuitLabWaveform", "CircuitLabDisplay", "CircuitLabTabletDisplay" }.Select(name => { var shader = Shader.Find("VrcCpuWorld/" + name); return new { name, supported = shader != null && shader.isSupported, messages = shader == null ? new string[0] : ShaderUtil.GetShaderMessages(shader).Select(message => message.message).ToArray() }; }).ToArray()
         };
     }
 
@@ -1005,7 +1526,25 @@ public static class BuildCircuitLab
         var modules = roots.SelectMany(root => root.GetComponentsInChildren<CircuitLabModule>(true)).ToArray();
         var targets = roots.SelectMany(root => root.GetComponentsInChildren<CircuitLabSignalTarget>(true)).ToArray();
         var simulator = roots.SelectMany(root => root.GetComponentsInChildren<CircuitLabSimulator>(true)).Single();
-        if (modules.Length < 10 || targets.Length < simulator.nodeCount) throw new InvalidOperationException("Incomplete module/pin construction.");
+        var programPanel = roots.SelectMany(root => root.GetComponentsInChildren<CircuitLabProgramPanel>(true)).Single();
+        var stateTablet = roots.SelectMany(root => root.GetComponentsInChildren<CircuitLabStateTablet>(true)).Single();
+        var layout = roots.SelectMany(root => root.GetComponentsInChildren<CircuitLabLayout>(true)).Single();
+        if (modules.Length == 0 || targets.Length < simulator.nodeCount) throw new InvalidOperationException("Incomplete module/pin construction.");
+        foreach (GameObject panel in new[] { programPanel.gameObject, stateTablet.gameObject })
+        {
+            var tool = panel.GetComponent<CircuitLabMovableTool>();
+            string canvasName = panel == programPanel.gameObject ? "ProgramCanvas" : "StateTabletCanvas";
+            var canvasTransform = panel.transform.Find(canvasName);
+            var canvas = canvasTransform == null ? null : canvasTransform.GetComponent<Canvas>();
+            if (tool == null || panel.GetComponent<VRC_Pickup>() == null || panel.GetComponent<VRCObjectSync>() == null
+                || panel.GetComponent<Rigidbody>() == null || canvas == null || canvas.GetComponent<VRCUiShape>() == null
+                || canvas.GetComponent<GraphicRaycaster>() == null || canvas.GetComponent<BoxCollider>() == null)
+                throw new InvalidOperationException("Incomplete movable VR panel " + panel.name);
+            if (!layout.tools.Contains(tool)) throw new InvalidOperationException("Layout reset omits panel " + panel.name);
+        }
+        if (programPanel.sharedDraft == null || programPanel.sharedDraft.transform.parent != programPanel.transform
+            || stateTablet.sharedState == null || stateTablet.sharedState.transform.parent != stateTablet.transform)
+            throw new InvalidOperationException("Panel Manual sync state must live on an independent child object.");
         foreach (var module in modules)
         {
             if (module.GetComponent<VRC_Pickup>() == null || module.GetComponent<Rigidbody>() == null || module.childModules == null || module.allModules == null)
@@ -1015,10 +1554,19 @@ public static class BuildCircuitLab
         }
         foreach (var target in targets)
             if (target.signalIds == null || target.signalIds.Length == 0 || target.probes == null || target.probes.Length != 4) throw new InvalidOperationException("Unwired signal target " + target.name);
-        foreach (var texture in new[] { simulator.stateA, simulator.stateB, simulator.historyA, simulator.historyB, simulator.frozenHistory })
+        foreach (var texture in new[] { simulator.stateA, simulator.stateB, simulator.historyA, simulator.historyB, simulator.frozenHistory, simulator.ramA, simulator.ramB })
             if (texture == null || !AssetDatabase.Contains(texture) || texture.filterMode != FilterMode.Point) throw new InvalidOperationException("Invalid persistent render texture.");
+        foreach (var texture in new[] { simulator.programTexture, simulator.ramInitialTexture, simulator.restoreRamTexture, simulator.restoreStateTexture })
+            if (texture == null || !AssetDatabase.Contains(texture) || texture.filterMode != FilterMode.Point || texture.format != TextureFormat.RGBA32)
+                throw new InvalidOperationException("Invalid persistent ROM/RAM restore texture.");
+        if (simulator.programTexture.width != 512 || simulator.programTexture.height != 1 || simulator.ramInitialTexture.width != 16 || simulator.ramInitialTexture.height != 16
+            || simulator.restoreRamTexture.width != 16 || simulator.restoreRamTexture.height != 16 || simulator.restoreStateTexture.width != simulator.textureWidth || simulator.restoreStateTexture.height != 1
+            || simulator.programCount <= 0 || simulator.programWords == null || simulator.programWords.Length != 512 || simulator.initialRam == null || simulator.initialRam.Length != 256)
+            throw new InvalidOperationException("Invalid program, RAM, or DFF restore data.");
+        if (simulator.dffSignals == null || simulator.restoreStateTexture == null || simulator.currentRam != simulator.ramA && simulator.currentRam != simulator.ramB)
+            throw new InvalidOperationException("Full-state restoration or current RAM reference is not configured.");
         if (GameObject.Find("CircuitLabPreviewCamera").GetComponent<Camera>().enabled) throw new InvalidOperationException("Preview camera must remain disabled.");
-        return new { passed = true, modules = modules.Length, pinTargets = targets.Length, persistentMeshes = AssetDatabase.FindAssets("t:Mesh", new[] { Root + "/Meshes" }).Length, persistentRenderTextures = 5, physicalProbes = 4, moduleMeshDraws = modules.Length * 2 };
+        return new { passed = true, modules = modules.Length, nodeCount = simulator.nodeCount, dffs = simulator.dffSignals.Length, pinTargets = targets.Length, persistentMeshes = AssetDatabase.FindAssets("t:Mesh", new[] { Root + "/Meshes" }).Length, persistentRenderTextures = 7, romRamTextures = 4, physicalProbes = 4, moduleMeshDraws = modules.Length * 2 };
     }
 
     public static async Task<object> ValidateInteractions()

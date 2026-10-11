@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "hexAndBinary": true,
+  "commentsAndPrefix": true,
+  "invalidImagePreservesProgram": true,
+  "pendingStoreCancelled": true,
+  "warmResetPreservesAllRam": true,
+  "restartInitializesRam": true,
+  "binaryTerminalOutput": "A",
+  "inputPath": "Unity Button pointerClick -> backing Udon -> queued actual GPU work"
+}

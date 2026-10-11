@@ -1,10 +1,10 @@
 {
   "passed": true,
-  "vectors": 946,
-  "nodes": 524,
-  "comparedBits": 495704,
+  "vectors": 128,
+  "nodes": 1127,
+  "comparedBits": 144256,
   "mismatches": 0,
-  "milliseconds": 22384.0332,
+  "milliseconds": 15181.6563,
   "runId": 1,
   "graphicsDevice": "NVIDIA GeForce RTX 5080",
   "graphicsApi": "Direct3D11"
