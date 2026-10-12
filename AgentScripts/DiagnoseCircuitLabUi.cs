@@ -174,7 +174,9 @@ public static class DiagnoseCircuitLabUi
                 ["authority"] = Convert.ToInt32(coord.GetProgramVariable("controlAuthorityId")),
                 ["localPlayer"] = LocalPlayerId(),
                 ["running"] = Convert.ToBoolean(sim.GetProgramVariable("running")),
-                ["deniedCommands"] = Convert.ToInt32(sim.GetProgramVariable("deniedCommands")),
+                // deniedCommands belongs to the coordinator: reading it from the
+                // simulator's UdonBehaviour only logs a symbol error and returns null.
+                ["deniedCommands"] = Convert.ToInt32(coord.GetProgramVariable("deniedCommands")),
                 ["terminalProcessed"] = Convert.ToInt32(terminal.GetProgramVariable("lastProcessedCycle")),
                 ["terminalPending"] = Convert.ToBoolean(terminal.GetProgramVariable("readbackPending")),
                 ["terminalEvents"] = Convert.ToInt32(terminal.GetProgramVariable("eventCount")),
