@@ -3,7 +3,7 @@
   "controlAuthorityId": 1,
   "ready": true,
   "canUseControls": true,
-  "hasControl": false,
+  "hasControl": true,
   "buttonInteractable": true,
   "selectedBefore": 0,
   "selectedAfter": 1,

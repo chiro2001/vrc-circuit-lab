@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "serializationRecovered": true,
+  "captureRecovered": true,
+  "staleAcknowledgementsBefore": 0,
+  "staleAcknowledgementsAfter": 1,
+  "stalePathExercised": true,
+  "serializationTimeoutsBefore": 0,
+  "serializationTimeoutsAfter": 0,
+  "captureTimeoutsBefore": 0,
+  "captureTimeoutsAfter": 1,
+  "cyclesDuringSerializationStall": 238,
+  "cyclesDuringCaptureStall": 1704,
+  "submissionBlockedAtEnd": false
+}

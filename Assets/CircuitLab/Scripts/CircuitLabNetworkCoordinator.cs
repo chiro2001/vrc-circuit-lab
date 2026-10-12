@@ -86,6 +86,16 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
     private int _takeoverTarget;
     private bool _takeoverTest;
     private bool _takeoverCatchup;
+    // Watchdogs. A snapshot handshake depends on the terminal readback and on the
+    // SDK's serialization callback; if either is ever dropped, the pending flags
+    // used to latch forever and SubmissionBlocked() froze the whole simulation with
+    // no log. These timestamps let the coordinator give up and carry on instead.
+    private float _serializationStartedAt;
+    private float _captureStartedAt;
+    public int serializationTimeouts;
+    public int captureTimeouts;
+    private const float SerializationTimeoutSeconds = 4f;
+    private const float CaptureTimeoutSeconds = 8f;
 
     public bool HasControl()
     {
@@ -226,6 +236,7 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
     {
         if (simulator == null || simulator.currentState == null) return;
         RecoverMissingController();
+        WatchPendingHandshakes();
         if (!ready && snapshotRevision == 0 && HasControl()) ready = true;
         if (restorePending)
         {
@@ -270,6 +281,30 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
         }
     }
 
+    // Gives up on a snapshot handshake that never completed, so a dropped readback
+    // or serialization callback cannot latch SubmissionBlocked() true forever.
+    private void WatchPendingHandshakes()
+    {
+        float now = Time.realtimeSinceStartup;
+        if (_serializationPending && now - _serializationStartedAt > SerializationTimeoutSeconds)
+        {
+            serializationTimeouts++;
+            _serializationPending = false;
+            _handoffSerialized = false;
+            Debug.LogWarning("CIRCUIT_LAB_SERIALIZATION_TIMEOUT: no acknowledgement for "
+                + (now - _serializationStartedAt).ToString("F1") + "s; simulation resumed. total=" + serializationTimeouts);
+        }
+        if (snapshotCaptureStage != 0 && now - _captureStartedAt > CaptureTimeoutSeconds)
+        {
+            captureTimeouts++;
+            snapshotCaptureStage = 0;
+            _readbackPending = false;
+            _snapshotRequested = false;
+            Debug.LogWarning("CIRCUIT_LAB_CAPTURE_TIMEOUT: snapshot stage stalled for "
+                + (now - _captureStartedAt).ToString("F1") + "s; capture abandoned. total=" + captureTimeouts);
+        }
+    }
+
     private void StopUnclaimedClock()
     {
         simulator.running = false;
@@ -303,6 +338,7 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
         { snapshotErrors++; _snapshotRequested = false; _nextSnapshotAt = Time.realtimeSinceStartup + 8f; return; }
         _snapshotRequested = false;
         snapshotCaptureStage = 1;
+        _captureStartedAt = Time.realtimeSinceStartup;
         snapshotEpoch = _localEpoch;
         snapshotCycle = simulator.cycleCount;
         snapshotSamples = simulator.sampleCount;
@@ -431,6 +467,7 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
             _pendingSnapshotRevision = snapshotRevision;
             _pendingSnapshotEpoch = snapshotEpoch;
             _serializationPending = true;
+            _serializationStartedAt = Time.realtimeSinceStartup;
             RequestSerialization();
         }
         else PublishClock();
@@ -479,12 +516,21 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
         if (sendingSnapshotRevision != _pendingSnapshotRevision || sendingSnapshotEpoch != _pendingSnapshotEpoch)
         {
             staleSnapshotAcknowledgements++;
+            // Re-arm against the values that just went out. Without this the retry
+            // was compared against the same stale expectation forever, so
+            // _serializationPending never cleared and the world stopped simulating.
+            _pendingSnapshotRevision = sendingSnapshotRevision;
+            _pendingSnapshotEpoch = sendingSnapshotEpoch;
+            _serializationStartedAt = Time.realtimeSinceStartup;
             RequestSerialization();
             return;
         }
         if (_handoffSerialized && (sendingSnapshotRevision != _handoffSnapshotRevision || sendingSnapshotEpoch != _handoffSnapshotEpoch))
         {
             staleSnapshotAcknowledgements++;
+            _handoffSnapshotRevision = sendingSnapshotRevision;
+            _handoffSnapshotEpoch = sendingSnapshotEpoch;
+            _serializationStartedAt = Time.realtimeSinceStartup;
             RequestSerialization();
             return;
         }
