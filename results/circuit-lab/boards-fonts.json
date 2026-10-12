@@ -1,0 +1,161 @@
+{
+  "passed": true,
+  "source": {
+    "path": "Text",
+    "legacyEnabled": false,
+    "legacyFont": "IBMPlexMono-Regular",
+    "legacyFontSize": 10,
+    "legacyLineSpacing": 1.0,
+    "legacyRectHeight": 270.0,
+    "contentHeight": 270.0,
+    "overlays": [
+      {
+        "name": "LocalizedTMP_EN",
+        "active": true,
+        "font": "Code-IBM-Plex-Mono-En-SDF",
+        "sourceFont": "",
+        "fontSize": 10.8,
+        "lineSpacing": 1.5,
+        "enableWordWrapping": true,
+        "overflow": "Overflow",
+        "rectHeight": 270.0
+      },
+      {
+        "name": "LocalizedTMP_ZH",
+        "active": false,
+        "font": "Code-IBM-Plex-Mono-Zh-SDF",
+        "sourceFont": "",
+        "fontSize": 10.8,
+        "lineSpacing": 1.5,
+        "enableWordWrapping": true,
+        "overflow": "Overflow",
+        "rectHeight": 270.0
+      },
+      {
+        "name": "LocalizedTMP_JA",
+        "active": false,
+        "font": "Code-IBM-Plex-Mono-Ja-SDF",
+        "sourceFont": "",
+        "fontSize": 10.8,
+        "lineSpacing": 1.5,
+        "enableWordWrapping": true,
+        "overflow": "Overflow",
+        "rectHeight": 270.0
+      }
+    ],
+    "probeLineHeight": "1420.04 px / 100 lines = 14.200 px per line"
+  },
+  "encoding": {
+    "path": "Text",
+    "legacyEnabled": false,
+    "legacyFont": "IBMPlexMono-Regular",
+    "legacyFontSize": 11,
+    "legacyLineSpacing": 1.0,
+    "legacyRectHeight": 270.0,
+    "contentHeight": 270.0,
+    "overlays": [
+      {
+        "name": "LocalizedTMP_EN",
+        "active": false,
+        "font": "Code-IBM-Plex-Mono-En-SDF",
+        "sourceFont": "",
+        "fontSize": 11.88,
+        "lineSpacing": 1.5,
+        "enableWordWrapping": true,
+        "overflow": "Overflow",
+        "rectHeight": 270.0
+      },
+      {
+        "name": "LocalizedTMP_ZH",
+        "active": false,
+        "font": "Code-IBM-Plex-Mono-Zh-SDF",
+        "sourceFont": "",
+        "fontSize": 11.88,
+        "lineSpacing": 1.5,
+        "enableWordWrapping": true,
+        "overflow": "Overflow",
+        "rectHeight": 270.0
+      },
+      {
+        "name": "LocalizedTMP_JA",
+        "active": false,
+        "font": "Code-IBM-Plex-Mono-Ja-SDF",
+        "sourceFont": "",
+        "fontSize": 11.88,
+        "lineSpacing": 1.5,
+        "enableWordWrapping": true,
+        "overflow": "Overflow",
+        "rectHeight": 270.0
+      }
+    ],
+    "probeLineHeight": "1562.05 px / 100 lines = 15.621 px per line"
+  },
+  "localePanel": {
+    "key": "LocaleCanvas",
+    "name": "LocaleCanvas",
+    "position": [
+      -11.4590673,
+      2.2,
+      -4.276667
+    ],
+    "euler": [
+      0.0,
+      300.0,
+      0.0
+    ],
+    "boundsCenter": [
+      -11.4590673,
+      2.2,
+      -4.27666664
+    ],
+    "boundsSize": [
+      1.395935,
+      1.26959991,
+      2.39943027
+    ],
+    "boundsMin": [
+      -12.1570349,
+      1.56520009,
+      -5.476382
+    ],
+    "boundsMax": [
+      -10.7611,
+      2.8348,
+      -3.0769515
+    ]
+  },
+  "lifePanel": {
+    "key": "LifeOutputPanel",
+    "name": "LifeOutputPanel",
+    "position": [
+      8.7,
+      3.6,
+      5.3
+    ],
+    "euler": [
+      0.0,
+      40.0000038,
+      0.0
+    ],
+    "boundsCenter": [
+      8.702156,
+      3.6,
+      5.29784346
+    ],
+    "boundsSize": [
+      3.90577316,
+      5.17,
+      3.321536
+    ],
+    "boundsMin": [
+      6.74926949,
+      1.01499987,
+      3.63707542
+    ],
+    "boundsMax": [
+      10.6550426,
+      6.185,
+      6.95861149
+    ]
+  }
+}

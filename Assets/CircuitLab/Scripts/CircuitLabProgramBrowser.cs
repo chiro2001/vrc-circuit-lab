@@ -44,10 +44,17 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
     public RectTransform encodingContentRect;
     public RectTransform encodingTextRect;
     public ScrollRect programListScrollRect;
+    public GameObject sourceScrollUpButton;
+    public GameObject sourceScrollDownButton;
+    public GameObject pagePreviousButton;
+    public GameObject pageNextButton;
     public int selectedProgram;
     public int browsePage;
     public int browseMode;
     public int pageSize = 12;
+    // TMP renders the visible listing; keep this generous so no wrapped line is
+    // ever clipped by the scroll content rect.
+    public float sourceLineHeight = 15f;
     public string browsingProgramName = "";
     public int browseRevision;
 
@@ -125,7 +132,7 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
 
     public void PreviousPage()
     {
-        if (!TryControl()) return;
+        if (browseMode == 0 || !TryControl()) return;
         browsePage = Mathf.Max(0, browsePage - 1);
         PublishBrowseState();
         RenderBrowser();
@@ -133,10 +140,21 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
 
     public void NextPage()
     {
-        if (!TryControl()) return;
+        if (browseMode == 0 || !TryControl()) return;
         browsePage = Mathf.Min(PageCount() - 1, browsePage + 1);
         PublishBrowseState();
         RenderBrowser();
+    }
+
+    // Reading the listing is a local view operation: any player may scroll,
+    // and the position is never published into the shared browse state.
+    public void ScrollSourceUp() { ScrollSource(0.25f); }
+    public void ScrollSourceDown() { ScrollSource(-0.25f); }
+
+    private void ScrollSource(float delta)
+    {
+        if (sourceScrollRect == null) return;
+        sourceScrollRect.verticalNormalizedPosition = Mathf.Clamp01(sourceScrollRect.verticalNormalizedPosition + delta);
     }
 
     public void ShowSource() { SetBrowseMode(0); }
@@ -246,13 +264,17 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
         int lines = 1;
         for (int i = 0; i < source.Length; i++)
             if (source[i] == '\n') lines++;
+        // Trailing newline terminates the last line; it must not add a blank one.
+        if (source[source.Length - 1] == '\n') lines--;
         return lines;
     }
 
     private int PageCount()
     {
+        // ASM source scrolls instead of paging; only the ROM word views page.
+        if (browseMode == 0) return 1;
         int size = EffectivePageSize();
-        int itemCount = browseMode == 0 ? SourceLineCount(ProgramSource(selectedProgram)) : 512;
+        int itemCount = 512;
         if (itemCount <= 0) return 1;
         return Mathf.Max(1, (itemCount + size - 1) / size);
     }
@@ -281,10 +303,15 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
             expectedOutputText.text = "EXPECTED RESULT  /  " + expected + (cycles > 0 ? "  /  " + cycles + " CYCLES" : "");
         }
 
-        if (browseMode == 0) RenderSourcePage();
+        if (browseMode == 0) RenderSource();
         else RenderEncodingPage();
         if (sourcePane != null) sourcePane.SetActive(browseMode == 0);
         if (encodingPane != null) encodingPane.SetActive(browseMode != 0);
+        bool paging = browseMode != 0;
+        if (pagePreviousButton != null) pagePreviousButton.SetActive(paging);
+        if (pageNextButton != null) pageNextButton.SetActive(paging);
+        if (sourceScrollUpButton != null) sourceScrollUpButton.SetActive(!paging);
+        if (sourceScrollDownButton != null) sourceScrollDownButton.SetActive(!paging);
         _lastRenderedProgram = selectedProgram;
         _lastRenderedPage = browsePage;
         _lastRenderedMode = browseMode;
@@ -303,13 +330,12 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
         return result;
     }
 
-    private void RenderSourcePage()
+    // The whole listing is rendered at once and read by scrolling; the pane has
+    // no notion of pages so a program can never appear truncated.
+    private void RenderSource()
     {
         string source = ProgramSource(selectedProgram);
         int total = SourceLineCount(source);
-        int size = EffectivePageSize();
-        int firstLine = browsePage * size;
-        int endLine = Mathf.Min(total, firstLine + size);
         string output = "";
         if (total <= 0)
             output = "ASM SOURCE NOT AVAILABLE\n";
@@ -317,26 +343,20 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
         {
             int lineNumber = 0;
             int lineStart = 0;
-            for (int i = 0; i <= source.Length; i++)
+            for (int i = 0; i <= source.Length && lineNumber < total; i++)
             {
                 if (i < source.Length && source[i] != '\n') continue;
-                if (lineNumber >= firstLine && lineNumber < endLine)
-                {
-                    string line = source.Substring(lineStart, i - lineStart).Replace("\r", "");
-                    output += FormatLineNumber(lineNumber + 1) + " | " + WrapSourceLine(line) + "\n";
-                }
+                string line = source.Substring(lineStart, i - lineStart).Replace("\r", "");
+                output += FormatLineNumber(lineNumber + 1) + " | " + WrapSourceLine(line) + "\n";
                 lineNumber++;
                 lineStart = i + 1;
             }
         }
         if (sourceText != null) sourceText.text = output;
-        ResizeContent(output, sourceContentRect, sourceTextRect, sourceScrollRect, 15f);
+        ResizeContent(output, sourceContentRect, sourceTextRect, sourceScrollRect, Mathf.Max(8f, sourceLineHeight));
         if (pageText != null)
-        {
-            if (total <= 0) pageText.text = "ASM SOURCE  /  NOT PROVIDED";
-            else pageText.text = "ASM SOURCE  /  LINES " + (firstLine + 1) + "–" + endLine + " OF " + total
-                + "  /  PAGE " + (browsePage + 1) + " OF " + PageCount();
-        }
+            pageText.text = total <= 0 ? "ASM SOURCE  /  NOT PROVIDED"
+                : "ASM SOURCE  /  " + total + " LINES  /  MONO  /  SCROLL UP-DOWN";
         if (sourceScrollRect != null) sourceScrollRect.verticalNormalizedPosition = 1f;
     }
 

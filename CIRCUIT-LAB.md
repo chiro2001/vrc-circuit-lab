@@ -12,7 +12,7 @@
 | SLOWER / FASTER | 0.25–256 周期/秒；显示目标、实际速度和追赶差额，实际速度取决于客户端 |
 | RESET | 同步复位 CPU，保留 RAM、终端文本和波形历史，取消复位拍的写入 |
 | RESTART | 重新初始化当前程序，恢复 initialRam 并清空实验记录 |
-| 程序列表 / LOAD SELECTED TO ROM | 浏览预置源码、注释、HEX/BIN；明确点击 LOAD 才切换 ROM |
+| 程序列表 / LOAD SELECTED TO ROM | 浏览预置源码、注释、HEX/BIN；ASM 源码为 IBM Plex Mono 全量滚动，HEX/BIN 分页；明确点击 LOAD 才切换 ROM |
 | HEX / BIN / LOAD DRAFT | 按行输入 12 位程序，校验后原子加载；草稿共享 |
 | SIGNALS / GATES / ROM / RAM | 查看实际状态纹理、门编码、当前程序与四页 16×16 RAM |
 | BIND BIT / PROBE BYTE | 将选定电路位或 RAM 位/字节绑定到选中探头 |
@@ -51,7 +51,7 @@ BIT VIEW 的 0/1 字形按显示比例和行高保持宽高比。解析 AA 使�
 
 每行输入一个 12 位字，支持 HEX/BIN、`0x`/`0b` 前缀、空格/Tab/下划线分组，以及 `#`、`;`、`//` 注释。空白行忽略，未用 ROM 填 HALT；超过位宽/容量或非法字符会按行报错并保留当前程序。VR 可通过两排位键盘构造并追加指令。加载动作停在稳定边界，复位 CPU、应用 initialRam 并清空该实验的历史和终端。
 
-独立程序面板的可滚动列表包含全部 24 个预置。点击条目只更新浏览内容，展示原始汇编源码、注释、`.equ` 定义与对应 ROM 编码；源码和编码可分页查看。顶部的 CURRENT LOADED 与 BROWSING 分别表示实际运行程序和预览程序。只有 LOAD SELECTED TO ROM 才会原子切换程序并初始化实验。浏览选择、模式和页码共享，保持一人全局操作。
+独立程序面板的可滚动列表包含全部 24 个预置。点击条目只更新浏览内容，展示原始汇编源码、注释、`.equ` 定义与对应 ROM 编码。ASM 源码一次呈现完整列表：使用 IBM Plex Mono 等宽字体，可通过 SCROLL UP / SCROLL DOWN 按钮或鼠标滚轮上下滚动（滚动位置只在本机，不占用共享状态）；HEX/BIN 仍按页查看。顶部的 CURRENT LOADED 与 BROWSING 分别表示实际运行程序和预览程序。只有 LOAD SELECTED TO ROM 才会原子切换程序并初始化实验。浏览选择、模式和 HEX/BIN 页码共享，保持一人全局操作。
 
 关于面板展示项目介绍、作者和完整公开 GitHub 地址 `https://github.com/chiro2001/vrc-circuit-lab`，用于在 world 中了解与访问项目。两个新面板均可抓取移动，并纳入 RESET LAYOUT。初始位置分别为：关于板左侧 `(-12.2, 3.25, -5.35)`，程序列表板右侧 `(12.2, 3.75, -5.35)`。
 
@@ -63,11 +63,11 @@ BIT VIEW 的 0/1 字形按显示比例和行高保持宽高比。解析 AA 使�
 
 独立 ISA 手册有 39 页，按概览、编码、基本指令、扩展、标志和例子浏览。BANK 切换四个 RAM 页；SUB/SBC 的 C=1 表示没有借位。页码通过面板内独立的 Manual Udon 状态对象共享，物体位置由面板根对象的 VRCObjectSync 同步。首版不在程序编辑板堆叠整份 ISA。
 
-LED 板直接读取真实 OUT[7:0]，流水灯的每一位有独立灯格。生命游戏板读取真实 RAM 双缓冲，CPU 计算 8×8、B3/S23、封闭边界的八代；没有用 Udon 计算或预录动画。每代约 17,080 CPU 周期，256 Hz 下约一分钟。新板参加 RESET LAYOUT，初始 ISA、LED、Life 位置分别为 `(-11.5,3.6,5.5)`、`(-6.3,2.8,6)`、`(8.7,3.6,6.3)`。
+LED 板直接读取真实 OUT[7:0]，流水灯的每一位有独立灯格。生命游戏板读取真实 RAM 双缓冲，CPU 计算 8×8、B3/S23、封闭边界的八代；没有用 Udon 计算或预录动画。每代约 17,080 CPU 周期，256 Hz 下约一分钟。新板参加 RESET LAYOUT，初始 ISA、LED、Life 位置分别为 `(-11.5,3.6,5.5)`、`(-6.3,2.8,6)`、`(8.7,3.6,5.3)`；Life 板整体位于背景墙前方，不再被墙面挡住或穿模。
 
 模块的 GRAB 文字改为侧边竖直、半透明的青蓝把手，保留射线拾取命中体积。工具面板继续使用明确的面板把手。
 
-关于板右侧提供 AUTO / 简体中文 / 日本語 / English。AUTO 使用 VRChat 当前语言并响应语言变化；每位玩家的语言覆盖仅本地有效，不改变共享的程序、页码或仿真状态。界面采用 Noto SC/JP 与 IBM Plex Mono 的静态 TMP SDF 字体；代码、HEX/BIN 和用户程序保持原样，预置有三语名称、说明及独立译注。输入框保留兼容 VRChat 的 uGUI 输入路径。
+关于板右下角内嵌 AUTO / 简体中文 / 日本語 / English，与项目说明同板并避开程序面板的视线遮挡。AUTO 使用 VRChat 当前语言并响应语言变化；每位玩家的语言覆盖仅本地有效，不改变共享的程序、页码或仿真状态。界面采用 Noto SC/JP 与 IBM Plex Mono 的静态 TMP SDF 字体；代码、HEX/BIN 和用户程序保持原样，预置有三语名称、说明及独立译注。输入框保留兼容 VRChat 的 uGUI 输入路径。
 
 截图：[中文 ISA](results/circuit-lab/isa-manual-zh.png)、[日文 ISA](results/circuit-lab/isa-manual-ja.png)、[英文 ISA](results/circuit-lab/isa-manual.png)、[LED](results/circuit-lab/led-output.png)、[生命游戏](results/circuit-lab/life-output.png)。
 

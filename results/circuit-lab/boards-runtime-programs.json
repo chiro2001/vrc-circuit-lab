@@ -1,0 +1,208 @@
+{
+  "passed": true,
+  "allUdonSourcesMatchJson": true,
+  "allLastLinesDisplayed": true,
+  "encodingButtonsVisible": true,
+  "sourceAudit": [
+    {
+      "id": "pi-355-113",
+      "udonChars": 1730,
+      "jsonChars": 1730,
+      "matchesJson": true
+    },
+    {
+      "id": "counter",
+      "udonChars": 58,
+      "jsonChars": 58,
+      "matchesJson": true
+    },
+    {
+      "id": "logic",
+      "udonChars": 95,
+      "jsonChars": 95,
+      "matchesJson": true
+    },
+    {
+      "id": "hello",
+      "udonChars": 166,
+      "jsonChars": 166,
+      "matchesJson": true
+    },
+    {
+      "id": "halt",
+      "udonChars": 13,
+      "jsonChars": 13,
+      "matchesJson": true
+    },
+    {
+      "id": "blinker",
+      "udonChars": 106,
+      "jsonChars": 106,
+      "matchesJson": true
+    },
+    {
+      "id": "alternating-55-aa",
+      "udonChars": 75,
+      "jsonChars": 75,
+      "matchesJson": true
+    },
+    {
+      "id": "ff-plus-one",
+      "udonChars": 57,
+      "jsonChars": 57,
+      "matchesJson": true
+    },
+    {
+      "id": "countdown",
+      "udonChars": 218,
+      "jsonChars": 218,
+      "matchesJson": true
+    },
+    {
+      "id": "ascii-digits",
+      "udonChars": 322,
+      "jsonChars": 322,
+      "matchesJson": true
+    },
+    {
+      "id": "step-count",
+      "udonChars": 58,
+      "jsonChars": 58,
+      "matchesJson": true
+    },
+    {
+      "id": "long-call",
+      "udonChars": 222,
+      "jsonChars": 222,
+      "matchesJson": true
+    },
+    {
+      "id": "cpu-fixture",
+      "udonChars": 1053,
+      "jsonChars": 1053,
+      "matchesJson": true
+    },
+    {
+      "id": "pi-spigot-64",
+      "udonChars": 5510,
+      "jsonChars": 5510,
+      "matchesJson": true
+    },
+    {
+      "id": "pi-spigot-100",
+      "udonChars": 6188,
+      "jsonChars": 6188,
+      "matchesJson": true
+    },
+    {
+      "id": "gray-code",
+      "udonChars": 2611,
+      "jsonChars": 2611,
+      "matchesJson": true
+    },
+    {
+      "id": "lfsr",
+      "udonChars": 448,
+      "jsonChars": 448,
+      "matchesJson": true
+    },
+    {
+      "id": "fibonacci-16",
+      "udonChars": 822,
+      "jsonChars": 822,
+      "matchesJson": true
+    },
+    {
+      "id": "array-sort",
+      "udonChars": 790,
+      "jsonChars": 790,
+      "matchesJson": true
+    },
+    {
+      "id": "prime-sieve",
+      "udonChars": 739,
+      "jsonChars": 739,
+      "matchesJson": true
+    },
+    {
+      "id": "gcd",
+      "udonChars": 452,
+      "jsonChars": 452,
+      "matchesJson": true
+    },
+    {
+      "id": "crc8",
+      "udonChars": 392,
+      "jsonChars": 392,
+      "matchesJson": true
+    },
+    {
+      "id": "ram-cross-page",
+      "udonChars": 1386,
+      "jsonChars": 1386,
+      "matchesJson": true
+    },
+    {
+      "id": "life-8x8",
+      "udonChars": 3238,
+      "jsonChars": 3238,
+      "matchesJson": true
+    }
+  ],
+  "pageAudit": [
+    {
+      "id": "pi-spigot-100",
+      "sourceLines": 384,
+      "firstLinePresent": true,
+      "lastLinePresent": true,
+      "pageLabel": "ASM SOURCE  /  384 LINES  /  MONO  /  SCROLL UP-DOWN",
+      "pageLabelMatches": true,
+      "renderedLines": 386,
+      "contentHeight": 5813.0,
+      "viewportHeight": 270.0,
+      "scrollable": true,
+      "scrollDownMoved": true,
+      "scrollUpRestored": true,
+      "sourceButtonsVisible": true,
+      "activeFont": "Code-IBM-Plex-Mono-En-SDF",
+      "monoFont": true,
+      "sourceLineSample": "        RET"
+    },
+    {
+      "id": "life-8x8",
+      "sourceLines": 200,
+      "firstLinePresent": true,
+      "lastLinePresent": true,
+      "pageLabel": "ASM SOURCE  /  200 LINES  /  MONO  /  SCROLL UP-DOWN",
+      "pageLabelMatches": true,
+      "renderedLines": 201,
+      "contentHeight": 3038.0,
+      "viewportHeight": 270.0,
+      "scrollable": true,
+      "scrollDownMoved": true,
+      "scrollUpRestored": true,
+      "sourceButtonsVisible": true,
+      "activeFont": "Code-IBM-Plex-Mono-En-SDF",
+      "monoFont": true,
+      "sourceLineSample": "        HALT"
+    },
+    {
+      "id": "prime-sieve",
+      "sourceLines": 41,
+      "firstLinePresent": true,
+      "lastLinePresent": true,
+      "pageLabel": "ASM SOURCE  /  41 LINES  /  MONO  /  SCROLL UP-DOWN",
+      "pageLabelMatches": true,
+      "renderedLines": 42,
+      "contentHeight": 653.0,
+      "viewportHeight": 270.0,
+      "scrollable": true,
+      "scrollDownMoved": true,
+      "scrollUpRestored": true,
+      "sourceButtonsVisible": true,
+      "activeFont": "Code-IBM-Plex-Mono-En-SDF",
+      "monoFont": true,
+      "sourceLineSample": "        HALT"
+    }
+  ]
+}

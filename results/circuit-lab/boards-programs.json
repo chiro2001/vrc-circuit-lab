@@ -1,0 +1,497 @@
+{
+  "passed": true,
+  "browsePanel": {
+    "pageSize": 12,
+    "programs": [
+      {
+        "id": "pi-355-113",
+        "sourceLines": 107,
+        "browsePages": 9,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 9,
+          "firstLine": 97,
+          "lastLine": 107,
+          "renderedRows": 11
+        },
+        "udonChars": -1,
+        "jsonChars": 1730,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "counter",
+        "sourceLines": 5,
+        "browsePages": 1,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 1,
+          "firstLine": 1,
+          "lastLine": 5,
+          "renderedRows": 5
+        },
+        "udonChars": -1,
+        "jsonChars": 58,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "logic",
+        "sourceLines": 7,
+        "browsePages": 1,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 1,
+          "firstLine": 1,
+          "lastLine": 7,
+          "renderedRows": 7
+        },
+        "udonChars": -1,
+        "jsonChars": 95,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "hello",
+        "sourceLines": 13,
+        "browsePages": 2,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 2,
+          "firstLine": 13,
+          "lastLine": 13,
+          "renderedRows": 1
+        },
+        "udonChars": -1,
+        "jsonChars": 166,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "halt",
+        "sourceLines": 2,
+        "browsePages": 1,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 1,
+          "firstLine": 1,
+          "lastLine": 2,
+          "renderedRows": 2
+        },
+        "udonChars": -1,
+        "jsonChars": 13,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "blinker",
+        "sourceLines": 8,
+        "browsePages": 1,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 1,
+          "firstLine": 1,
+          "lastLine": 8,
+          "renderedRows": 8
+        },
+        "udonChars": -1,
+        "jsonChars": 106,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "alternating-55-aa",
+        "sourceLines": 6,
+        "browsePages": 1,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 1,
+          "firstLine": 1,
+          "lastLine": 6,
+          "renderedRows": 6
+        },
+        "udonChars": -1,
+        "jsonChars": 75,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "ff-plus-one",
+        "sourceLines": 5,
+        "browsePages": 1,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 1,
+          "firstLine": 1,
+          "lastLine": 5,
+          "renderedRows": 5
+        },
+        "udonChars": -1,
+        "jsonChars": 57,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "countdown",
+        "sourceLines": 15,
+        "browsePages": 2,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 2,
+          "firstLine": 13,
+          "lastLine": 15,
+          "renderedRows": 3
+        },
+        "udonChars": -1,
+        "jsonChars": 218,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "ascii-digits",
+        "sourceLines": 24,
+        "browsePages": 2,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 2,
+          "firstLine": 13,
+          "lastLine": 24,
+          "renderedRows": 12
+        },
+        "udonChars": -1,
+        "jsonChars": 322,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "step-count",
+        "sourceLines": 5,
+        "browsePages": 1,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 1,
+          "firstLine": 1,
+          "lastLine": 5,
+          "renderedRows": 5
+        },
+        "udonChars": -1,
+        "jsonChars": 58,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "long-call",
+        "sourceLines": 15,
+        "browsePages": 2,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 2,
+          "firstLine": 13,
+          "lastLine": 15,
+          "renderedRows": 3
+        },
+        "udonChars": -1,
+        "jsonChars": 222,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "cpu-fixture",
+        "sourceLines": 65,
+        "browsePages": 6,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 6,
+          "firstLine": 61,
+          "lastLine": 65,
+          "renderedRows": 5
+        },
+        "udonChars": -1,
+        "jsonChars": 1053,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "pi-spigot-64",
+        "sourceLines": 340,
+        "browsePages": 29,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 29,
+          "firstLine": 337,
+          "lastLine": 340,
+          "renderedRows": 4
+        },
+        "udonChars": -1,
+        "jsonChars": 5510,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "pi-spigot-100",
+        "sourceLines": 385,
+        "browsePages": 33,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 33,
+          "firstLine": 385,
+          "lastLine": 385,
+          "renderedRows": 1
+        },
+        "udonChars": -1,
+        "jsonChars": 6188,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "gray-code",
+        "sourceLines": 144,
+        "browsePages": 12,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 12,
+          "firstLine": 133,
+          "lastLine": 144,
+          "renderedRows": 12
+        },
+        "udonChars": -1,
+        "jsonChars": 2611,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "lfsr",
+        "sourceLines": 27,
+        "browsePages": 3,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 3,
+          "firstLine": 25,
+          "lastLine": 27,
+          "renderedRows": 3
+        },
+        "udonChars": -1,
+        "jsonChars": 448,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "fibonacci-16",
+        "sourceLines": 52,
+        "browsePages": 5,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 5,
+          "firstLine": 49,
+          "lastLine": 52,
+          "renderedRows": 4
+        },
+        "udonChars": -1,
+        "jsonChars": 822,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "array-sort",
+        "sourceLines": 48,
+        "browsePages": 4,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 4,
+          "firstLine": 37,
+          "lastLine": 48,
+          "renderedRows": 12
+        },
+        "udonChars": -1,
+        "jsonChars": 790,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "prime-sieve",
+        "sourceLines": 42,
+        "browsePages": 4,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 4,
+          "firstLine": 37,
+          "lastLine": 42,
+          "renderedRows": 6
+        },
+        "udonChars": -1,
+        "jsonChars": 739,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "gcd",
+        "sourceLines": 29,
+        "browsePages": 3,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 3,
+          "firstLine": 25,
+          "lastLine": 29,
+          "renderedRows": 5
+        },
+        "udonChars": -1,
+        "jsonChars": 452,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "crc8",
+        "sourceLines": 24,
+        "browsePages": 2,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 2,
+          "firstLine": 13,
+          "lastLine": 24,
+          "renderedRows": 12
+        },
+        "udonChars": -1,
+        "jsonChars": 392,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "ram-cross-page",
+        "sourceLines": 83,
+        "browsePages": 7,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 7,
+          "firstLine": 73,
+          "lastLine": 83,
+          "renderedRows": 11
+        },
+        "udonChars": -1,
+        "jsonChars": 1386,
+        "udonMatchesJson": false
+      },
+      {
+        "id": "life-8x8",
+        "sourceLines": 201,
+        "browsePages": 17,
+        "allLinesMatch": true,
+        "lastPage": {
+          "page": 17,
+          "firstLine": 193,
+          "lastLine": 201,
+          "renderedRows": 9
+        },
+        "udonChars": -1,
+        "jsonChars": 3238,
+        "udonMatchesJson": false
+      }
+    ]
+  },
+  "romView": {
+    "programCapacity": 512,
+    "instructionRows": 8,
+    "pages": 64,
+    "presetProgramWords": 12288,
+    "programsInWords": 24,
+    "wordCounts": [
+      {
+        "id": "pi-355-113",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "counter",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "logic",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "hello",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "halt",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "blinker",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "alternating-55-aa",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "ff-plus-one",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "countdown",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "ascii-digits",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "step-count",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "long-call",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "cpu-fixture",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "pi-spigot-64",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "pi-spigot-100",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "gray-code",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "lfsr",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "fibonacci-16",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "array-sort",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "prime-sieve",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "gcd",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "crc8",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "ram-cross-page",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      },
+      {
+        "id": "life-8x8",
+        "lastNonHaltWord": 511,
+        "romWords": 512
+      }
+    ]
+  }
+}

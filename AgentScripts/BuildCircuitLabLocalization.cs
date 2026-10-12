@@ -248,6 +248,10 @@ public static class BuildCircuitLabLocalization
         Transform about = world.Find("AboutPanel");
         if (about == null) throw new InvalidOperationException("AboutPanel is missing; run the main builder first.");
         Transform existing = about.Find("LocaleCanvas");
+        // Authored placement: embedded into the About board's lower-right corner,
+        // clear of the program panel that used to cover the floating version.
+        Vector3 authoredPosition = new Vector3(1.30f, -1.05f, -.105f);
+        Vector3 authoredScale = Vector3.one * .0092f;
         GameObject canvasObject;
         if (existing == null)
         {
@@ -256,11 +260,12 @@ public static class BuildCircuitLabLocalization
             Undo.RegisterCreatedObjectUndo(canvasObject, "Create local language panel");
             canvasObject.layer = InteractionLayer;
             canvasObject.transform.SetParent(about, false);
-            canvasObject.transform.localPosition = new Vector3(4.25f, 0f, -.105f);
+            canvasObject.transform.localPosition = authoredPosition;
             canvasObject.transform.localRotation = Quaternion.identity;
-            canvasObject.transform.localScale = Vector3.one * .01f;
+            canvasObject.transform.localScale = authoredScale;
             RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
             canvasRect.sizeDelta = new Vector2(300f, 138f);
+            canvasRect.anchoredPosition = new Vector2(authoredPosition.x, authoredPosition.y);
             canvasObject.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
             BoxCollider collider = canvasObject.GetComponent<BoxCollider>();
             collider.size = new Vector3(300f, 138f, 2f);
@@ -284,7 +289,18 @@ public static class BuildCircuitLabLocalization
             AddLocaleButton(canvasObject.transform, "JAPANESE", "日本語", new Vector2(35.5f, -17f), new Vector2(64f, 30f), localization, "SetJapanese");
             AddLocaleButton(canvasObject.transform, "ENGLISH", "English", new Vector2(106.5f, -17f), new Vector2(64f, 30f), localization, "SetEnglish");
         }
-        else canvasObject = existing.gameObject;
+        else
+        {
+            canvasObject = existing.gameObject;
+            Undo.RecordObject(canvasObject.transform, "Embed the language panel into the About board");
+            canvasObject.transform.localPosition = authoredPosition;
+            canvasObject.transform.localRotation = Quaternion.identity;
+            canvasObject.transform.localScale = authoredScale;
+            RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
+            canvasRect.anchoredPosition = new Vector2(authoredPosition.x, authoredPosition.y);
+            EditorUtility.SetDirty(canvasObject.transform);
+            EditorUtility.SetDirty(canvasRect);
+        }
 
         localization.languageButtonImages = new[]
         {

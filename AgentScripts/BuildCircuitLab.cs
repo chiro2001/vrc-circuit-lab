@@ -1370,8 +1370,27 @@ public static class BuildCircuitLab
         display.ledStatus = PanelText(lc.transform, "LedStatus", "OUT[7:0] = 0x00", new Vector2(0, -60), new Vector2(420, 56), 15, new Color(.76f, .94f, .84f));
 
         var lifeExisting = world.Find("LifeOutputPanel");
-        var life = lifeExisting == null ? MovablePanel(world, "LifeOutputPanel", new Vector3(8.7f, 3.6f, 6.3f), new Vector3(0, 40, 0), 4.9f, 5.1f) : lifeExisting.gameObject;
-        MigrateTeachingPose(life.transform, new Vector3(4.5f, 3.25f, -9.3f), new Vector3(8.7f, 3.6f, 6.3f), 40);
+        var life = lifeExisting == null ? MovablePanel(world, "LifeOutputPanel", new Vector3(8.7f, 3.6f, 5.3f), new Vector3(0, 40, 0), 4.9f, 5.1f) : lifeExisting.gameObject;
+        // The board used to sit half inside the backdrop. Chain the two historical
+        // defaults forward so a saved scene lands in front of the wall while a
+        // player-moved board keeps its authored pose.
+        bool lifeMoved = MigrateTeachingPose(life.transform, new Vector3(4.5f, 3.25f, -9.3f), new Vector3(8.7f, 3.6f, 5.3f), 40);
+        lifeMoved |= MigrateTeachingPose(life.transform, new Vector3(8.7f, 3.6f, 6.3f), new Vector3(8.7f, 3.6f, 5.3f), 40);
+        if (lifeMoved)
+        {
+            life.transform.position = new Vector3(8.7f, 3.6f, 5.3f);
+            life.transform.eulerAngles = new Vector3(0, 40, 0);
+            var lifeTool = life.GetComponent<CircuitLabMovableTool>();
+            if (lifeTool != null)
+            {
+                Undo.RecordObject(lifeTool, "Move Conway Life board in front of the backdrop");
+                lifeTool.initialPosition = life.transform.position;
+                lifeTool.initialRotation = life.transform.rotation;
+                UdonSharpEditorUtility.CopyProxyToUdon(lifeTool);
+                EditorUtility.SetDirty(lifeTool);
+                EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(lifeTool));
+            }
+        }
         var lifeCanvas = life.transform.Find("LifeCanvas"); if (lifeCanvas != null) Undo.DestroyObjectImmediate(lifeCanvas.gameObject);
         var gc = PanelCanvas(life.transform, "LifeCanvas", 4.9f, 5.1f);
         PanelText(gc.transform, "LifeTitle", "CONWAY LIFE  /  8 × 8", new Vector2(0, 219), new Vector2(460, 30), 19, Color.white);
@@ -1445,15 +1464,17 @@ public static class BuildCircuitLab
         var world = SceneManager.GetActiveScene().GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
         var names = new[] { "IsaManualPanel", "LedOutputPanel", "LifeOutputPanel" };
         var previous = new[] { new Vector3(-9.5f, 3.5f, -10.4f), new Vector3(-4.5f, 2.5f, -7.5f), new Vector3(4.5f, 3.25f, -9.3f) };
-        var current = new[] { new Vector3(-11.5f, 3.6f, 5.5f), new Vector3(-6.3f, 2.8f, 6f), new Vector3(8.7f, 3.6f, 6.3f) };
+        var current = new[] { new Vector3(-11.5f, 3.6f, 5.5f), new Vector3(-6.3f, 2.8f, 6f), new Vector3(8.7f, 3.6f, 5.3f) };
         var yaws = new[] { -55f, -35f, 40f };
         for (int i = 0; i < names.Length; i++)
         {
             var panel = world.transform.Find(names[i]);
-            bool migrated = Vector3.Distance(panel.position, previous[i]) < .001f;
-            MigrateTeachingPose(panel, previous[i], current[i], yaws[i]);
+            bool migrated = MigrateTeachingPose(panel, previous[i], current[i], yaws[i]);
+            if (names[i] == "LifeOutputPanel")
+                migrated |= MigrateTeachingPose(panel, new Vector3(8.7f, 3.6f, 6.3f), current[i], yaws[i]);
             if (!migrated) continue;
             var tool = panel.GetComponent<CircuitLabMovableTool>();
+            Undo.RecordObject(tool, "Correct authored panel position");
             tool.initialPosition = panel.position; tool.initialRotation = panel.rotation;
             UdonSharpEditorUtility.CopyProxyToUdon(tool); EditorUtility.SetDirty(tool);
             EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(tool));
@@ -1462,13 +1483,14 @@ public static class BuildCircuitLab
         return new { corrected = true, panels = names };
     }
 
-    private static void MigrateTeachingPose(Transform panel, Vector3 previousDefault, Vector3 currentDefault, float yaw)
+    private static bool MigrateTeachingPose(Transform panel, Vector3 previousDefault, Vector3 currentDefault, float yaw)
     {
         // Only correct the task's early defaults; preserve authored/manual placement.
-        if (Vector3.Distance(panel.position, previousDefault) > .001f) return;
+        if (Vector3.Distance(panel.position, previousDefault) > .001f) return false;
         Undo.RecordObject(panel, "Face teaching panel toward entrance");
         panel.position = currentDefault; panel.eulerAngles = new Vector3(0, yaw, 0);
         EditorUtility.SetDirty(panel);
+        return true;
     }
 
     private static RawImage OutputImage(Transform parent, string name, Vector2 position, Vector2 size, Material material)
@@ -1482,7 +1504,11 @@ public static class BuildCircuitLab
     private static GameObject BuildAboutPanel(Transform world)
     {
         var existing = world.Find("AboutPanel");
-        if (existing != null) return existing.gameObject;
+        if (existing != null)
+        {
+            MakeRoomForLocalePanel(existing);
+            return existing.gameObject;
+        }
 
         var panel = MovablePanel(world, "AboutPanel", new Vector3(-12.2f, 3.25f, -5.35f), new Vector3(0, -60f, 0), 5.4f, 3.7f);
         var canvas = PanelCanvas(panel.transform, "AboutCanvas", 5.4f, 3.7f);
@@ -1495,9 +1521,28 @@ public static class BuildCircuitLab
         PanelText(canvas.transform, "ProjectAuthor", "AUTHOR  /  chiro2001", new Vector2(0, -55), new Vector2(480, 28), 12, new Color(.69f, .90f, .80f), TextAnchor.MiddleLeft);
         var repository = PanelText(canvas.transform, "ProjectRepository",
             "SOURCE REPOSITORY\nhttps://github.com/chiro2001/vrc-circuit-lab",
-            new Vector2(0, -112), new Vector2(480, 54), 10, new Color(.66f, .82f, .90f), TextAnchor.MiddleLeft);
+            new Vector2(-135, -112), new Vector2(250, 54), 9, new Color(.66f, .82f, .90f), TextAnchor.MiddleLeft);
         repository.resizeTextForBestFit = true; repository.resizeTextMinSize = 8; repository.resizeTextMaxSize = 10;
         return panel;
+    }
+
+    // The language selector is embedded into the About board's lower right corner,
+    // so the repository block moves left instead of running underneath it.
+    private static void MakeRoomForLocalePanel(Transform about)
+    {
+        Transform repository = about.Find("AboutCanvas/ProjectRepository");
+        if (repository == null) return;
+        RectTransform rect = repository.GetComponent<RectTransform>();
+        Text text = repository.GetComponent<Text>();
+        Undo.RecordObjects(new Object[] { rect, text }, "Make room for the language panel");
+        rect.anchoredPosition = new Vector2(-135, -112);
+        rect.sizeDelta = new Vector2(250, 54);
+        text.fontSize = 9;
+        text.resizeTextForBestFit = true;
+        text.resizeTextMinSize = 8;
+        text.resizeTextMaxSize = 10;
+        EditorUtility.SetDirty(rect);
+        EditorUtility.SetDirty(text);
     }
 
     private static CircuitLabProgramBrowser BuildProgramBrowserPanel(Transform world, CircuitLabSimulator simulator, JObject[] programs,
@@ -1552,11 +1597,24 @@ public static class BuildCircuitLab
             new Color(.79f, .90f, .86f), out browser.sourceScrollRect, out browser.sourceContentRect, out browser.sourceText, out browser.sourceTextRect);
         GameObject encodingPane = PanelScrollText(canvas.transform, "EncodingScrollRegion", new Vector2(142, -65), new Vector2(535, 270), 11,
             new Color(.79f, .90f, .86f), out browser.encodingScrollRect, out browser.encodingContentRect, out browser.encodingText, out browser.encodingTextRect);
+        // Listings are code: IBM Plex Mono for the legacy text and, through the
+        // localization code-font path, for the SDF display that players actually see.
+        Font monoFont = AssetDatabase.LoadAssetAtPath<Font>(Root + "/Localization/FontSources/IBMPlexMono-Regular.ttf");
+        if (monoFont != null) { browser.sourceText.font = monoFont; browser.encodingText.font = monoFont; }
+        browser.sourceLineHeight = 15f;
         browser.sourcePane = sourcePane; browser.encodingPane = encodingPane;
         encodingPane.SetActive(false);
 
-        PanelButton(canvas.transform, "BROWSER_PREVIOUS_PAGE", "< PREVIOUS", browser, "PreviousPage", new Vector2(-5, -231), new Vector2(135, 25), 9);
-        PanelButton(canvas.transform, "BROWSER_NEXT_PAGE", "NEXT >", browser, "NextPage", new Vector2(289, -231), new Vector2(135, 25), 9);
+        browser.pagePreviousButton = PanelButton(canvas.transform, "BROWSER_PREVIOUS_PAGE", "< PREVIOUS", browser, "PreviousPage", new Vector2(-5, -231), new Vector2(135, 25), 9).gameObject;
+        browser.pageNextButton = PanelButton(canvas.transform, "BROWSER_NEXT_PAGE", "NEXT >", browser, "NextPage", new Vector2(289, -231), new Vector2(135, 25), 9).gameObject;
+        // The ASM listing scrolls; these mirror the preset-list scroll buttons and
+        // stay usable by every player because the position is local-only.
+        var sourceScrollUp = PanelButton(canvas.transform, "BROWSER_SOURCE_SCROLL_UP", "SCROLL UP", browser, "ScrollSourceUp", new Vector2(-5, -231), new Vector2(135, 25), 9);
+        var sourceScrollDown = PanelButton(canvas.transform, "BROWSER_SOURCE_SCROLL_DOWN", "SCROLL DOWN", browser, "ScrollSourceDown", new Vector2(289, -231), new Vector2(135, 25), 9);
+        sourceScrollUp.requireControl = false; sourceScrollDown.requireControl = false;
+        SetSingleLineButtonLabel(sourceScrollUp, 9); SetSingleLineButtonLabel(sourceScrollDown, 9);
+        browser.sourceScrollUpButton = sourceScrollUp.gameObject;
+        browser.sourceScrollDownButton = sourceScrollDown.gameObject;
         PanelButton(canvas.transform, "LOAD_SELECTED_TO_ROM", "LOAD SELECTED TO ROM", browser, "LoadSelectedPreset", new Vector2(142, -273), new Vector2(292, 30), 10);
         browser.statusText = PanelText(canvas.transform, "BrowserStatus", "SELECTING A PROGRAM ONLY BROWSES IT", new Vector2(142, -306), new Vector2(535, 19), 8, new Color(.63f, .76f, .80f));
 

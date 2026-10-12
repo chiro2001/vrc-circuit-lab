@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "playMode": true,
+  "files": [
+    "boards-fix-life-spawn.png",
+    "boards-fix-life-mid.png",
+    "boards-fix-about-front.png",
+    "boards-fix-about-wide.png",
+    "boards-fix-browser.png"
+  ]
+}
