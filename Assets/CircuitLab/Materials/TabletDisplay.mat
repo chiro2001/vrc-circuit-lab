@@ -49,6 +49,7 @@ Material:
     - _DisplayMode: 0
     - _NodeCount: 1127
     - _PageStart: 0
+    - _RamPage: 0
     - _RawRam: 0
     - _SelectedSignal: -1
     - _Stencil: 0

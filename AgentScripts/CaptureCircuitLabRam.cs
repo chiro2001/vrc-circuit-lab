@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 // Temporary preview renders; no camera or scene changes are persisted.
 public static class CaptureCircuitLabRam
 {
-    private static object Capture(string objectName, string fileName, float distance, float yOffset = 0)
+    private static object Capture(string objectName, string fileName, float distance, float yOffset = 0, float xOffset = 0)
     {
         var panel = Object.FindObjectsOfType<Transform>(true).Single(t => t.name == objectName
             && t.gameObject.scene.path == "Assets/CircuitLab/Scenes/CircuitLab.unity");
@@ -23,9 +23,15 @@ public static class CaptureCircuitLabRam
         var target = new RenderTexture(2000, 1500, 24, RenderTextureFormat.ARGB32); target.Create();
         var pixels = new Texture2D(2000, 1500, TextureFormat.RGB24, false);
         var previous = RenderTexture.active;
+        var hiddenRenderers=Object.FindObjectsOfType<Renderer>(true).Where(r=>!r.transform.IsChildOf(panel)).ToArray();
+        var rendererFlags=hiddenRenderers.Select(r=>r.forceRenderingOff).ToArray();
+        var hiddenCanvases=Object.FindObjectsOfType<Canvas>(true).Where(c=>!c.transform.IsChildOf(panel)).ToArray();
+        var canvasFlags=hiddenCanvases.Select(c=>c.enabled).ToArray();
+        foreach(var r in hiddenRenderers) r.forceRenderingOff=true;
+        foreach(var c in hiddenCanvases) c.enabled=false;
         try
         {
-            camera.transform.position = panel.position - panel.forward * distance + panel.up * yOffset;
+            camera.transform.position = panel.position - panel.forward * distance + panel.up * yOffset + panel.right * xOffset;
             camera.transform.rotation = panel.rotation;
             camera.targetTexture = target;
             Canvas.ForceUpdateCanvases(); camera.Render(); RenderTexture.active = target;
@@ -36,6 +42,8 @@ public static class CaptureCircuitLabRam
         }
         finally
         {
+            for(int i=0;i<hiddenRenderers.Length;i++) if(hiddenRenderers[i]!=null) hiddenRenderers[i].forceRenderingOff=rendererFlags[i];
+            for(int i=0;i<hiddenCanvases.Length;i++) if(hiddenCanvases[i]!=null) hiddenCanvases[i].enabled=canvasFlags[i];
             RenderTexture.active = previous;
             target.Release(); Object.DestroyImmediate(target); Object.DestroyImmediate(pixels); Object.DestroyImmediate(cameraObject);
         }
@@ -48,7 +56,24 @@ public static class CaptureCircuitLabRam
         await Task.Delay(150);
         return Capture("ProgramBrowserPanel", "program-browser-panel.png", 4.1f);
     }
-    public static object About() => Capture("AboutPanel", "about-panel.png", 5.2f);
+    public static object About() => Capture("AboutPanel", "about-panel.png", 4.1f, 0, 1.5f);
+    public static object Isa() => Capture("IsaManualPanel", "isa-manual.png", 4.1f);
+    private static async Task<object> LocalizedIsa(string languageEvent, string fileName)
+    {
+        var locale = Object.FindObjectOfType<CircuitLabLocalization>();
+        var vm = UdonSharpEditorUtility.GetBackingUdonBehaviour(locale);
+        try
+        {
+            vm.SendCustomEvent(languageEvent);
+            await Task.Delay(500);
+            return Capture("IsaManualPanel", fileName, 4.1f);
+        }
+        finally { vm.SendCustomEvent("SetAuto"); }
+    }
+    public static Task<object> IsaChinese() => LocalizedIsa("SetChinese", "isa-manual-zh.png");
+    public static Task<object> IsaJapanese() => LocalizedIsa("SetJapanese", "isa-manual-ja.png");
+    public static object Led() => Capture("LedOutputPanel", "led-output.png", 4.1f);
+    public static object Life() => Capture("LifeOutputPanel", "life-output.png", 4.1f);
     public static object Terminal() => Capture("TerminalPanel", "ram-pi-terminal.png", 4.8f);
     public static object Analyzer() => Capture("MovableWaveformPanel", "ram-analyzer-control-top.png", 7.8f);
     public static async Task<object> Ram()

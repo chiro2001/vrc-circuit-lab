@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PROGRAM_DIR = ROOT / "circuits" / "programs"
 ROM_WORDS = 512
-RAM_BYTES = 256
+RAM_BYTES = 1024
 MASK8 = 0xFF
 MASK9 = 0x1FF
 MASK12 = 0xFFF
@@ -32,6 +33,14 @@ class Program:
     expected_text: str = ""
     expected_cycles: int | None = None
     source: str = ""
+    expected_bytes: list[int] | None = None
+    name_translations: list[str] | None = None
+    description_translations: list[str] | None = None
+    expected_text_translations: list[str] | None = None
+    source_comment: str = ""
+    source_comment_translations: list[str] | None = None
+    display: dict | None = None
+    metadata: dict | None = None
 
 
 OPCODES = [
@@ -56,7 +65,8 @@ OPCODES = [
 EXT_OPS = [
     {"subopcode": 0, "mnemonic": "SHL", "description": "ACC 左移一位，C=移出的 bit7"},
     {"subopcode": 1, "mnemonic": "SHR", "description": "ACC 右移一位，C=移出的 bit0"},
-    {"subopcode": 2, "mnemonic": "TAX", "description": "X ← ACC"},
+    {"subopcode": 2, "mnemonic": "TAX", "encoding": "E20", "description": "X ← ACC"},
+    {"subopcode": 2, "mnemonic": "BANK", "encoding": "E21..E24", "description": "选择 RAM 页0..3；复位选择页0"},
     {"subopcode": 3, "mnemonic": "TXA", "description": "ACC ← X；更新 Z，保留 C"},
     {"subopcode": 4, "mnemonic": "LDAX", "description": "ACC ← RAM[X]；更新 Z，保留 C"},
     {"subopcode": 5, "mnemonic": "STAX", "description": "RAM[X] ← ACC；保留标志"},
@@ -69,7 +79,7 @@ EXT_OPS = [
     {"subopcode": 12, "mnemonic": "JMP9", "description": "读取第二字并跳转到 9 位地址"},
     {"subopcode": 13, "mnemonic": "JZ9", "description": "Z=1 时读取第二字并跳转到 9 位地址"},
     {"subopcode": 14, "mnemonic": "CALL", "description": "调用第二字的 9 位地址；将返回地址压入 RAM 栈"},
-    {"subopcode": 15, "mnemonic": "RET", "description": "从 RAM 栈弹出 9 位返回地址"},
+    {"subopcode": 15, "mnemonic": "RET", "description": "从 RAM 栈弹出 9 位返回地址；固定访问页0"},
 ]
 
 
@@ -77,9 +87,11 @@ ISA = {
     "instructionBits": 12,
     "programAddressBits": 9,
     "programWords": ROM_WORDS,
-    "dataAddressBits": 8,
+    "dataAddressBits": 10,
     "ramBytes": RAM_BYTES,
-    "registers": {"acc": 8, "x": 8, "sp": 8, "pc": 9, "out": 8},
+    "registers": {"acc": 8, "x": 8, "sp": 8, "bank": 2, "pc": 9, "out": 8},
+    "ramPageBytes": 256,
+    "ramPages": 4,
     "flags": {"zero": "zero result", "carry": "addition carry or subtraction no-borrow"},
     "opcodes": OPCODES,
     "extensions": EXT_OPS,
@@ -191,6 +203,10 @@ def assemble(source: str, *, program_id: str = "program", name: str | None = Non
             if mnemonic not in {"OUT", "LDI", "ADDI", "ANDI", "ORI", "XORI"} and not 0 <= value <= 0xFF:
                 raise AssemblyError(f"{mnemonic} operand must be in 0..255 at line {line_number}")
             words[address] = (base_ops[mnemonic] << 8) | (value & 0xFF)
+        elif mnemonic == "BANK":
+            if not 0 <= value <= 3:
+                raise AssemblyError(f"BANK page must be in 0..3 at line {line_number}")
+            words[address] = 0xE21 + value
         elif mnemonic in ext_ops:
             subop = ext_ops[mnemonic]
             if mnemonic in {"JC", "JNC", "JMP9", "JZ9", "CALL"}:
@@ -209,7 +225,7 @@ def assemble(source: str, *, program_id: str = "program", name: str | None = Non
 
     ram = list(initial_ram or [0] * RAM_BYTES)
     if len(ram) != RAM_BYTES or any(not 0 <= byte <= 0xFF for byte in ram):
-        raise AssemblyError("initial_ram must contain 256 bytes")
+        raise AssemblyError("initial_ram must contain 1024 bytes")
     return Program(program_id, name or program_id, description, words, ram,
                    expected_text, None, source)
 
@@ -229,24 +245,24 @@ class CpuReference:
     def reset(self, *, reset_ram: bool = False):
         if reset_ram:
             self.ram = list(self.program.initial_ram)
-        self.pc = self.instruction = self.phase = self.acc = self.x = self.sp = 0
+        self.pc = self.instruction = self.phase = self.acc = self.x = self.sp = self.bank = 0
         self.out = self.terminal_sequence = 0
         self.zero, self.carry, self.halt = 1, 0, 0
         self.terminal_write = 0
         self.long_target = 0
         self.return_high = 0
 
-    def step(self, reset: int = 0) -> dict[str, int]:
+    def step(self, reset: int = 0, *, capture_state: bool = True) -> dict[str, int] | None:
         if reset:
             self.reset()
-            return self.state()
+            return self.state() if capture_state else None
         terminal_write = int(self.phase == 1 and not self.halt and self.instruction >> 8 == 5)
         if terminal_write:
             self.out = self.acc
             self.terminal_sequence = (self.terminal_sequence + 1) & MASK8
         self.terminal_write = terminal_write
         if self.halt:
-            return self.state()
+            return self.state() if capture_state else None
         phase = self.phase
         opcode, operand = self.instruction >> 8, self.instruction & 0xFF
         subop = operand >> 4
@@ -271,15 +287,15 @@ class CpuReference:
                 self.pc = operand
                 self.phase = 0
             elif opcode == 8:
-                set_acc(self.ram[operand])
+                set_acc(self.ram[(self.bank << 8) | operand])
                 self.pc, self.phase = next_pc, 0
             elif opcode == 9:
-                self.ram[operand] = self.acc
+                self.ram[(self.bank << 8) | operand] = self.acc
                 self.pc, self.phase = next_pc, 0
             elif opcode == 5:
                 self.pc, self.phase = next_pc, 0
             elif opcode in (0, 1, 2, 3, 4, 10, 11, 12, 13):
-                rhs = operand if opcode <= 4 else self.ram[operand]
+                rhs = operand if opcode <= 4 else self.ram[(self.bank << 8) | operand]
                 if opcode in (0,):
                     set_acc(rhs, c=0)
                 elif opcode in (1, 10, 12):
@@ -296,14 +312,16 @@ class CpuReference:
             elif opcode == 14 and subop == 15:
                 self.phase = 5
             elif opcode == 14:
-                if subop == 2:
+                if subop == 2 and operand == 0x20:
                     self.x = self.acc
+                elif subop == 2 and 0x21 <= operand <= 0x24:
+                    self.bank = operand - 0x21
                 elif subop == 3:
                     set_acc(self.x)
                 elif subop == 4:
-                    set_acc(self.ram[self.x])
+                    set_acc(self.ram[(self.bank << 8) | self.x])
                 elif subop == 5:
-                    self.ram[self.x] = self.acc
+                    self.ram[(self.bank << 8) | self.x] = self.acc
                 elif subop == 6:
                     self.x = (self.x + 1) & MASK8
                     self.zero = int(self.x == 0)
@@ -355,11 +373,11 @@ class CpuReference:
             self.pc = (self.return_high << 8) | low
             self.sp = (self.sp - 2) & MASK8
             self.phase = 0
-        return self.state()
+        return self.state() if capture_state else None
 
     def state(self) -> dict[str, int]:
         return {"pc": self.pc, "instruction": self.instruction, "phase": self.phase,
-                "acc": self.acc, "x": self.x, "sp": self.sp, "out": self.out,
+                "acc": self.acc, "x": self.x, "sp": self.sp, "bank": self.bank, "out": self.out,
                 "zero": self.zero, "carry": self.carry, "halt": self.halt,
                 "terminal_data": self.out, "terminal_write": self.terminal_write,
                 "terminal_sequence": self.terminal_sequence}
@@ -367,21 +385,21 @@ class CpuReference:
     def buses(self, reset: int = 0) -> dict[str, int]:
         opcode, operand = self.instruction >> 8, self.instruction & 0xFF
         subop = operand >> 4
-        read_address = operand
+        read_address = (self.bank << 8) | operand
         if opcode == 14 and subop in (4, 5):
-            read_address = self.x
+            read_address = (self.bank << 8) | self.x
         if self.phase == 5:
             read_address = (self.sp - 1) & MASK8
         elif self.phase == 6:
             read_address = (self.sp - 2) & MASK8
 
         raw_write = False
-        write_address, write_data = operand, self.acc
+        write_address, write_data = (self.bank << 8) | operand, self.acc
         if self.phase == 1 and not self.halt and opcode == 9:
             raw_write = True
         elif self.phase == 1 and not self.halt and opcode == 14 and subop == 5:
             raw_write = True
-            write_address = self.x
+            write_address = (self.bank << 8) | self.x
         elif self.phase == 3 and opcode == 14 and subop == 14:
             raw_write = True
             write_address = self.sp
@@ -398,7 +416,8 @@ class CpuReference:
 
 
 def load_programs() -> list[Program]:
-    manifest = ast.literal_eval((PROGRAM_DIR / "catalog.pydata").read_text())
+    json_path = PROGRAM_DIR / "catalog.json"
+    manifest = json.loads(json_path.read_text(encoding="utf-8"))
     programs = []
     for item in manifest:
         source_path = PROGRAM_DIR / item["source"]
@@ -406,11 +425,33 @@ def load_programs() -> list[Program]:
         for address, value in item.get("initialRam", {}).items():
             address = int(address, 0) if isinstance(address, str) else int(address)
             value = int(value, 0) if isinstance(value, str) else int(value)
+            if not 0 <= address < RAM_BYTES:
+                raise AssemblyError(f"initial RAM address out of range: {address}")
             initial_ram[address] = value
+        for pattern in item.get("initialRamPatterns", []):
+            start = int(pattern["start"])
+            repeats = int(pattern["count"])
+            values = [int(value) for value in pattern["values"]]
+            if not values or start < 0 or start + repeats * len(values) > RAM_BYTES:
+                raise AssemblyError(f"initial RAM pattern is out of range for {item['id']}")
+            for repeat in range(repeats):
+                for offset, value in enumerate(values):
+                    initial_ram[start + repeat * len(values) + offset] = value
         program = assemble(source_path.read_text(), program_id=item["id"], name=item["name"],
                            description=item["description"], expected_text=item.get("expectedText", ""),
                            initial_ram=initial_ram)
         program.expected_cycles = item.get("expectedCycles")
+        program.expected_bytes = item.get("expectedBytes")
+        translations = item.get("translations", {})
+        languages = ("en", "zh", "ja")
+        program.name_translations = [translations.get(lang, {}).get("name", program.name) for lang in languages]
+        program.description_translations = [translations.get(lang, {}).get("description", program.description) for lang in languages]
+        program.expected_text_translations = [translations.get(lang, {}).get("expectedText", program.expected_text) for lang in languages]
+        program.source_comment = item.get("sourceComment", "")
+        program.source_comment_translations = [item.get("sourceCommentTranslations", {}).get(lang, program.source_comment)
+                                               for lang in languages]
+        program.display = item.get("display")
+        program.metadata = item
         programs.append(program)
     return programs
 

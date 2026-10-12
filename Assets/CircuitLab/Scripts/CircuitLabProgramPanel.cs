@@ -11,6 +11,7 @@ public class CircuitLabProgramPanel : UdonSharpBehaviour
     public CircuitLabSimulator simulator;
     public CircuitLabNetworkCoordinator coordinator;
     public CircuitLabProgramDraft sharedDraft;
+    public CircuitLabLocalization localization;
     public InputField draftInput;
     public Text programCurrentTitle;
     public Text analyzerProgramTitle;
@@ -35,6 +36,15 @@ public class CircuitLabProgramPanel : UdonSharpBehaviour
     public string[] programNames;
     public string[] expectedText;
     public int[] expectedCycles;
+    public string[] programNamesEn;
+    public string[] programNamesZh;
+    public string[] programNamesJa;
+    public string[] programDescriptionsEn;
+    public string[] programDescriptionsZh;
+    public string[] programDescriptionsJa;
+    public string[] expectedTextsEn;
+    public string[] expectedTextsZh;
+    public string[] expectedTextsJa;
     public int programWordCount = ProgramCapacity;
     public int pageSize = 8;
 
@@ -100,8 +110,8 @@ public class CircuitLabProgramPanel : UdonSharpBehaviour
         }
         if (selectedPresetText != null)
         {
-            string presetName = selectedPreset >= 0 && programNames != null && selectedPreset < programNames.Length
-                ? programNames[selectedPreset] : "CUSTOM";
+            string presetName = selectedPreset >= 0 ? ProgramName(selectedPreset) : "CUSTOM";
+            if (presetName.Length == 0) presetName = "CUSTOM";
             selectedPresetText.text = "SELECTED PRESET " + selectedPreset + "  /  " + presetName;
         }
         if (_lastRenderedRevision != simulator.programRevision || _lastPage != programPage
@@ -116,20 +126,23 @@ public class CircuitLabProgramPanel : UdonSharpBehaviour
         if (programCurrentTitle != null)
         {
             string execution = simulator.running ? "RUNNING" : simulator.observedHalt != 0 ? "HALTED" : "PAUSED";
-            programCurrentTitle.text = "CURRENT PROGRAM  /  " + currentProgramName + "  /  REV " + displayedProgramRevision + "  /  " + execution;
+            string localizedName = simulator.programSelect >= 0 ? ProgramName(simulator.programSelect) : currentProgramName;
+            programCurrentTitle.text = "CURRENT PROGRAM  /  " + localizedName + "  /  REV " + displayedProgramRevision + "  /  " + execution;
             if (analyzerProgramTitle != null)
-                analyzerProgramTitle.text = "PROGRAM  /  " + currentProgramName + "  /  REV " + displayedProgramRevision + "  /  " + execution;
+                analyzerProgramTitle.text = "PROGRAM  /  " + localizedName + "  /  REV " + displayedProgramRevision + "  /  " + execution;
         }
         if (currentDescription != null)
         {
             string description = "";
-            if (simulator.programSelect >= 0 && programDescriptions != null && simulator.programSelect < programDescriptions.Length)
-                description = programDescriptions[simulator.programSelect];
-            if (simulator.programSelect < 0) description = "Custom shared draft loaded by the controller.";
-            if (simulator.programSelect >= 0 && expectedText != null && simulator.programSelect < expectedText.Length
-                && expectedText[simulator.programSelect] != null && expectedText[simulator.programSelect].Length > 0)
+            if (simulator.programSelect >= 0)
+                description = ProgramDescription(simulator.programSelect);
+            else
+                description = CurrentLanguage() == 1 ? "由控制者加载的共享自定义草稿。"
+                    : CurrentLanguage() == 2 ? "操作権を持つプレイヤーがロードした共有カスタムドラフト。"
+                    : "Custom shared draft loaded by the controller.";
+            if (simulator.programSelect >= 0 && ProgramExpectedText(simulator.programSelect).Length > 0)
             {
-                string output = expectedText[simulator.programSelect].Replace("\r", "").Replace("\n", "\\n");
+                string output = ProgramExpectedText(simulator.programSelect).Replace("\r", "").Replace("\n", "\\n");
                 description += "  /  EXPECTED: " + output;
             }
             if (simulator.programSelect >= 0 && expectedCycles != null && simulator.programSelect < expectedCycles.Length
@@ -152,6 +165,38 @@ public class CircuitLabProgramPanel : UdonSharpBehaviour
     private int _lastPage = -1;
     private int _lastObservedPc = -1;
     private int _lastObservedPhase = -1;
+
+    private int CurrentLanguage()
+    {
+        return localization == null ? 0 : Mathf.Clamp(localization.languageIndex, 0, 2);
+    }
+
+    private string LocalizedValue(int index, int language, string[] english, string[] chinese, string[] japanese,
+        string[] fallback)
+    {
+        string[] values = language == 1 ? chinese : language == 2 ? japanese : english;
+        if (values != null && index >= 0 && index < values.Length && values[index] != null) return values[index];
+        if (fallback != null && index >= 0 && index < fallback.Length && fallback[index] != null) return fallback[index];
+        return "";
+    }
+
+    private string ProgramName(int index)
+    {
+        return LocalizedValue(index, CurrentLanguage(), programNamesEn, programNamesZh, programNamesJa, programNames);
+    }
+
+    private string ProgramDescription(int index)
+    {
+        return LocalizedValue(index, CurrentLanguage(), programDescriptionsEn, programDescriptionsZh,
+            programDescriptionsJa, programDescriptions);
+    }
+
+    private string ProgramExpectedText(int index)
+    {
+        return LocalizedValue(index, CurrentLanguage(), expectedTextsEn, expectedTextsZh,
+            expectedTextsJa, expectedText);
+    }
+
 
     public void ApplySharedDraft(string text, int mode, int preset, int sharedPage, int word, int revision)
     {
@@ -220,7 +265,7 @@ public class CircuitLabProgramPanel : UdonSharpBehaviour
         if (_parsedCount == 0) { SetEditorStatus("DRAFT NOT LOADED  /  NO WORDS"); return; }
         int[] words = new int[ProgramCapacity];
         for (int i = 0; i < ProgramCapacity; i++) words[i] = i < _parsedCount ? _parsedWords[i] : HaltWord;
-        byte[] ram = new byte[256];
+        byte[] ram = new byte[1024];
         if (simulator.initialRam != null)
             for (int i = 0; i < ram.Length && i < simulator.initialRam.Length; i++) ram[i] = simulator.initialRam[i];
         string name = "CUSTOM DRAFT";
@@ -358,6 +403,7 @@ public class CircuitLabProgramPanel : UdonSharpBehaviour
         int code = (word >> 8) & 15;
         if (code == 14)
         {
+            if (word >= 0xE21 && word <= 0xE24) return "BANK " + (word - 0xE21);
             int extension = (word >> 4) & 15;
             if (extensionNames != null && extension < extensionNames.Length && extensionNames[extension] != null)
             {

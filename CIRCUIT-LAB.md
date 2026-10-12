@@ -14,7 +14,7 @@
 | RESTART | 重新初始化当前程序，恢复 initialRam 并清空实验记录 |
 | 程序列表 / LOAD SELECTED TO ROM | 浏览预置源码、注释、HEX/BIN；明确点击 LOAD 才切换 ROM |
 | HEX / BIN / LOAD DRAFT | 按行输入 12 位程序，校验后原子加载；草稿共享 |
-| SIGNALS / GATES / ROM / RAM | 查看实际状态纹理、门编码、当前程序与 16×16 RAM |
+| SIGNALS / GATES / ROM / RAM | 查看实际状态纹理、门编码、当前程序与四页 16×16 RAM |
 | BIND BIT / PROBE BYTE | 将选定电路位或 RAM 位/字节绑定到选中探头 |
 | EXPAND / FOLD | 展开或收起场景模块，保留信号身份和探头绑定 |
 | EXTRACT / RETRIEVE | 取出子模块独立摆放，或恢复停靠关系 |
@@ -39,7 +39,7 @@
 
 默认 π 程序从 355 和 113 计算整数商、余数，再用十进制长除法输出 `3.141592\n`。前六位小数与 π 一致，第七位起偏离；程序说明显示这一边界。数字由实际 CPU 算法生成，Udon 只加载程序、调度 GPU 并读取 OUT 事务。
 
-综合保留 20 个 module 实例，包括 8 个全加器，以及明确的 ROM/RAM 原语。当前为 1127 个节点、77 个 DFF，状态纹理宽 2048，最大组合深度 42，稳定传播 43 轮。RAM 是独立的 16×16 字节纹理。一个周期先求低相位稳定值，CPU 寄存器与 RAM 写入从同一份旧状态提交，再求高相位稳定值；只记录两次稳定结果。二值、单时钟、零延迟模型不包含物理门延迟或毛刺。
+综合保留 20 个 module 实例，包括 8 个全加器，以及明确的 ROM/RAM 原语。当前为 1172 个节点、79 个 DFF，状态纹理宽 2048，最大组合深度 42，稳定传播 43 轮。RAM 是独立的 32×32 字节纹理。一个周期先求低相位稳定值，CPU 寄存器与 RAM 写入从同一份旧状态提交，再求高相位稳定值；只记录两次稳定结果。二值、单时钟、零延迟模型不包含物理门延迟或毛刺。
 
 逻辑分析仪启动时默认 LIVE、跟随最新记录，启动提示在 Udon 初始化前也显示 LIVE。四通道 GPU 环形历史记录真实值、有效性、绑定段及绝对采样编号，容量为 2048 个半周期样本，每通道最多 16 位。冻结保留独立纹理及测点名、宽度和段信息。重绑从新片段开始，不补造此前未采集的数据；探头归架不改写冻结纹理。
 
@@ -51,13 +51,27 @@ BIT VIEW 的 0/1 字形按显示比例和行高保持宽高比。解析 AA 使�
 
 每行输入一个 12 位字，支持 HEX/BIN、`0x`/`0b` 前缀、空格/Tab/下划线分组，以及 `#`、`;`、`//` 注释。空白行忽略，未用 ROM 填 HALT；超过位宽/容量或非法字符会按行报错并保留当前程序。VR 可通过两排位键盘构造并追加指令。加载动作停在稳定边界，复位 CPU、应用 initialRam 并清空该实验的历史和终端。
 
-独立程序面板的可滚动列表包含全部 13 个预置。点击条目只更新浏览内容，展示原始汇编源码、注释、`.equ` 定义与对应 ROM 编码；源码和编码可分页查看。顶部的 CURRENT LOADED 与 BROWSING 分别表示实际运行程序和预览程序。只有 LOAD SELECTED TO ROM 才会原子切换程序并初始化实验。浏览选择、模式和页码共享，保持一人全局操作。
+独立程序面板的可滚动列表包含全部 24 个预置。点击条目只更新浏览内容，展示原始汇编源码、注释、`.equ` 定义与对应 ROM 编码；源码和编码可分页查看。顶部的 CURRENT LOADED 与 BROWSING 分别表示实际运行程序和预览程序。只有 LOAD SELECTED TO ROM 才会原子切换程序并初始化实验。浏览选择、模式和页码共享，保持一人全局操作。
 
 关于面板展示项目介绍、作者和完整公开 GitHub 地址 `https://github.com/chiro2001/vrc-circuit-lab`，用于在 world 中了解与访问项目。两个新面板均可抓取移动，并纳入 RESET LAYOUT。初始位置分别为：关于板左侧 `(-12.2, 3.25, -5.35)`，程序列表板右侧 `(12.2, 3.75, -5.35)`。
 
 [关于面板截图](results/circuit-lab/about-panel.png)和[程序列表截图](results/circuit-lab/program-browser-panel.png)来自实际 PlayMode。已验证 27 个既有模块/工具/地板位姿保持不变；选择程序只浏览，明确加载 HELLO 后实际 GPU 输出 `HELLO\n`。共享反序列化恢复编码第 43 页（索引42），观察者不能加载，两个新板的位置复位不改变 CPU。报告：[场景](results/circuit-lab/presentation-authoring.json)、[点击与加载](results/circuit-lab/presentation-browse-load.json)、[共享与复位](results/circuit-lab/presentation-shared-layout.json)。
 
-状态平板按节点显示实际门输出，可查看门纹理编码与依赖信息、ROM 编码和 RAM 的地址/字节。RAW TEXTURE 展示实际 16×16 字节纹理，INIT/CURRENT 切换初始化与工作内容；在 RAM 网格选地址后可绑定单 bit 或整字节探头。RAM 测点用单独的虚拟 ID 映射 GPU 字节，不增加伪造的门节点。复位、运行和 STORE 的变化均来自模拟器的当前纹理。
+状态平板按节点显示实际门输出，可查看门纹理编码与依赖信息、ROM 编码和 RAM 的地址/字节。RAW TEXTURE 展示实际 32×32 字节纹理，INIT/CURRENT 切换初始化与工作内容；在 RAM 网格选地址后可绑定单 bit 或整字节探头。RAM 测点用单独的虚拟 ID 映射 GPU 字节，不增加伪造的门节点。复位、运行和 STORE 的变化均来自模拟器的当前纹理。
+
+## 教学展示与本地语言
+
+独立 ISA 手册有 39 页，按概览、编码、基本指令、扩展、标志和例子浏览。BANK 切换四个 RAM 页；SUB/SBC 的 C=1 表示没有借位。页码通过面板内独立的 Manual Udon 状态对象共享，物体位置由面板根对象的 VRCObjectSync 同步。首版不在程序编辑板堆叠整份 ISA。
+
+LED 板直接读取真实 OUT[7:0]，流水灯的每一位有独立灯格。生命游戏板读取真实 RAM 双缓冲，CPU 计算 8×8、B3/S23、封闭边界的八代；没有用 Udon 计算或预录动画。每代约 17,080 CPU 周期，256 Hz 下约一分钟。新板参加 RESET LAYOUT，初始 ISA、LED、Life 位置分别为 `(-11.5,3.6,5.5)`、`(-6.3,2.8,6)`、`(8.7,3.6,6.3)`。
+
+模块的 GRAB 文字改为侧边竖直、半透明的青蓝把手，保留射线拾取命中体积。工具面板继续使用明确的面板把手。
+
+关于板右侧提供 AUTO / 简体中文 / 日本語 / English。AUTO 使用 VRChat 当前语言并响应语言变化；每位玩家的语言覆盖仅本地有效，不改变共享的程序、页码或仿真状态。界面采用 Noto SC/JP 与 IBM Plex Mono 的静态 TMP SDF 字体；代码、HEX/BIN 和用户程序保持原样，预置有三语名称、说明及独立译注。输入框保留兼容 VRChat 的 uGUI 输入路径。
+
+截图：[中文 ISA](results/circuit-lab/isa-manual-zh.png)、[日文 ISA](results/circuit-lab/isa-manual-ja.png)、[英文 ISA](results/circuit-lab/isa-manual.png)、[LED](results/circuit-lab/led-output.png)、[生命游戏](results/circuit-lab/life-output.png)。
+
+64/100 位 π 使用真实 Rabinowitz–Wagon 整数 spigot，初始 RAM 只有工作数组初值，数字由 CPU 算出。全量参考模型、RTL 和综合门级结果已与独立高精度算法比较。Unity GPU 各运行约 4,100 周期并核对寄存器及全部 1 KiB RAM，尚未在 GPU 上等待完整数位输出。按 256 Hz 理想速度，64 位约 11.31 小时、100 位约 27.39 小时；默认快速 355/113 示例保留。算法、程序清单与详细界限见 [TEACHING-CPU.md](TEACHING-CPU.md)。
 
 ## 字符终端
 
@@ -73,9 +87,9 @@ CPU 的 `terminal_data[7:0]`、真实 `terminal_write` 脉冲和事务序号来�
 
 控制者发布精简的周期与视图信息；其它客户端在自己的 GPU 上计算并追到权威周期。程序切换、复位、换绑和冻结通过稳定边界的检查点同步。检查点包含真实 DFF 位、当前输入、通道元数据、有效历史及冻结数据，适用于晚加入和失步恢复。控制权交接等待对应 revision / epoch 的序列化确认，旧回执不能解除新检查点的屏障。
 
-DFF 检查点按 32 位字数组打包，已取消原来的 64 位限制；当前 77 位使用 3 个字。检查点还保存全部 512 个程序字、256 字节 initialRam、256 字节当前 RAM、程序名称和 revision。程序草稿、输入模式、预置选择、ROM 页面、位键盘和状态平板选项也共享。
+DFF 检查点按 32 位字数组打包，已取消原来的 64 位限制；当前 79 位使用 3 个字。检查点还保存全部 512 个程序字、1024 字节 initialRam、1024 字节当前 RAM、程序名称和 revision。程序草稿、输入模式、预置选择、ROM 页面、位键盘和状态平板选项也共享。
 
-2048 样本的 live 数据约 18 KiB，live 加 frozen 约 36 KiB，程序和存储器另约 2.5 KiB，加标签和终端元数据。检查点间隔为配置值与 `payloadBytes / 2500` 的较大者；普通运行和视图变化使用小型连续状态。恢复每帧重建 32 个历史槽，再按帧预算执行本地 GPU 周期追赶。真实网络延迟、晚加入耗时和所有权竞争仍需多人客户端验收；owner 退出时未发布的私有尾部周期不保证保留。
+2048 样本的 live 数据约 18 KiB，live 加 frozen 约 36 KiB，程序和存储器另约 3.5 KiB，加标签和终端元数据。检查点间隔为配置值与 `payloadBytes / 2500` 的较大者；普通运行和视图变化使用小型连续状态。恢复每帧重建 32 个历史槽，再按帧预算执行本地 GPU 周期追赶。真实网络延迟、晚加入耗时和所有权竞争仍需多人客户端验收；owner 退出时未发布的私有尾部周期不保证保留。
 
 ## 验证与边界
 
@@ -85,12 +99,12 @@ DFF 检查点按 32 位字数组打包，已取消原来的 64 位限制；当�
 
 探头归架解绑回归核对 8,192 个冻结纹理 RGBA 像素完全不变，电路周期和冻结元数据保留。独立二维纹理实验在 1024、10000、100000 节点下各执行 16 周期、每周期 65 次 Blit，结果零差异；提交至读回完成耗时约 20–23 ms。短批次受固定提交及调度开销影响，不能用节点数间的微小耗时差判断扩展效率，也不能换算实际 SoC 速度。
 
-本轮 GPU 自检覆盖 128 个测试周期、144,256 个节点位比较，全部一致；256 个低/高相位样本、1020 个有效端口值与独立 RTL 波形一致。完整 π 程序真实输出九个字节 `3.141592\n`，末态全部 256 字节 RAM 与独立 RTL/综合网表/指令模型一致。目标速度为 256 Hz，RTX 5080 / D3D11 上观察到约 256 Hz；HALT 停止 CPU 提交，仿真时钟可继续运行直到 PAUSE。
+本轮 GPU 自检覆盖 128 个测试周期、150,016 个节点位比较，全部一致；256 个低/高相位样本、1020 个有效端口值与独立 RTL 波形一致。完整 π 程序真实输出九个字节 `3.141592\n`，末态全部 1024 字节 RAM 与独立 RTL/综合网表/指令模型一致。目标速度为 256 Hz，RTX 5080 / D3D11 上观察到约 256 Hz；HALT 停止 CPU 提交，仿真时钟可继续运行直到 PAUSE。
 
-独立 Udon/GPU 实例恢复比较全部 1127 节点、77 个 DFF、512 个程序字和 256 字节 RAM，实时与冻结各 8 个有效 RAM 采样值一致；随后 16 周期追赶中的 RAM 写入与主实例相同。可修改纹理、材质和 GPU 状态缓冲互不共用；静态门数据可共享。这是 Editor 内复制共享载荷的验证，尚未测试真实多人传输。
+独立 Udon/GPU 实例恢复比较全部 1172 节点、79 个 DFF、512 个程序字和 1024 字节 RAM，实时与冻结各 12 个有效 RAM 采样值一致；随后 16 周期追赶中的 RAM 写入与主实例相同。可修改纹理、材质和 GPU 状态缓冲互不共用；静态门数据可共享。这是 Editor 内复制共享载荷的验证，尚未测试真实多人传输。
 
-HEX、带前缀/注释输入和分组 BIN 均经实际 UI pointerClick → backing Udon → GPU 执行验证，非法输入保持当前程序。RESET 取消待提交 STORE 且保留 RAM；RESTART 清除工作 RAM。RAM 探头只在提交后的高相位看到新值；探头归架保留冻结像素。
-其它未更新的历史报告对应此前 524 节点 CPU；本轮以 ram-*、gpu、waveform 和结构/布局报告为准。交付前会恢复测试更改的材质/可写纹理，并核对默认 π 程序、初始 RAM、暂停/LIVE、未占用控制权和材质着色器。
+HEX、带前缀/注释输入和分组 BIN 均经实际 UI pointerClick → backing Udon → GPU 执行验证，非法输入保持当前程序。RESET 取消待提交 STORE 且保留 RAM；RESTART 恢复程序的 initialRam。RAM 探头只在提交后的高相位看到新值；探头归架保留冻结像素。
+其它未更新的历史报告对应此前 524 节点 CPU；本轮以 ram-*、gpu、waveform 和结构/布局报告为准。交付时恢复测试更改的材质/可写纹理，并核对默认 π 程序、初始 RAM、暂停/LIVE、未占用控制权和材质着色器。
 
 Unity 环境为 2022.3.22f1、VRChat SDK 3.10.5、Direct3D 11 / RTX 5080。报告位于 `results/circuit-lab/`，远端为 `Reports/CircuitLab/`。
 
@@ -112,6 +126,14 @@ Unity 环境为 2022.3.22f1、VRChat SDK 3.10.5、Direct3D 11 / RTX 5080。报�
 Editor 中的 `CircuitLabClientSimSerialization` 使用 SDK 自带编码器及 Pre/PostSerialization 回调，使没有一般世界网络传输的 ClientSim 可以运行确认流程。它只存在于 Editor 程序集，不进入 world，不提供电路计算值，也不模拟真实网络带宽或所有权竞争。双 Udon/GPU 实例恢复验证检查实际 GPU 结果；复制检查点数据的测试传输不能替代真实多人验收。原生 PC/VR 抓取及头显输入的最终手感同样需要客户端确认。
 
 [完整 LCVEX 评估](LCVEX-GPU-EVALUATION.md)已经使用真实完整 RTL 及 128 MiB 内存模型做前端实验。完整门综合被当前 SV 前端阻断，整机裸机和 Linux GPU 运行尚未实现。二维纹理规模实验是合成工作负载，不能当作实际 LCVEX 性能。
+
+本轮 24 项均完成参考模型、RTL、综合门级及独立程序 oracle 验证。Unity GPU 的八项新增短程序运行到 HALT，并逐项比较全部寄存器和 1024 字节 RAM；Life 第 1 代与独立 Conway 规则匹配，长 π 只做状态冒烟。三语实际 pointerClick、39 页 ISA、RAM 最后地址 3FF、RAW、页面和面板复位通过。真实多人传输、客户端 AUTO 语言热切换和 PC/VR 原生输入仍需设备验收。
+
+- [完整 HDL 与程序验证](results/circuit-lab/teaching-hdl.json)
+- [1 KiB / 手册 / 把手结构](results/circuit-lab/teaching-structure.json)
+- [三语交互与复位](results/circuit-lab/teaching-manual-locale.json)
+- [生命游戏规则](results/circuit-lab/teaching-gpu-life.json)
+- [Life 连续运行显示](results/circuit-lab/teaching-life-running-display.json)
 
 ## 复现与升级
 

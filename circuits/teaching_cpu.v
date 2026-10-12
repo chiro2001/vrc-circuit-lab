@@ -6,6 +6,7 @@ module teaching_cpu (
     output wire [11:0] instruction,
     output wire [2:0] phase,
     output wire [7:0] acc, x, sp, out,
+    output wire [1:0] bank,
     output wire zero, carry, halt,
     output wire [7:0] terminal_data,
     output wire terminal_write,
@@ -13,7 +14,8 @@ module teaching_cpu (
 );
     wire [11:0] rom_data;
     wire [7:0] ram_data;
-    wire [7:0] ram_read_address, ram_write_address, ram_write_data;
+    wire [9:0] ram_read_address, ram_write_address;
+    wire [7:0] ram_write_data;
     wire ram_write_enable, ram_write_enable_raw;
     wire pc_enable, pc_jump;
     wire [8:0] pc_target;
@@ -27,7 +29,7 @@ module teaching_cpu (
     wire alu_carry_in;
     wire [7:0] alu_result;
     wire alu_carry_out;
-    wire acc_write, carry_write, x_load, x_count, x_count_down, out_write;
+    wire acc_write, carry_write, x_load, x_count, x_count_down, bank_write, out_write;
     wire [7:0] acc_write_data;
 
     teaching_rom rom(.address(pc), .data(rom_data));
@@ -74,7 +76,11 @@ module teaching_cpu (
     assign carry_write = acc_write && opcode != 4'h8 &&
                          !(opcode == 4'he && (ext == 4'h3 || ext == 4'h4));
     assign acc_write_data = alu_result;
-    assign x_load = execute && opcode == 4'he && ext == 4'h2;
+    // E20 remains TAX. E21..E24 select BANK0..BANK3; other E2x values are
+    // reserved and behave as no-ops.
+    assign x_load = execute && instruction == 12'he20;
+    assign bank_write = execute && opcode == 4'he && ext == 4'h2 &&
+                        instruction[3:0] >= 1 && instruction[3:0] <= 4;
     assign x_count = execute && opcode == 4'he && (ext == 4'h6 || ext == 4'h7);
     assign x_count_down = ext == 4'h7;
     assign out_write = execute && opcode == 4'h5;
@@ -89,7 +95,15 @@ module teaching_cpu (
         .sequence_id(terminal_sequence));
     assign terminal_data = out;
 
-    reg [7:0] ram_read_address_r, ram_write_address_r, ram_write_data_r;
+    reg [1:0] bank_r;
+    assign bank = bank_r;
+    always @(posedge clk) begin
+        if (reset) bank_r <= 2'b00;
+        else if (bank_write) bank_r <= instruction[1:0] - 2'b01;
+    end
+
+    reg [9:0] ram_read_address_r, ram_write_address_r;
+    reg [7:0] ram_write_data_r;
     reg ram_write_enable_raw_r;
     assign ram_read_address = ram_read_address_r;
     assign ram_write_address = ram_write_address_r;
@@ -98,30 +112,30 @@ module teaching_cpu (
     assign ram_write_enable = ram_write_enable_raw_r && !reset;
 
     always @* begin
-        ram_read_address_r = instruction[7:0];
+        ram_read_address_r = {bank_r, instruction[7:0]};
         if (opcode == 4'he && (ext == 4'h4 || ext == 4'h5))
-            ram_read_address_r = x;
+            ram_read_address_r = {bank_r, x};
         if (return_read_high)
-            ram_read_address_r = sp - 8'd1;
+            ram_read_address_r = {2'b00, sp - 8'd1};
         else if (return_read_low)
-            ram_read_address_r = sp - 8'd2;
+            ram_read_address_r = {2'b00, sp - 8'd2};
 
         ram_write_enable_raw_r = 1'b0;
-        ram_write_address_r = instruction[7:0];
+        ram_write_address_r = {bank_r, instruction[7:0]};
         ram_write_data_r = acc;
         if (execute && opcode == 4'h9) begin
             ram_write_enable_raw_r = 1'b1;
-            ram_write_address_r = instruction[7:0];
+            ram_write_address_r = {bank_r, instruction[7:0]};
         end else if (execute && opcode == 4'he && ext == 4'h5) begin
             ram_write_enable_raw_r = 1'b1;
-            ram_write_address_r = x;
+            ram_write_address_r = {bank_r, x};
         end else if (call_push_low) begin
             ram_write_enable_raw_r = 1'b1;
-            ram_write_address_r = sp;
+            ram_write_address_r = {2'b00, sp};
             ram_write_data_r = pc + 9'd1;
         end else if (call_push_high) begin
             ram_write_enable_raw_r = 1'b1;
-            ram_write_address_r = sp + 8'd1;
+            ram_write_address_r = {2'b00, sp + 8'd1};
             ram_write_data_r = {7'b0, (pc + 9'd1) >> 8};
         end
     end
@@ -312,8 +326,8 @@ endmodule
 `ifdef SYNTHESIS
 (* blackbox *) module teaching_rom(input wire [8:0] address, output wire [11:0] data);
 endmodule
-(* blackbox *) module teaching_ram(input wire clk, input wire [7:0] read_address,
-    output wire [7:0] read_data, input wire write_enable, input wire [7:0] write_address,
+(* blackbox *) module teaching_ram(input wire clk, input wire [9:0] read_address,
+    output wire [7:0] read_data, input wire write_enable, input wire [9:0] write_address,
     input wire [7:0] write_data);
 endmodule
 `endif

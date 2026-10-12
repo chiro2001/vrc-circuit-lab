@@ -32,8 +32,17 @@ def main():
         "--accept-editor-file", action="append", default=[], metavar="PATH",
         help="Adopt this exact saved Editor asset or generated meta when its local mirror differs; preserve the local file in the task backup directory.",
     )
+    parser.add_argument(
+        "--accept-editor-removal", action="append", default=[], metavar="PATH",
+        help="Mirror this exact font source removed through AssetDatabase; back up the local source before adopting the Editor's deletion.",
+    )
     options = parser.parse_args()
     accepted = set(options.accept_editor_file)
+    removals = set(options.accept_editor_removal)
+    for path in removals:
+        relative = Path(path)
+        if relative.is_absolute() or ".." in relative.parts or not path.startswith("Assets/CircuitLab/Localization/FontSources/") or relative.suffix not in (".ttf", ".otf", ".meta"):
+            parser.error("--accept-editor-removal must name an exact imported font source or its metadata")
     for path in accepted:
         relative = Path(path)
         if relative.is_absolute() or ".." in relative.parts or not path.startswith("Assets/"):
@@ -73,18 +82,21 @@ def main():
                 for args in commands:
                     changed.extend(subprocess.check_output(["git", *args], cwd=ROOT).decode().split("\0"))
             conflicts = [path for path in changed if path and any(path == base or path.startswith(base + "/") for base in (*TREES, *MANIFESTS)) and digest(ROOT / path) != digest(unpacked / path)]
-            unresolved = [path for path in conflicts if path not in accepted]
+            unresolved = [path for path in conflicts if path not in accepted and path not in removals]
             if unresolved:
                 raise RuntimeError("Local edits differ from the Editor snapshot; deploy or resolve them first: " + ", ".join(unresolved))
             adopted = []
             for path in conflicts:
-                if not (unpacked / path).is_file():
+                removed_by_editor = path in removals and not (unpacked / path).exists()
+                if path in removals and not removed_by_editor:
+                    raise RuntimeError("Editor removal was requested, but the imported font still exists: " + path)
+                if not removed_by_editor and not (unpacked / path).is_file():
                     raise RuntimeError("Cannot adopt a missing Editor asset: " + path)
                 backup = TASK_TMP / (name.removesuffix(".tgz") + "-local-backup") / path
                 backup.parent.mkdir(parents=True, exist_ok=True)
                 if (ROOT / path).is_file():
                     shutil.copy2(ROOT / path, backup)
-                adopted.append({"path": path, "backup": str(backup)})
+                adopted.append({"path": path, "backup": str(backup), "removedByEditor": removed_by_editor})
             copied = removed = 0
             for base in TREES:
                 source, target = unpacked / base, ROOT / base

@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "ramBytes": 1024,
+  "highPageLdSt": true,
+  "resetPreservedAllPages": true,
+  "resetBank": 0,
+  "callRetStackPage": 0,
+  "bank3DataAddress": 800,
+  "stackLow": 10,
+  "stackHigh": 0,
+  "execution": "actual Udon UI events -> GPU netlist and GPU RAM -> texture readback"
+}

@@ -1,40 +1,36 @@
-# CPU/RAM 升级的协作接口
+# CPU / GPU / UI 接口
 
-本轮实现目标：8 位 ACC 与 X，256 字节 RAM，512×12 位可装载程序，实际整数 π 计算。RESET 保留 RAM 并禁止复位拍写入；加载/RESTART 初始化 RAM。代码、RAM 与电路状态均在 world 本地 GPU 使用。
+本轮保持 8 位 ACC/X/SP/OUT、9 位 PC、512×12 位 ROM，RAM 升至 1 KiB。仿真与 RAM 写入全部在 world 本地 GPU 执行；Udon 负责时钟、交互、加载和观测，不计算 CPU 程序结果。
 
-用户最新约束：后续子代理全部使用 `gpt-6-luna`、`reasoning_effort=max`。`~/tmp/simple-cpu-pi` 作为只读参考，不改该目录。参考的 355/113 程序执行真实十进制长除法，前六位小数与π一致，第七位起不一致，必须在面板/描述标明近似法和精度；优先移植这一小型、快速演示，尽可能让整数商和初始余数也由CPU从355/113求出。默认输出六位小数。参考 Machin 程序的级数项为汇编期常量，只有16位求和在CPU运行，不能将其描述成CPU运行完整反正切级数；可作为带明确名称的多字算术演示，完整Machin生成算法为可选增强，不阻碍本轮真实长除法π演示验收。
+## RAM 与 BANK
 
-## HDL 与导出
+- RAM 为四个 256 字节页，BANK 是两位寄存器。普通 LD/ST/ADD/SUB/ADC/SBC 和 LDAX/STAX 访问 `BANK×256+offset`。
+- `BANK 0..3` 分别编码 `E21..E24`，`E20` 仍为 TAX。BANK 不改 ACC/X/SP/Z/C。
+- CALL/RET 栈固定页 0，BANK 不受调用影响。
+- RESET 复位 CPU 与 BANK=0，保留全部 1024 字节 RAM，复位沿禁止 RAM 写入。LOAD/RESTART 恢复所加载程序的 initialRam。
+- SUB/SBC 的 C=1 表示无借位；SBC 减去 `(1−C)`。
 
-- 核心仍为 `teaching_cpu`，单上升沿 `clk`、同步 `reset`。PC 9 位、指令 12 位、ACC/X/OUT 8 位。保留旧 opcode 0–7/F；8=LD、9=ST、A=ADD RAM、B=SUB RAM、C=ADC RAM、D=SBC RAM、E=扩展指令组。扩展组容纳移位、X 访存/传送/计数、进位条件跳转与长地址 CALL/RET，具体编码由 HDL 负责人确定并导出 ISA 元数据。
-- 原有指令语义保持；直接 JMP/JZ 使用低8位。LOAD/STORE 保留 C，SUB/SBC 的 C=无借位。扩展长地址使用第二个12位字，低9位为程序地址。
-- ROM/RAM 在综合时保留为边界明确的存储器原语（可用综合 blackbox + 单独的等价 RTL 行为模型）；CPU 控制、寄存器、ALU 仍映射基础门。综合网表测试必须连接同语义存储器模型，不能替换 CPU 执行结果。
-- schema 升为 3。沿用 nodes/modules/signals/ports/dffSignals/inputMasks/expectedStates 等原有字段。INPUT offset 由真实顶层输入决定，clk=0/reset=1；程序选择属于宿主加载状态，不要求硬件有 program_select。
-- 新节点 op=15 ROM_READ、op=16 RAM_READ：a=输出位下标，b=c=0。组合依赖是对应读地址总线，不是 a/b/c 信号。
-- `memoryPorts` 字段：`romAddress`（9个信号ID）、`romData`（12个）、`ramReadAddress`（8个）、`ramReadData`（8个）、`ramWriteAddress`（8个）、`ramWriteData`（8个）、`ramWriteEnable`（一个ID）。metadata 中信号位序均低位在先。
-- `programs` 是对象数组：id/name/description/words（512个12位整数）/initialRam（256个字节）/expectedText/expectedCycles（适用时）。ISA 元数据也导出到 `isa`。
-- fixture 需支持 `fixturePrograms`（每vector加载的program id）、`fixtureRamReset`（本vector之前是否恢复该程序的initialRam）。普通reset mask不初始化RAM。限制 fixture 大小，完整π由RTL/综合网表完整执行验证，GPU完整执行以输出/末态独立验收。
-- 顶层 `ports` 保留 pc/instruction/phase/acc/out/zero/carry/halt/terminal_*；新增 x/sp/微步等可用信号据实导出。phase 可为多位：保留 `phaseSignal` 兼容字段作为首位，增加 phaseSignals 供精确显示。
+## 导出数据与 GPU
 
-## Unity GPU 公共接口
+- schema3 保留综合网表节点和模块层级。ROM_READ=15、RAM_READ=16 是真实存储器边界，其地址依赖来自 memoryPorts。
+- `memoryPorts.ramReadAddress/ramWriteAddress` 各 10 个信号，低位在前：bit0..7 偏移、bit8..9 BANK。`ports.bank` 与顶层 `bankSignals` 是两个 BANK 信号。
+- 程序 `words` 长 512，`initialRam` 长 1024；`presetInitialRam` stride 1024。名称/说明/注释译文数组顺序 en、zh、ja。
+- 程序 ROM 纹理 512×1：R=低 8 位，G=高 4 位。RAM 纹理 32×32：每像素 R=一个字节，地址=`y×32+x`，Point、linear RGBA32/ARGB32。
+- DFF 状态、RAM 状态和 ROM 数据纹理分开。CPU 与 RAM 同时读取上升沿前状态，提交后再组合稳定和采样。
+- 检查点保存全部 DFF、1024 字节 RAM、完整程序与初始 RAM、周期及修订；恢复后由 GPU 追赶。
+- RAM 虚拟探针 ID=`nodeCount+address×8+bit`，覆盖 0..1023，历史 shader 从 RAM 纹理取值。
+- Simulator 提供 `bankSignals/observedBank`，`observedRam` 为 1024 字节；`GetRamByte(address)` 仅返回稳定 GPU 观测，未稳定或越界为 -1。
+- 速度范围 .25–256 Hz。高精度 π 使用软件整数算术，RAM 扩大不会缩短执行周期。
 
-在 CircuitLabSimulator 增加：
+## 显示与本地语言
 
-- `Material ramMaterial`；`Texture2D programTexture/ramInitialTexture/restoreStateTexture` 与 `RenderTexture ramA/ramB/currentRam`。programTexture=512×1 RGBA32 linear Point，R=word低8位、G=高4位；ramInitialTexture=16×16 RGBA32 linear Point，R=byte；restoreStateTexture=textureWidth×1 RGBA32 linear Point，按node ID的R=恢复DFF位0/255，其余为0。地址ID用向量uniform，不依赖memoryAddressTexture。
-- `int[] romAddressSignals,ramReadAddressSignals,ramWriteAddressSignals,ramWriteDataSignals`；`int ramWriteEnableSignal`；`int[] xSignals,spSignals,phaseSignals`。
-- 程序数据：`int[] programWords`（512）、`byte[] initialRam`（256）、`int[] presetProgramWords`（count×512）、`byte[] presetInitialRam`（count×256）、`string[] programNames/programDescriptions`、`int programCount`、`string activeProgramName`、`int programRevision`。`programSelect` 是已加载预置索引，自定义使用-1。允许额外字段，通知其他负责人。
-- `bool LoadProgram(int[] words, byte[] ram, string name, int presetId)`：只在控制者处接受，排队到稳定边界原子加载，复位CPU和历史/终端，并初始化RAM；programRevision增长。
-- `void LoadPreset(int id)` 同上；已有 SelectProgram 依次切换预置。
-- 纹理里的RAM一个像素一个字节、16×16、线性ARGB32且Point采样。CPU和RAM更新均读取同一份上升沿前稳定状态；两者提交后才稳定/采样。显式禁止reset拍RAM写入。
-- 普通 Run/Pause/Step/Freeze/RESET 接口保留。目标速度 .25–256 Hz，主控制者和跟随者均按每帧预算执行，避免丢周期；公开 actualCyclesPerSecond、catchupLag 等可见遥测。
-- 平板遥测：GetObservedSignal(int)、observedRam[256]/observedRamStable/observedRamCycle，以及 observedRamReadAddress/ReadData/WriteAddress/WriteData/WriteEnable。phaseSignals存在时observedPhase读取完整bus。
-- 全部DFF检查点取消64位限制；共享程序、initialRam、RAM检查点与程序revision/name，同一周期一致捕获。现有终端、探头、冻结历史及控制权交接继续工作。
-- 数值纹理不得伪造计算结果。RAM探头使用虚拟测点ID `nodeCount + address*8 + bit`，由GPU历史shader在currentRam读取；真实电路ID仍0..nodeCount-1。虚拟ID不加入综合网表nodes，需要在类型/标签中明确RAM来源。
+- RAM 平板每页显示 256 字节；page=0..3，地址、探针选中与共享状态均为绝对地址。Raw 显示完整 32×32 纹理。
+- LED shader 直接读取 OUT 信号；生命游戏 shader 直接读取 CPU 双缓冲 RAM。显示脚本不执行 Conway 规则。
+- Life buffer A=0x100..0x13F，B=0x140..0x17F；RAM[0xE0] 是前台选择 0/1，RAM[0xE1] 是代数 mod256。CPU 写完后台，再翻转前台，再递增代数。规则 B3/S23、8×8、封闭边界。
+- ISA 页码、程序、电路、探针、波形、布局继续共享；语言 AUTO/中/日/英仅本地。`VRCPlayerApi.GetCurrentLanguage()` 为 AUTO 来源，`OnLanguageChanged` 更新；ClientSim 不完整模拟热切换回调。
+- `CircuitLabLocalization.languageIndex` 为 0 英 / 1 中 / 2 日，override=-1 AUTO。手动选择不需全局控制。
+- 原 Text 保留为隐藏数据源，TMP SDF 负责显示；输入框保留 uGUI InputField。源码与机器码、助记符、信号路径、终端字节不改写。
 
-## 所有权与操作
+## 协作与验收
 
-- HDL负责人：circuits/、tools/build_teaching_cpu.py 及新的汇编/程序生成工具；不操作Unity。
-- GPU负责人：Simulator/NetworkCoordinator/NetworkClock，现有计算/历史/显示shader及新的RAM计算shader；不改Builder，不操作Unity。
-- 场景负责人：BuildCircuitLab、新ProgramPanel/StateTablet及其显示shader；不改GPU或HDL负责人的文件，不操作Unity。
-- root：集成、真实Unity操作、必要验证脚本、部署工具、文档和Git/GitHub同步。其他负责人均不要部署或推送。
-- 所有负责人不是独自在代码库工作，不得回滚他人的修改；接口改变先发消息。
+临时目录使用 `~/tmp/vrc-cpu-map/` 与远端 `~/tmp/vrc-cpu-world/`。Unity 管理的场景、纹理、字体资产和材质必须通过 Pipeline 制作。升级保留地板和已有位姿。各负责人不能回滚其他人的修改，不自行部署或提交。root 负责真实 Unity 集成、适当检查、作者状态恢复、资产采集和两端 GitHub 同步。

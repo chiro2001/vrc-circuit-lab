@@ -74,8 +74,8 @@ public static class ValidateCircuitLabRamReplica
 
     private static byte[] RamBytes(Color32[] pixels)
     {
-        Check(pixels.Length >= 256, "RAM readback did not contain 256 pixels.");
-        byte[] result = new byte[256];
+        Check(pixels.Length == CircuitLabSimulator.RamByteCount, "RAM readback did not contain all 1024 pixels.");
+        byte[] result = new byte[CircuitLabSimulator.RamByteCount];
         for (int i = 0; i < result.Length; i++) result[i] = pixels[i].r;
         return result;
     }
@@ -266,7 +266,7 @@ public static class ValidateCircuitLabRamReplica
         int[] sourceProgramWords = (int[])source.GetProgramVariable("programWords");
         byte[] sourceInitialRam = (byte[])source.GetProgramVariable("initialRam");
         Check(sourceProgramWords != null && sourceProgramWords.Length >= 512
-            && sourceInitialRam != null && sourceInitialRam.Length >= 256,
+            && sourceInitialRam != null && sourceInitialRam.Length == CircuitLabSimulator.RamByteCount,
             "Source active program or initial RAM is missing.");
 
         int sourceCycleBeforeSnapshot = Int(source, "cycleCount");
@@ -274,6 +274,9 @@ public static class ValidateCircuitLabRamReplica
             (RenderTexture)source.GetProgramVariable("currentRam"), "source RAM before snapshot"));
         Check(sourceRamBeforeSnapshot.Any(value => value != 0),
             "Source RAM must contain real nonzero values before the snapshot.");
+        const int highPageAddress = 0x320;
+        Check(sourceRamBeforeSnapshot[highPageAddress] == 0xab,
+            "Source RAM must contain the expected real BANK3 byte before the snapshot.");
         Color32[] sourceStateBeforeSnapshot = await ReadBytes(
             (RenderTexture)source.GetProgramVariable("currentState"), "source CPU state before snapshot");
         int nodeCount = Int(source, "nodeCount");
@@ -297,8 +300,8 @@ public static class ValidateCircuitLabRamReplica
         Check(snapshotDffBits != null && snapshotDffBits.Length == (sourceProxy.dffSignals.Length + 31) / 32,
             "Snapshot DFF packing was truncated.");
         Check(snapshotProgramWords != null && snapshotProgramWords.Length == 512
-            && snapshotInitialRam != null && snapshotInitialRam.Length == 256
-            && snapshotRam != null && snapshotRam.Length == 256,
+            && snapshotInitialRam != null && snapshotInitialRam.Length == CircuitLabSimulator.RamByteCount
+            && snapshotRam != null && snapshotRam.Length == CircuitLabSimulator.RamByteCount,
             "Snapshot program or RAM dimensions are incomplete.");
         Check(snapshotProgramWords.SequenceEqual((int[])source.GetProgramVariable("programWords")),
             "Snapshot ROM differs from the active source program.");
@@ -306,6 +309,8 @@ public static class ValidateCircuitLabRamReplica
             "Snapshot initial RAM differs from the active source program.");
         Check(snapshotRam.SequenceEqual(sourceRamBeforeSnapshot),
             "Snapshot RAM differs from actual source GPU RAM.");
+        Check(snapshotRam[highPageAddress] == 0xab,
+            "Shared snapshot did not capture the actual nonzero high-page byte.");
         CheckDffSnapshot(sourceStateBeforeSnapshot, nodeCount, sourceProxy.dffSignals, snapshotDffBits, "source capture");
 
         int expectedCycle = Int(sourceNetwork, "snapshotCycle");
@@ -412,7 +417,10 @@ public static class ValidateCircuitLabRamReplica
             CheckDffSnapshot(restoredState, nodeCount, replicaDffSignals, snapshotDffBits, "replica restore");
             Check(sourceStateBeforeSnapshot.Take(nodeCount).SequenceEqual(restoredState.Take(nodeCount)),
                 "Restored GPU netlist differs from the actual source snapshot.");
-            Check(sourceRamBeforeSnapshot.SequenceEqual(restoredRam), "Restored 256-byte RAM differs from source GPU RAM.");
+            Check(restoredRam.Length == CircuitLabSimulator.RamByteCount
+                && sourceRamBeforeSnapshot.SequenceEqual(restoredRam), "Restored 1024-byte RAM differs from source GPU RAM.");
+            Check(restoredRam[highPageAddress] == 0xab,
+                "Restored GPU RAM lost the captured BANK3 byte.");
             Check(snapshotProgramWords.SequenceEqual(restoredProgram) && snapshotInitialRam.SequenceEqual(restoredInitialRam),
                 "Restored active 512-word program or initial RAM differs from the captured snapshot.");
             Check(Int(replica, "programSelect") == expectedProgram
@@ -423,6 +431,8 @@ public static class ValidateCircuitLabRamReplica
                 "Restored CPU cycle/history boundary differs.");
             Check(Bool(replica, "historyFrozen") && Int(replica, "frozenSampleCount") == frozenSamples,
                 "Frozen waveform state was not restored.");
+            await Until(() => Int(replica, "observedBank") == 3 && Bool(replica, "observedRamStable"),
+                "Restored GPU readback did not recover the BANK3 register and full RAM sample.", 20);
 
             int[] liveSegments = (int[])sourceNetwork.GetProgramVariable("snapshotSegments");
             int[] liveBinds = (int[])sourceNetwork.GetProgramVariable("snapshotBindSamples");
@@ -463,6 +473,8 @@ public static class ValidateCircuitLabRamReplica
                 "Source and replica CPU/GPU states diverged after sixteen cycles.");
             Check(sourceRamAfter.SequenceEqual(replicaRamAfter),
                 "Source and replica RAM diverged after sixteen cycles.");
+            Check(sourceRamAfter[highPageAddress] == 0xac,
+                "BANK3 GPU RAM did not advance through actual source cycles.");
             Check(Int(replica, "cycleCount") == expectedCycle + 16,
                 "Replica catch-up did not execute exactly sixteen cycles.");
             CheckIndependentResources(source, replica, sourceProxy, replicaProxy);
@@ -478,6 +490,9 @@ public static class ValidateCircuitLabRamReplica
                 dffWordsCopied = snapshotDffBits.Length,
                 activeProgramWordsCompared = restoredProgram.Length,
                 ramBytesCompared = restoredRam.Length,
+                highPageAddress,
+                highPageValueBeforeSnapshot = sourceRamBeforeSnapshot[highPageAddress],
+                highPageValueAfterCatchup = sourceRamAfter[highPageAddress],
                 ramChangedDuringCatchup = !sourceRamBeforeSnapshot.SequenceEqual(sourceRamAfter),
                 sourceCycle = expectedCycle,
                 catchupCycles = 16,

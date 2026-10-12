@@ -1,7 +1,9 @@
 {
   "passed": true,
   "startsLive": true,
-  "ramBytes": 256,
+  "ramBytes": 1024,
+  "textureWidth": 32,
+  "textureHeight": 32,
   "separateStateTextures": true,
-  "initialProgram": "π：355/113 十进制长除法"
+  "initialProgram": "CUSTOM DRAFT"
 }

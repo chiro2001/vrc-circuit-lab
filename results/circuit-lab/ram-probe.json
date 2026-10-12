@@ -1,7 +1,8 @@
 {
   "passed": true,
-  "stableHalfSamples": 8,
+  "address": 800,
+  "stableHalfSamples": 12,
   "storeVisibleOnlyAfterExecEdge": true,
-  "virtualRamPointReadsGpuMemory": true,
+  "highAddressVirtualRamPointReadsGpuMemory": true,
   "frozenHistoryPreservedOnReturn": true
 }

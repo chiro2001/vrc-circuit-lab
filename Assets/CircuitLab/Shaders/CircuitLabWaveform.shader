@@ -70,12 +70,14 @@ Shader "VrcCpuWorld/CircuitLabWaveform"
                 else if (digit == 13u) segments = 94u;
                 else if (digit == 14u) segments = 121u;
                 else if (digit == 15u) segments = 113u;
-                float h = step(0.16, p.x) * step(p.x, 0.84);
+                float ax = _AnalyticAA > .5 ? max(fwidth(p.x), .002) : .001;
+                float ay = _AnalyticAA > .5 ? max(fwidth(p.y), .002) : .001;
+                float h = smoothstep(.16 - ax, .16 + ax, p.x) * (1 - smoothstep(.84 - ax, .84 + ax, p.x));
                 float top = h * Line(p.y, 0.9, 0.055);
                 float middle = h * Line(p.y, 0.5, 0.055);
                 float bottom = h * Line(p.y, 0.1, 0.055);
-                float upper = step(0.54, p.y) * step(p.y, 0.86);
-                float lower = step(0.14, p.y) * step(p.y, 0.46);
+                float upper = smoothstep(.54 - ay, .54 + ay, p.y) * (1 - smoothstep(.86 - ay, .86 + ay, p.y));
+                float lower = smoothstep(.14 - ay, .14 + ay, p.y) * (1 - smoothstep(.46 - ay, .46 + ay, p.y));
                 float right = Line(p.x, 0.86, 0.055), left = Line(p.x, 0.14, 0.055);
                 return saturate(top * (segments & 1u) + right * upper * ((segments >> 1) & 1u) + right * lower * ((segments >> 2) & 1u)
                     + bottom * ((segments >> 3) & 1u) + left * lower * ((segments >> 4) & 1u) + left * upper * ((segments >> 5) & 1u) + middle * ((segments >> 6) & 1u));

@@ -9,11 +9,24 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
     public CircuitLabNetworkCoordinator coordinator;
     public CircuitLabProgramDraft sharedState;
     public CircuitLabProgramPanel editorPanel;
+    public CircuitLabLocalization localization;
     public string[] programNames;
     public string[] programDescriptions;
     public string[] programSources;
     public string[] programExpectedTexts;
     public int[] programExpectedCycles;
+    public string[] programNamesEn;
+    public string[] programNamesZh;
+    public string[] programNamesJa;
+    public string[] programDescriptionsEn;
+    public string[] programDescriptionsZh;
+    public string[] programDescriptionsJa;
+    public string[] programExpectedTextsEn;
+    public string[] programExpectedTextsZh;
+    public string[] programExpectedTextsJa;
+    public string[] programSourceCommentsEn;
+    public string[] programSourceCommentsZh;
+    public string[] programSourceCommentsJa;
     public Text currentLoadedText;
     public Text browsingProgramText;
     public Text descriptionText;
@@ -45,6 +58,8 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
     private int _lastLoadedCycle = -1;
     private int _lastLoadedRunning = -1;
     private int _lastObservedHalt = -1;
+    private int _lastLoadedLanguage = -1;
+    private int _lastRenderedLanguage = -1;
     private string _lastLoadedName = "";
 
     private bool TryControl()
@@ -63,20 +78,24 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
 
         int running = simulator.running ? 1 : 0;
         int observedHalt = simulator.observedHalt;
-        string loadedName = simulator.activeProgramName == null ? "" : simulator.activeProgramName;
+        int language = CurrentLanguage();
+        string loadedName = simulator.programSelect >= 0 ? GetProgramName(simulator.programSelect)
+            : simulator.activeProgramName == null ? "" : simulator.activeProgramName;
         if (currentLoadedText != null && (simulator.programRevision != _lastLoadedRevision
             || simulator.cycleCount != _lastLoadedCycle || running != _lastLoadedRunning
-            || observedHalt != _lastObservedHalt || loadedName != _lastLoadedName))
+            || observedHalt != _lastObservedHalt || loadedName != _lastLoadedName || language != _lastLoadedLanguage))
         {
             _lastLoadedRevision = simulator.programRevision;
             _lastLoadedCycle = simulator.cycleCount;
             _lastLoadedRunning = running;
             _lastObservedHalt = observedHalt;
+            _lastLoadedLanguage = language;
             _lastLoadedName = loadedName;
             string state = running != 0 ? "RUNNING" : observedHalt != 0 ? "HALTED" : "PAUSED";
             currentLoadedText.text = "CURRENT LOADED  /  " + loadedName + "  /  REV " + simulator.programRevision + "  /  " + state;
         }
-        if (selectedProgram != _lastRenderedProgram || browsePage != _lastRenderedPage || browseMode != _lastRenderedMode)
+        if (selectedProgram != _lastRenderedProgram || browsePage != _lastRenderedPage || browseMode != _lastRenderedMode
+            || language != _lastRenderedLanguage)
             RenderBrowser();
     }
 
@@ -177,6 +196,43 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
         return Mathf.Max(1, pageSize);
     }
 
+    public int CurrentLanguage()
+    {
+        return localization == null ? 0 : Mathf.Clamp(localization.languageIndex, 0, 2);
+    }
+
+    public string GetProgramName(int index)
+    {
+        return GetLocalizedProgramValue(index, CurrentLanguage(), programNamesEn, programNamesZh, programNamesJa, programNames);
+    }
+
+    public string GetProgramDescription(int index)
+    {
+        return GetLocalizedProgramValue(index, CurrentLanguage(), programDescriptionsEn, programDescriptionsZh,
+            programDescriptionsJa, programDescriptions);
+    }
+
+    public string GetProgramExpectedText(int index)
+    {
+        return GetLocalizedProgramValue(index, CurrentLanguage(), programExpectedTextsEn, programExpectedTextsZh,
+            programExpectedTextsJa, programExpectedTexts);
+    }
+
+    public string GetProgramSourceComment(int index)
+    {
+        return GetLocalizedProgramValue(index, CurrentLanguage(), programSourceCommentsEn, programSourceCommentsZh,
+            programSourceCommentsJa, null);
+    }
+
+    private string GetLocalizedProgramValue(int index, int language, string[] english, string[] chinese,
+        string[] japanese, string[] fallback)
+    {
+        string[] values = language == 1 ? chinese : language == 2 ? japanese : english;
+        if (values != null && index >= 0 && index < values.Length && values[index] != null) return values[index];
+        if (fallback != null && index >= 0 && index < fallback.Length && fallback[index] != null) return fallback[index];
+        return "";
+    }
+
     private string ProgramSource(int index)
     {
         if (programSources == null || index < 0 || index >= programSources.Length || programSources[index] == null)
@@ -207,15 +263,20 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
         selectedProgram = Mathf.Clamp(selectedProgram, 0, simulator.programCount - 1);
         browseMode = Mathf.Clamp(browseMode, 0, 2);
         browsePage = Mathf.Clamp(browsePage, 0, PageCount() - 1);
-        browsingProgramName = programNames != null && selectedProgram < programNames.Length ? programNames[selectedProgram] : "PROGRAM " + selectedProgram;
+        browsingProgramName = GetProgramName(selectedProgram);
+        if (browsingProgramName.Length == 0) browsingProgramName = "PROGRAM " + selectedProgram;
         if (browsingProgramText != null)
             browsingProgramText.text = "BROWSING  /  " + browsingProgramName + "  /  PRESET " + selectedProgram;
         if (descriptionText != null)
-            descriptionText.text = programDescriptions != null && selectedProgram < programDescriptions.Length ? programDescriptions[selectedProgram] : "";
+        {
+            string description = GetProgramDescription(selectedProgram);
+            string comment = GetProgramSourceComment(selectedProgram);
+            descriptionText.text = comment.Length == 0 ? description : description + "\n" + comment;
+        }
         if (expectedOutputText != null)
         {
-            string expected = programExpectedTexts != null && selectedProgram < programExpectedTexts.Length ? programExpectedTexts[selectedProgram] : "";
-            expected = expected == null ? "" : expected.Replace("\r", "").Replace("\n", "\\n");
+            string expected = GetProgramExpectedText(selectedProgram);
+            expected = FormatExpectedOutput(expected);
             int cycles = programExpectedCycles != null && selectedProgram < programExpectedCycles.Length ? programExpectedCycles[selectedProgram] : 0;
             expectedOutputText.text = "EXPECTED RESULT  /  " + expected + (cycles > 0 ? "  /  " + cycles + " CYCLES" : "");
         }
@@ -227,6 +288,19 @@ public class CircuitLabProgramBrowser : UdonSharpBehaviour
         _lastRenderedProgram = selectedProgram;
         _lastRenderedPage = browsePage;
         _lastRenderedMode = browseMode;
+        _lastRenderedLanguage = CurrentLanguage();
+    }
+
+    private string FormatExpectedOutput(string value)
+    {
+        if (value == null) return "";
+        bool raw = false;
+        for (int i = 0; i < value.Length; i++)
+            if ((value[i] < 32 && value[i] != '\n' && value[i] != '\r') || value[i] > 126) raw = true;
+        if (!raw) return value.Replace("\r", "").Replace("\n", "\\n");
+        string result = "BYTES ";
+        for (int i = 0; i < value.Length; i++) result += (i == 0 ? "" : " ") + Hex(value[i] & 255, 2);
+        return result;
     }
 
     private void RenderSourcePage()

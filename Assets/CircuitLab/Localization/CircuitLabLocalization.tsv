@@ -1,0 +1,179 @@
+English	简体中文	日本語
+CIRCUIT LAB  /  TEACHING CPU	电路实验室  /  教学 CPU	回路ラボ  /  教材用 CPU
+MOVE MODULES  /  EXPAND THE HIERARCHY  /  PROBE ANY PIN	移动模块  /  展开层级  /  探测任意引脚	モジュールを移動  /  階層を展開  /  任意のピンを測定
+BLUE 0    GOLD 1    DOT = REAL BRANCH    CROSSING = NO CONNECTION	蓝色 0    金色 1    圆点 = 实际分支    交叉 = 不连接	青 0    金 1    点 = 接続あり    交差 = 接続なし
+GRAB	抓取	つかむ
+GRAB PANEL	抓取面板	パネルをつかむ
+EXPAND / FOLD	展开 / 折叠	展開 / 折りたたみ
+RETRIEVE	收回	収納
+EXTRACT	提取	取り出す
+DOCKED CHILDREN: GRAB / EXTRACT TO EXAMINE AT FULL SIZE	已停靠子模块：抓取并提取可查看完整尺寸	格納中の子モジュール：つかんで取り出すと全体を確認できます
+PIN: SELECT PROBE A-D, THEN CLICK  /  VR: TOUCH NEEDLE + USE	引脚：选择探针 A-D 后点击  /  VR：触碰探针尖端并使用	ピン：プローブ A-D を選びクリック  /  VR：針先に触れて使用
+4 CHANNEL LOGIC ANALYZER	4 通道逻辑分析仪	4 チャンネル ロジックアナライザー
+LIVE  /  FOLLOWING LATEST  /  FREEZE LOCKS THE VIEW	实时  /  跟随最新  /  冻结以锁定视图	ライブ  /  最新位置を追従  /  フリーズで表示を固定
+PAUSED  /  STEP TO EXECUTE ONE CLOCK	已暂停  /  单步执行一个时钟周期	一時停止中  /  1クロック進める
+SELF TEST READY	自检就绪	セルフテスト準備完了
+VR: GRAB = DETACH, TOUCH PIN + USE = LOCK   /   DESKTOP: SELECT A-D, CLICK PIN	VR：抓取以分离，触碰引脚并使用以锁定  /  桌面：选择 A-D 后点击引脚	VR：つかんで分離、ピンに触れて使用で固定  /  PC：A-D を選びピンをクリック
+UNBOUND	未绑定	未接続
+SELECT	选择	選択
+RETURN	归还	戻す
+RETURN ALL PROBES	归还所有探针	すべてのプローブを戻す
+RESET LAYOUT	重置布局	配置をリセット
+CONTROL: UNCLAIMED | CLICK A CONTROL TO BEGIN	控制权：无人持有 | 点击任意控件开始	操作権：未取得 | 操作するにはボタンをクリック
+ANSI GATE SYMBOLS	ANSI 逻辑门符号	ANSI 論理ゲート記号
+INPUTS LEFT  /  OUTPUT RIGHT	输入在左  /  输出在右	入力は左  /  出力は右
+TOUCH ANY REAL PIN WITH A PROBE	用探针触碰任意真实引脚	プローブで実際のピンに触れてください
+SHARED MODULE HIERARCHY	共享模块层级	共有モジュール階層
+ARROW: DIRECTORY  /  NAME: 3D EXPAND  /  +: EXTRACT	箭头：展开目录  /  名称：3D 展开  /  +：提取	矢印：ディレクトリ  /  名前：3D 展開  /  +：取り出し
+SCROLL UP	向上滚动	上へスクロール
+SCROLL DOWN	向下滚动	下へスクロール
+SHARED CPU TERMINAL	共享 CPU 终端	共有 CPU ターミナル
+READY	就绪	準備完了
+CLEAR TERMINAL	清空终端	ターミナルを消去
+CURRENT PROGRAM	当前程序	現在のプログラム
+REQUEST / CLAIM CONTROL	请求 / 获取控制权	操作権を要求 / 取得
+SHARED DRAFT  /  ONE 12-BIT WORD PER LINE	共享草稿  /  每行一个 12 位字	共有ドラフト  /  1行に12ビット語を1つ
+DRAFT READY  /  RUNNING PROGRAM SHOWN AT RIGHT	草稿就绪  /  当前运行程序显示在右侧	ドラフト準備完了  /  実行中のプログラムは右側に表示
+DRAFT IS SEPARATE FROM CURRENT LOADED ROM	草稿与当前加载的 ROM 相互独立	ドラフトは現在ロード中の ROM と別です
+HEX or BIN, one word per line	HEX 或 BIN，每行一个字	HEX または BIN、1行に1語
+0x prefix accepted; #, ; and // comments	支持 0x 前缀；注释可用 #、; 和 //	0x 接頭辞に対応；コメントは #、;、// を使用
+Empty lines are ignored. Capacity: 512 words.	空行会忽略。容量：512 个字。	空行は無視されます。容量：512語。
+INPUT MODE: HEX	输入模式：HEX	入力モード：HEX
+INPUT MODE: BINARY	输入模式：BIN	入力モード：BIN
+DELETE LINE	删除行	行を削除
+APPEND WORD	追加字	語を追加
+LOAD DRAFT	加载草稿	ドラフトをロード
+LOADED ROM  /  HEX · BIN · DISASSEMBLY	已加载 ROM  /  HEX · BIN · 反汇编	ロード済み ROM  /  HEX · BIN · 逆アセンブル
+ROM VIEW	ROM 视图	ROM 表示
+GO TO PC	跳转到 PC	PC へ移動
+ISA  /  CPU EXECUTES THE LOADED 12-BIT ROM	ISA  /  CPU 执行已加载的 12 位 ROM	ISA  /  CPU がロード済みの12ビット ROM を実行
+CIRCUIT LAB  /  VRCHAT CPU MAP	电路实验室  /  VRChat CPU 地图	回路ラボ  /  VRChat CPU マップ
+Explore a synthesized gate-level teaching CPU in VRChat. Inspect the circuit hierarchy, probe live logic signals, follow clock waveforms, and browse or load shared ROM programs.	在 VRChat 中探索由逻辑门组成的教学 CPU。查看电路层级、探测实时逻辑信号、观察时钟波形，并浏览或加载共享 ROM 程序。	VRChat で論理ゲートから構成された教材用 CPU を探検できます。回路階層の確認、信号の測定、クロック波形の観察、共有 ROM プログラムの閲覧やロードができます。
+AUTHOR  /  chiro2001	作者  /  chiro2001	作者  /  chiro2001
+SOURCE REPOSITORY	源代码仓库	ソースリポジトリ
+PROGRAM BROWSER	程序浏览器	プログラム一覧
+CURRENT LOADED	当前已加载	現在ロード中
+PRESET PROGRAMS	预设程序	プリセットプログラム
+BROWSING	正在浏览	閲覧中
+EXPECTED RESULT	预期结果	期待される結果
+ASM SOURCE	ASM 源码	ASM ソース
+HEX WORDS	HEX 字	HEX 語
+BIN WORDS	BIN 字	BIN 語
+PREVIOUS	上一页	前へ
+NEXT	下一页	次へ
+LOAD SELECTED TO ROM	将所选程序加载到 ROM	選択したプログラムを ROM にロード
+SELECTING A PROGRAM ONLY BROWSES IT	选择程序只会浏览，不会加载	プログラムの選択は閲覧のみです
+SIGNALS	信号	信号
+LIVE STATE  /  RAM  /  ROM	实时状态  /  RAM  /  ROM	ライブ状態  /  RAM  /  ROM
+VALUES ARE GPU READBACKS  /  STABLE SAMPLE AFTER RAM + CPU COMMIT	数值来自 GPU 回读  /  RAM 与 CPU 提交后读取稳定样本	値は GPU から読み戻します  /  RAM と CPU の確定後に安定サンプルを取得
+LIVE SIGNAL STATE	实时信号状态	ライブ信号状態
+SELECT A SIGNAL FROM THE GRID	从网格中选择一个信号	グリッドから信号を選択
+SHOW NODE	显示节点	ノードを表示
+SELECT ADDRESS	选择地址	アドレスを選択
+RAW TEXTURE	原始纹理	生テクスチャ
+INIT / CURRENT	初始 / 当前	初期 / 現在
+BIND BIT	绑定位	ビットを割り当て
+PROBE BYTE	探测字节	バイトを測定
+GATES	逻辑门	ゲート
+PROGRAM ROM TEXTURE	程序 ROM 纹理	プログラム ROM テクスチャ
+GATE TEXTURE	逻辑门纹理	ゲートテクスチャ
+ROM TEXTURE	ROM 纹理	ROM テクスチャ
+RAM 1 KiB / 4 PAGES	RAM 1 KiB / 4 页	RAM 1 KiB / 4 ページ
+RAM FULL TEXTURE 32 x 32	RAM 完整纹理 32 x 32	RAM 全体テクスチャ 32 x 32
+STABLE GPU SAMPLE	稳定 GPU 样本	安定した GPU サンプル
+WAITING FOR STABLE SAMPLE	等待稳定样本	安定サンプルを待機中
+WAITING FOR GPU SAMPLE	等待 GPU 样本	GPU サンプルを待機中
+RAM SAMPLE WAITING	等待 RAM 样本	RAM サンプル待機中
+WAITING	等待中	待機中
+UNKNOWN	未知	不明
+NODE	节点	ノード
+MODULE	模块	モジュール
+TYPE	类型	種類
+INPUTS	输入	入力
+VALUE	数值	値
+BIT	位	ビット
+READ	读	読み取り
+WRITE	写	書き込み
+STABLE	稳定	安定
+EXPANDED	已展开	展開
+FOLDED	已折叠	折りたたみ
+EXTRACTED	已提取	取り出し済み
+DOCKED	已停靠	格納中
+PROBE:	探针：	プローブ：
+TERMINAL	终端	ターミナル
+writes	次写入	回書き込み
+capture gap	采集间隔缺失	記録の欠落
+CURRENT LOCALE: AUTO	当前语言：自动	現在の言語：自動
+LANGUAGE / THIS PLAYER ONLY	语言 / 仅本地显示	言語 / このプレイヤーのみ
+AUTO	自动	自動
+简体中文	简体中文	简体中文
+日本語	日本語	日本語
+English	English	English
+PAGE 	页	ページ
+LINES	行	行
+ OF 	/	/
+CYCLE 	周期	サイクル
+CYCLES	周期	サイクル
+REV 	版本	改訂
+RUNNING	运行中	実行中
+HALTED	已停止	停止
+PAUSED	已暂停	一時停止
+SELECTED PRESET	已选预设	選択中のプリセット
+PRESET	预设	プリセット
+PROGRAM INDEX OUT OF RANGE	程序索引超出范围	プログラム番号が範囲外です
+SELECT A PRESET FIRST	请先选择一个预设	先にプリセットを選択してください
+LOAD REJECTED	加载被拒绝	ロードが拒否されました
+LOAD QUEUE UNAVAILABLE	加载队列不可用	ロードキューを利用できません
+LOAD QUEUED	已加入加载队列	ロードキューに追加しました
+CPU RESET + RAM INITIALIZED AT STABLE EDGE	CPU 已复位，RAM 在稳定边沿初始化	CPU をリセットし、安定エッジで RAM を初期化
+CUSTOM	自定义	カスタム
+SHARED DRAFT	共享草稿	共有ドラフト
+ERROR(S)	个错误	件のエラー
+NO WORDS	没有字	語がありません
+CONTROL OR LOAD QUEUE UNAVAILABLE	控制权或加载队列不可用	操作権またはロードキューを利用できません
+HALT PADDING	停机填充	HALT パディング
+ASM SOURCE NOT AVAILABLE	ASM 源码不可用	ASM ソースがありません
+NOT PROVIDED	未提供	未指定
+ROM WORDS	ROM 字	ROM 語
+TERMINAL |	终端 |	ターミナル |
+ISA MANUAL	ISA 手册	ISA マニュアル
+OVERVIEW	概览	概要
+ENCODING	编码	エンコード
+MAIN OPS	主要指令	基本命令
+EXT OPS	扩展指令	拡張命令
+FLAGS	标志位	フラグ
+EXAMPLES	示例	例
+8-BIT LED OUTPUT	8 位 LED 输出	8ビット LED 出力
+CONWAY LIFE  /  8 × 8	康威生命游戏  /  8 × 8	ライフゲーム  /  8 × 8
+B3 / S23  ·  CLOSED BOUNDARY  ·  CPU UPDATES RAM	B3 / S23  ·  闭合边界  ·  CPU 更新 RAM	B3 / S23  ·  周期境界なし  ·  CPU が RAM を更新
+PRESET INDEX OUT OF RANGE	预设索引超出范围	プリセット番号が範囲外です
+DRAFT NOT LOADED	草稿尚未加载	ドラフトは未ロードです
+ROM capacity is 512 words	ROM 容量为 512 个字	ROM 容量は 512 語です
+SELECT A SIGNAL ID FROM THE GRID	从网格中选择信号 ID	グリッドから信号 ID を選択
+SIGNAL	信号	信号
+LOAD REJECTED  /  LOAD QUEUE UNAVAILABLE	加载被拒绝  /  加载队列不可用	ロード拒否  /  ロードキューを利用できません
+LOAD QUEUED  /  CPU RESET + RAM INITIALIZED AT STABLE EDGE	已加入队列  /  稳定边沿复位 CPU 并初始化 RAM	ロードキュー追加  /  安定エッジで CPU をリセットして RAM を初期化
+LOAD QUEUED  /  CPU RESET + RAM INIT	已加入队列  /  CPU 复位 + RAM 初始化	ロードキュー追加  /  CPU リセット + RAM 初期化
+LOAD REJECTED  /  CONTROL OR LOAD QUEUE UNAVAILABLE	加载被拒绝  /  无控制权或加载队列不可用	ロード拒否  /  操作権またはロードキューを利用できません
+ASM SOURCE  /  NOT PROVIDED	ASM 源码  /  未提供	ASM ソース  /  未指定
+ROM WORDS  /  PAGE	ROM 字  /  页	ROM 語  /  ページ
+SOURCE	源码	ソース
+OUTPUT	输出	出力
+8-bit	8 位	8ビット
+9-bit	9 位	9ビット
+12-bit	12 位	12ビット
+1 KiB	1 KiB	1 KiB
+CURRENT	当前	現在
+CONTROL:	控制权：	操作権：
+GENERATION	代数	世代
+CPU DOUBLE BUFFER RAM	CPU 双缓冲 RAM	CPU ダブルバッファ RAM
+LOAD CONWAY LIFE FROM THE PROGRAM LIST	在程序列表加载 Conway 生命游戏	プログラム一覧から Conway ライフゲームをロード
+MOD 256	模 256	mod 256
+THIS PLAYER ONLY	仅本玩家	このプレイヤーのみ
+PROGRAM  / 	程序  / 	プログラム  / 
+RAM PAGE 	RAM 页 	RAM ページ 
+EXPECTED CYCLES	预期周期数	予想サイクル数
+PRESET LOAD REJECTED	预设加载被拒绝	プリセットのロードが拒否されました
+CAPACITY	容量	容量
+12-BIT WORD	12 位字	12ビット語
+WORDS	个字	語

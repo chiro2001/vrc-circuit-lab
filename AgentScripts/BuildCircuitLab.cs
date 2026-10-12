@@ -23,7 +23,7 @@ public static class BuildCircuitLab
 {
     private const string Root = "Assets/CircuitLab";
     private const string ScenePath = Root + "/Scenes/CircuitLab.unity";
-    private static readonly string[] ProgramNames = { "CircuitLabSimulator", "CircuitLabModule", "CircuitLabProbe", "CircuitLabSignalTarget", "CircuitLabButton", "CircuitLabWire", "CircuitLabLayout", "CircuitLabMovableTool", "CircuitLabPlayerSetup", "CircuitLabHierarchyTree", "CircuitLabHierarchyRow", "CircuitLabNetworkCoordinator", "CircuitLabNetworkClock", "CircuitLabControlRequest", "CircuitLabTerminal", "CircuitLabObjectState", "CircuitLabProgramPanel", "CircuitLabProgramDraft", "CircuitLabStateTablet", "CircuitLabTabletCell", "CircuitLabTabletSharedState", "CircuitLabProgramBrowser", "CircuitLabProgramRow" };
+    private static readonly string[] ProgramNames = { "CircuitLabSimulator", "CircuitLabModule", "CircuitLabProbe", "CircuitLabSignalTarget", "CircuitLabButton", "CircuitLabWire", "CircuitLabLayout", "CircuitLabMovableTool", "CircuitLabPlayerSetup", "CircuitLabHierarchyTree", "CircuitLabHierarchyRow", "CircuitLabNetworkCoordinator", "CircuitLabNetworkClock", "CircuitLabControlRequest", "CircuitLabTerminal", "CircuitLabObjectState", "CircuitLabProgramPanel", "CircuitLabProgramDraft", "CircuitLabStateTablet", "CircuitLabTabletCell", "CircuitLabTabletSharedState", "CircuitLabProgramBrowser", "CircuitLabProgramRow", "CircuitLabIsaManual", "CircuitLabOutputDisplay", "CircuitLabLocalization" };
     private static Font _font;
     private static Material _board, _edge, _textDark, _highlight, _handle;
     private static Material _display;
@@ -32,7 +32,7 @@ public static class BuildCircuitLab
     private static CircuitLabLayout _layout;
     private const int InteractionLayer = 17;
     private const float PickupDistance = 10f;
-    private sealed class Pose { public Vector3 position, scale; public Quaternion rotation; public bool detached; }
+    private sealed class Pose { public Vector3 position, scale; public Quaternion rotation; public bool detached, expanded; }
     private static readonly List<CircuitLabSignalTarget> Targets = new List<CircuitLabSignalTarget>();
     private static readonly List<UdonSharpBehaviour> Behaviours = new List<UdonSharpBehaviour>();
 
@@ -254,27 +254,27 @@ public static class BuildCircuitLab
         var programNames = new string[programData.Length];
         var programDescriptions = new string[programData.Length];
         var flatProgramWords = new int[programData.Length * 512];
-        var flatInitialRam = new byte[programData.Length * 256];
+        var flatInitialRam = new byte[programData.Length * 1024];
         for (int program = 0; program < programData.Length; program++)
         {
             programWords[program] = programData[program]["words"].ToObject<int[]>();
             initialRam[program] = programData[program]["initialRam"].ToObject<byte[]>();
-            if (programWords[program].Length != 512 || initialRam[program].Length != 256)
-                throw new InvalidOperationException("Program " + program + " must contain 512 words and 256 initial RAM bytes.");
+            if (programWords[program].Length != 512 || initialRam[program].Length != 1024)
+                throw new InvalidOperationException("Program " + program + " must contain 512 words and 1024 initial RAM bytes.");
             for (int word = 0; word < 512; word++)
             {
                 if (programWords[program][word] < 0 || programWords[program][word] > 0xFFF)
                     throw new InvalidOperationException("Program word outside 12 bits: id=" + program + " address=" + word);
                 flatProgramWords[program * 512 + word] = programWords[program][word];
             }
-            for (int address = 0; address < 256; address++) flatInitialRam[program * 256 + address] = initialRam[program][address];
-            programNames[program] = (string)programData[program]["name"] ?? ("Program " + program);
-            programDescriptions[program] = (string)programData[program]["description"] ?? "";
+            for (int address = 0; address < 1024; address++) flatInitialRam[program * 1024 + address] = initialRam[program][address];
+            programNames[program] = programData[program]["nameTranslations"] is JArray localizedNames ? (string)localizedNames[0] : (string)programData[program]["name"] ?? ("Program " + program);
+            programDescriptions[program] = programData[program]["descriptionTranslations"] is JArray localizedDescriptions ? (string)localizedDescriptions[0] : (string)programData[program]["description"] ?? "";
             string lowerName = programNames[program].ToLowerInvariant();
             string lowerDescription = programDescriptions[program].ToLowerInvariant();
             bool statesFirstSix = lowerDescription.Contains("first six") || lowerDescription.Contains("前六") || lowerDescription.Contains("前 6");
             bool statesSeventh = lowerDescription.Contains("seventh") || lowerDescription.Contains("第七") || lowerDescription.Contains("第 7");
-            if ((lowerName.Contains("pi") || lowerName.Contains("π"))
+            if (lowerName.Contains("355")
                 && (!statesFirstSix || !statesSeventh))
                 programDescriptions[program] += " 【近似】355/113 长除法：小数前六位与 π 一致，第七位起不同。";
         }
@@ -282,7 +282,7 @@ public static class BuildCircuitLab
         var previous = scene.GetRootGameObjects().FirstOrDefault(root => root.name == "CircuitLabWorld");
         if (upgrade && previous == null) throw new InvalidOperationException("Upgrade requires an existing CircuitLabWorld; environment is never recreated.");
         if (!upgrade && previous != null) throw new InvalidOperationException("Existing worlds must use UpgradeScene to preserve the environment.");
-        var previousPoses = previous == null ? new Dictionary<string, Pose>() : previous.GetComponentsInChildren<CircuitLabModule>(true).ToDictionary(module => module.modulePath, module => new Pose { position = module.transform.position, rotation = module.transform.rotation, scale = module.transform.localScale, detached = module.isDetached });
+        var previousPoses = previous == null ? new Dictionary<string, Pose>() : previous.GetComponentsInChildren<CircuitLabModule>(true).ToDictionary(module => module.modulePath, module => new Pose { position = module.transform.position, rotation = module.transform.rotation, scale = module.transform.localScale, detached = module.isDetached, expanded = module.expanded });
         var previousTools = new Dictionary<string, Pose>();
         var preservedWorkspaceChildren = new List<Transform>();
         if (upgrade)
@@ -314,7 +314,7 @@ public static class BuildCircuitLab
         _edge = Material("ModuleRim", "Unlit/Color", new Color(.08f, .19f, .25f));
         _textDark = Material("Panel", "Unlit/Color", new Color(.025f, .045f, .065f));
         _highlight = Material("ProbeHighlight", "Unlit/Color", new Color(.2f, 1f, .88f));
-        _handle = Material("PickupHandles", "Unlit/Color", new Color(.20f, .52f, .62f));
+        _handle = Material("PickupHandles", "VrcCpuWorld/CircuitLabHandle", new Color(.12f, .65f, .82f, .48f));
         _display = Material("Signals", "VrcCpuWorld/CircuitLabDisplay", Color.white);
         _display.SetFloat("_TextureWidth", width); _display.SetFloat("_SignalOverride", -1);
         var simulation = Material("Simulation", "VrcCpuWorld/CircuitLabSim", Color.white);
@@ -336,16 +336,16 @@ public static class BuildCircuitLab
             programPixels[address] = new Color32((byte)(word & 255), (byte)((word >> 8) & 15), 0, 255);
         }
         programTexture.SetPixels32(programPixels); programTexture.Apply(false, false); EditorUtility.SetDirty(programTexture);
-        var ramInitialTexture = Texture2DAsset("RAMInitial", 16, 16, TextureFormat.RGBA32);
-        var ramInitialPixels = new Color32[256];
-        var restoreRamPixels = new Color32[256];
-        for (int address = 0; address < 256; address++)
+        var ramInitialTexture = Texture2DAsset("RAMInitial", 32, 32, TextureFormat.RGBA32);
+        var ramInitialPixels = new Color32[1024];
+        var restoreRamPixels = new Color32[1024];
+        for (int address = 0; address < 1024; address++)
         {
             ramInitialPixels[address] = new Color32(initialRam[defaultProgramIndex][address], 0, 0, 255);
             restoreRamPixels[address] = new Color32(0, 0, 0, 255);
         }
         ramInitialTexture.SetPixels32(ramInitialPixels); ramInitialTexture.Apply(false, false); EditorUtility.SetDirty(ramInitialTexture);
-        var restoreRamTexture = Texture2DAsset("RAMRestore", 16, 16, TextureFormat.RGBA32);
+        var restoreRamTexture = Texture2DAsset("RAMRestore", 32, 32, TextureFormat.RGBA32);
         restoreRamTexture.SetPixels32(restoreRamPixels); restoreRamTexture.Apply(false, false); EditorUtility.SetDirty(restoreRamTexture);
         var restoreStateTexture = Texture2DAsset("DffRestoreState", width, 1, TextureFormat.RGBA32);
         var stateRestorePixels = new Color32[width];
@@ -356,8 +356,8 @@ public static class BuildCircuitLab
         var historyA = RenderTexture("HistoryA", 2048, 4, RenderTextureFormat.ARGBFloat);
         var historyB = RenderTexture("HistoryB", 2048, 4, RenderTextureFormat.ARGBFloat);
         var frozen = RenderTexture("FrozenHistory", 2048, 4, RenderTextureFormat.ARGBFloat);
-        var ramA = RenderTexture("RamA", 16, 16, RenderTextureFormat.ARGB32);
-        var ramB = RenderTexture("RamB", 16, 16, RenderTextureFormat.ARGB32);
+        var ramA = RenderTexture("RamA", 32, 32, RenderTextureFormat.ARGB32);
+        var ramB = RenderTexture("RamB", 32, 32, RenderTextureFormat.ARGB32);
         _display.SetTexture("_StateTex", stateA);
         simulation.SetTexture("_Gates", gates);
 
@@ -401,6 +401,7 @@ public static class BuildCircuitLab
         simulator.outSignals = data["ports"]["out"].ToObject<int[]>();
         simulator.instructionSignals = data["ports"]["instruction"].ToObject<int[]>();
         simulator.xSignals = data["ports"]["x"] == null ? new int[0] : data["ports"]["x"].ToObject<int[]>();
+        simulator.bankSignals = data["ports"]["bank"] == null ? new int[0] : data["ports"]["bank"].ToObject<int[]>();
         simulator.spSignals = data["ports"]["sp"] == null ? new int[0] : data["ports"]["sp"].ToObject<int[]>();
         simulator.phaseSignals = data["ports"]["phaseSignals"] == null ? data["ports"]["phase"].ToObject<int[]>() : data["ports"]["phaseSignals"].ToObject<int[]>();
         simulator.phaseSignal = simulator.phaseSignals.Length > 0 ? simulator.phaseSignals[0] : -1;
@@ -440,9 +441,9 @@ public static class BuildCircuitLab
                     module.transform.SetParent(module.isDetached || module.logicalParent == null ? _workspace : module.logicalParent.childrenDock, true);
                     module.transform.position = pose.position; module.transform.rotation = pose.rotation; module.transform.localScale = pose.scale;
                 }
-        foreach (var module in allModules) { module.expanded = module.childModules.Length > 0; module.RefreshVisibility(); module.EnsureAboveFloor(); }
+        foreach (var module in allModules) { module.expanded = upgrade && previousPoses.TryGetValue(module.modulePath, out var existingPose) ? existingPose.expanded : module.childModules.Length > 0; module.RefreshVisibility(); module.EnsureAboveFloor(); }
         var rootModule = allModules.First(module => module.logicalParent == null);
-        rootModule.transform.position = new Vector3(-3.85f, 1.8f, .5f); rootModule.transform.rotation = Quaternion.identity; rootModule.transform.localScale = Vector3.one * .65f; rootModule.EnsureAboveFloor();
+        if (!upgrade) { rootModule.transform.position = new Vector3(-3.85f, 1.8f, .5f); rootModule.transform.rotation = Quaternion.identity; rootModule.transform.localScale = Vector3.one * .65f; } rootModule.EnsureAboveFloor();
         foreach (var module in allModules) { module.CaptureInitialPose(); module.sharedState.expanded = module.expanded; module.sharedState.detached = module.isDetached; }
         GateReference(world.transform, nodes);
         var wireMaterials = BuildExternalWires(ordered, nodes, width);
@@ -485,6 +486,8 @@ public static class BuildCircuitLab
         HideLegacyProgramControls(world.transform);
         foreach (var tool in _layout.tools)
         {
+            tool.coordinator = _coordinator;
+            if (!Behaviours.Contains(tool)) Behaviours.Add(tool);
             if (upgrade && previousTools.TryGetValue(tool.name, out var pose)) { tool.transform.position = pose.position; tool.transform.rotation = pose.rotation; }
             tool.initialPosition = tool.transform.position; tool.initialRotation = tool.transform.rotation; tool.initialScale = tool.transform.localScale;
         }
@@ -594,9 +597,9 @@ public static class BuildCircuitLab
         WorldText(module.header, "ModulePath", (string)data["path"], new Vector3(0, -.23f, 0), new Vector2(2.65f, .19f), 12, new Color(.58f, .75f, .84f));
         module.stateLabel = WorldText(module.header, "ModuleState", "", new Vector3(0, -.39f, 0), new Vector2(2.5f, .16f), 11, new Color(.43f, .8f, .75f));
         module.handle = Child(go.transform, "PickupHandle").transform;
-        module.grabVisual = Primitive(module.handle, "GrabBar", PrimitiveType.Cube, Vector3.zero, new Vector3(.85f, .15f, .18f), _handle, false).transform;
-        module.pickupCollider = go.AddComponent<BoxCollider>(); module.pickupCollider.size = new Vector3(.85f, .15f, .18f);
-        module.grabText = WorldText(module.handle, "GrabHint", "GRAB", new Vector3(0, .01f, -.102f), new Vector2(.30f, .11f), 9, Color.white);
+        module.grabVisual = Primitive(module.handle, "GrabBar", PrimitiveType.Cube, Vector3.zero, new Vector3(.12f, .62f, .14f), _handle, false).transform;
+        module.pickupCollider = go.AddComponent<BoxCollider>(); module.pickupCollider.size = new Vector3(.12f, .62f, .14f);
+        module.grabText = null;
         var body = go.AddComponent<Rigidbody>(); body.useGravity = false; body.isKinematic = true;
         module.objectSync = go.AddComponent<VRCObjectSync>();
         module.sharedState = Behaviour<CircuitLabObjectState>(Child(go.transform, "SharedObjectState")); module.sharedState.module = module;
@@ -1128,13 +1131,14 @@ public static class BuildCircuitLab
                 int subopcode = (int)extension["subopcode"];
                 if (subopcode < 0 || subopcode >= program.extensionNames.Length) continue;
                 string mnemonic = (string)extension["mnemonic"] ?? "EXT";
+                if (mnemonic == "BANK") continue; // E20 stays TAX; BANK is E21..E24.
                 string label = "E." + subopcode.ToString("X");
                 program.extensionNames[subopcode] = mnemonic;
                 isaLines.Add(label + " " + mnemonic);
             }
         if (isa != null)
         {
-            isaLines.Insert(0, "12-bit instructions  /  9-bit PC  /  512 ROM words  /  256 RAM bytes  /  ACC,X,SP = 8 bits");
+            isaLines.Insert(0, "12-bit instructions  /  9-bit PC  /  512 ROM words  /  1024 RAM bytes  /  ACC,X,SP = 8 bits");
             if (isa["registers"] is JObject registers)
             {
                 string registerLine = "REGISTERS  ";
@@ -1182,11 +1186,19 @@ public static class BuildCircuitLab
         SetSingleLineButtonLabel(PanelButton(canvas.transform, "VIRTUAL_BACKSPACE", "DELETE LINE", program, "BackspaceBit", new Vector2(-17, -160), new Vector2(84, 24), 8), 8);
         SetSingleLineButtonLabel(PanelButton(canvas.transform, "VIRTUAL_COMMIT", "APPEND WORD", program, "CommitWord", new Vector2(86, -160), new Vector2(114, 24), 8), 8);
         SetSingleLineButtonLabel(PanelButton(canvas.transform, "LOAD_DRAFT", "LOAD DRAFT", program, "LoadDraft", new Vector2(244, -160), new Vector2(200, 24), 8), 8);
-        PanelText(canvas.transform, "ISAHeading", "ISA  /  CPU EXECUTES THE LOADED 12-BIT ROM", new Vector2(145, -184), new Vector2(410, 20), 10, new Color(.66f, .88f, .88f));
-        program.isaText = PanelText(canvas.transform, "ISADetails", string.Join("   |   ", isaLines.ToArray()), new Vector2(145, -236), new Vector2(410, 74), 7, new Color(.69f, .81f, .85f), TextAnchor.UpperLeft);
-        program.isaText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        PanelText(canvas.transform, "ISAHeading", "INSTRUCTIONS → ISA MANUAL PANEL", new Vector2(145, -210), new Vector2(410, 28), 13, new Color(.66f, .88f, .88f));
+        program.isaText = null;
         var draftState = Behaviour<CircuitLabProgramDraft>(Child(panel.transform, "SharedDraftState"));
         draftState.panel = program; draftState.coordinator = _coordinator; program.sharedDraft = draftState;
+        program.programNamesEn = ProgramTranslations(programs, "nameTranslations", 0, "name");
+        program.programNamesZh = ProgramTranslations(programs, "nameTranslations", 1, "name");
+        program.programNamesJa = ProgramTranslations(programs, "nameTranslations", 2, "name");
+        program.programDescriptionsEn = ProgramTranslations(programs, "descriptionTranslations", 0, "description");
+        program.programDescriptionsZh = ProgramTranslations(programs, "descriptionTranslations", 1, "description");
+        program.programDescriptionsJa = ProgramTranslations(programs, "descriptionTranslations", 2, "description");
+        program.expectedTextsEn = ProgramTranslations(programs, "expectedTextTranslations", 0, "expectedText");
+        program.expectedTextsZh = ProgramTranslations(programs, "expectedTextTranslations", 1, "expectedText");
+        program.expectedTextsJa = ProgramTranslations(programs, "expectedTextTranslations", 2, "expectedText");
         program.inputMode = 0; program.selectedPreset = defaultPreset; program.programPage = 0; program.virtualWord = 0;
         draftState.selectedPreset = defaultPreset;
         return program;
@@ -1220,7 +1232,7 @@ public static class BuildCircuitLab
             || simulator.programNames == null || simulator.programNames.Length != programs.Length
             || simulator.programDescriptions == null || simulator.programDescriptions.Length != programs.Length
             || simulator.presetProgramWords == null || simulator.presetProgramWords.Length < programs.Length * 512
-            || simulator.presetInitialRam == null || simulator.presetInitialRam.Length < programs.Length * 256)
+            || simulator.presetInitialRam == null || simulator.presetInitialRam.Length < programs.Length * 1024)
             throw new InvalidOperationException("Program data does not match the existing simulator catalog; build matching CPU data first.");
 
         string[] names = new string[programs.Length];
@@ -1233,7 +1245,7 @@ public static class BuildCircuitLab
             string lowerDescription = descriptions[i].ToLowerInvariant();
             bool statesFirstSix = lowerDescription.Contains("first six") || lowerDescription.Contains("前六") || lowerDescription.Contains("前 6");
             bool statesSeventh = lowerDescription.Contains("seventh") || lowerDescription.Contains("第七") || lowerDescription.Contains("第 7");
-            if ((lowerName.Contains("pi") || lowerName.Contains("π")) && (!statesFirstSix || !statesSeventh))
+            if (lowerName.Contains("355") && (!statesFirstSix || !statesSeventh))
                 descriptions[i] += " 【近似】355/113 长除法：小数前六位与 π 一致，第七位起不同。";
         }
 
@@ -1299,13 +1311,172 @@ public static class BuildCircuitLab
         };
     }
 
+    private static string[] ProgramTranslations(JObject[] programs, string field, int language, string fallback)
+    {
+        return programs.Select(p => p[field] is JArray array && array.Count > language ? (string)array[language] ?? "" : (string)p[fallback] ?? "").ToArray();
+    }
+
     private static CircuitLabProgramBrowser BuildPresentationPanels(Transform world, CircuitLabSimulator simulator, JObject[] programs,
         string[] names, string[] descriptions, CircuitLabProgramPanel editor, CircuitLabProgramDraft sharedState, int defaultPreset)
     {
         BuildAboutPanel(world);
+        BuildTeachingPanels(world, simulator);
         var browser = BuildProgramBrowserPanel(world, simulator, programs, names, descriptions, editor, sharedState, defaultPreset);
         if (_layout != null) _layout.tools = world.GetComponentsInChildren<CircuitLabMovableTool>(true);
         return browser;
+    }
+
+    private static void BuildTeachingPanels(Transform world, CircuitLabSimulator simulator)
+    {
+        var manualData = AssetDatabase.LoadAssetAtPath<TextAsset>(Root + "/Data/isa-manual.json");
+        if (manualData == null) throw new InvalidOperationException("Generate isa-manual.json before building teaching panels.");
+        var pages = JObject.Parse(manualData.text)["pages"].Cast<JObject>().ToArray();
+        var existing = world.Find("IsaManualPanel");
+        var panel = existing == null ? MovablePanel(world, "IsaManualPanel", new Vector3(-11.5f, 3.6f, 5.5f), new Vector3(0, -55, 0), 6.5f, 5.4f) : existing.gameObject;
+        MigrateTeachingPose(panel.transform, new Vector3(-9.5f, 3.5f, -10.4f), new Vector3(-11.5f, 3.6f, 5.5f), -55);
+        var oldCanvas = panel.transform.Find("IsaCanvas");
+        if (oldCanvas != null) Undo.DestroyObjectImmediate(oldCanvas.gameObject);
+        var canvas = PanelCanvas(panel.transform, "IsaCanvas", 6.5f, 5.4f);
+        var manual = EnsureIsaState(panel); manual.coordinator = _coordinator;
+        manual.titlesEn = pages.Select(p => (string)p["titles"][0]).ToArray();
+        manual.titlesZh = pages.Select(p => (string)p["titles"][1]).ToArray();
+        manual.titlesJa = pages.Select(p => (string)p["titles"][2]).ToArray();
+        manual.pagesEn = pages.Select(p => (string)p["bodies"][0]).ToArray();
+        manual.pagesZh = pages.Select(p => (string)p["bodies"][1]).ToArray();
+        manual.pagesJa = pages.Select(p => (string)p["bodies"][2]).ToArray();
+        PanelText(canvas.transform, "IsaHeader", "ISA MANUAL", new Vector2(-140, 239), new Vector2(300, 30), 19, Color.white, TextAnchor.MiddleLeft);
+        PanelButton(canvas.transform, "ISA_REQUEST", "REQUEST / CLAIM CONTROL", manual, "ClaimControl", new Vector2(167, 239), new Vector2(265, 28), 12);
+        string[] events = { "Overview", "Encoding", "Instructions", "Extensions", "Flags", "Examples" };
+        string[] labels = { "OVERVIEW", "ENCODING", "MAIN OPS", "EXT OPS", "FLAGS", "EXAMPLES" };
+        for (int i = 0; i < events.Length; i++)
+            PanelButton(canvas.transform, "ISA_" + events[i], labels[i], manual, events[i], new Vector2(-251 + i * 101, 188), new Vector2(96, 30), 11);
+        manual.titleText = PanelText(canvas.transform, "IsaPageTitle", manual.titlesEn[manual.page], new Vector2(0, 140), new Vector2(592, 36), 20, new Color(.3f, .95f, .8f), TextAnchor.MiddleLeft);
+        manual.bodyText = PanelText(canvas.transform, "IsaBody", manual.pagesEn[manual.page], new Vector2(0, -27), new Vector2(592, 282), 16, new Color(.87f, .94f, .97f), TextAnchor.UpperLeft);
+        manual.bodyText.lineSpacing = 1.2f;
+        manual.pageText = PanelText(canvas.transform, "IsaPageNumber", "SHARED PAGE 1 / " + pages.Length, new Vector2(0, -226), new Vector2(240, 30), 13, Color.white);
+        PanelButton(canvas.transform, "ISA_PREVIOUS", "< PREVIOUS", manual, "PreviousPage", new Vector2(-214, -226), new Vector2(158, 30), 13);
+        PanelButton(canvas.transform, "ISA_NEXT", "NEXT >", manual, "NextPage", new Vector2(214, -226), new Vector2(158, 30), 13);
+
+        var display = Behaviour<CircuitLabOutputDisplay>(OwnedChild(world, "OutputDisplayController")); display.simulator = simulator;
+        var ledExisting = world.Find("LedOutputPanel");
+        var led = ledExisting == null ? MovablePanel(world, "LedOutputPanel", new Vector3(-6.3f, 2.8f, 6f), new Vector3(0, -35, 0), 4.9f, 2.3f) : ledExisting.gameObject;
+        MigrateTeachingPose(led.transform, new Vector3(-4.5f, 2.5f, -7.5f), new Vector3(-6.3f, 2.8f, 6f), -35);
+        var ledCanvas = led.transform.Find("LedCanvas"); if (ledCanvas != null) Undo.DestroyObjectImmediate(ledCanvas.gameObject);
+        var lc = PanelCanvas(led.transform, "LedCanvas", 4.9f, 2.3f);
+        PanelText(lc.transform, "LedTitle", "8-BIT LED OUTPUT", new Vector2(0, 80), new Vector2(450, 30), 19, Color.white);
+        display.ledMaterial = Material("LedOutput", "VrcCpuWorld/CircuitLabOutputView", Color.white); display.ledMaterial.SetInt("_Mode", 0);
+        OutputImage(lc.transform, "LedView", new Vector2(0, 30), new Vector2(430, 57), display.ledMaterial);
+        PanelText(lc.transform, "LedBitLabels", "7      6      5      4      3      2      1      0", new Vector2(0, -13), new Vector2(430, 22), 12, new Color(.6f, .8f, .9f));
+        display.ledStatus = PanelText(lc.transform, "LedStatus", "OUT[7:0] = 0x00", new Vector2(0, -60), new Vector2(420, 56), 15, new Color(.76f, .94f, .84f));
+
+        var lifeExisting = world.Find("LifeOutputPanel");
+        var life = lifeExisting == null ? MovablePanel(world, "LifeOutputPanel", new Vector3(8.7f, 3.6f, 6.3f), new Vector3(0, 40, 0), 4.9f, 5.1f) : lifeExisting.gameObject;
+        MigrateTeachingPose(life.transform, new Vector3(4.5f, 3.25f, -9.3f), new Vector3(8.7f, 3.6f, 6.3f), 40);
+        var lifeCanvas = life.transform.Find("LifeCanvas"); if (lifeCanvas != null) Undo.DestroyObjectImmediate(lifeCanvas.gameObject);
+        var gc = PanelCanvas(life.transform, "LifeCanvas", 4.9f, 5.1f);
+        PanelText(gc.transform, "LifeTitle", "CONWAY LIFE  /  8 × 8", new Vector2(0, 219), new Vector2(460, 30), 19, Color.white);
+        display.lifeMaterial = Material("LifeOutput", "VrcCpuWorld/CircuitLabOutputView", Color.white); display.lifeMaterial.SetInt("_Mode", 1);
+        OutputImage(gc.transform, "LifeGrid", new Vector2(0, 17), new Vector2(355, 355), display.lifeMaterial);
+        display.lifeStatus = PanelText(gc.transform, "LifeStatus", "LOAD CONWAY LIFE FROM THE PROGRAM LIST", new Vector2(0, -184), new Vector2(440, 32), 13, new Color(.76f, .94f, .84f));
+        PanelText(gc.transform, "LifeRule", "B3 / S23  ·  CLOSED BOUNDARY  ·  CPU UPDATES RAM", new Vector2(0, -214), new Vector2(460, 20), 11, new Color(.65f, .8f, .9f));
+        var programData = JObject.Parse(AssetDatabase.LoadAssetAtPath<TextAsset>(Root + "/Data/gpu-netlist.json").text)["programs"].Cast<JObject>().ToArray();
+        display.lifeProgram = Array.FindIndex(programData, p => ((string)p["id"] ?? "").Contains("life"));
+        if (display.lifeProgram >= 0)
+        {
+            var metadata = programData[display.lifeProgram]["display"] as JObject;
+            display.bufferA = (int?)metadata?["displayRamBase"] ?? 256;
+            display.bufferB = (int?)metadata?["displayAlternateBase"] ?? 320;
+            display.selectorAddress = (int?)metadata?["selectorAddress"] ?? 224;
+            display.generationAddress = (int?)metadata?["generationAddress"] ?? 225;
+        }
+    }
+
+    private static CircuitLabIsaManual EnsureIsaState(GameObject panel)
+    {
+        var legacy = panel.GetComponent<CircuitLabIsaManual>();
+        var state = Behaviour<CircuitLabIsaManual>(OwnedChild(panel.transform, "IsaSharedState"));
+        if (legacy != null)
+        {
+            foreach (var field in typeof(CircuitLabIsaManual).GetFields(System.Reflection.BindingFlags.Public
+                | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly))
+                field.SetValue(state, field.GetValue(legacy));
+            foreach (var button in panel.GetComponentsInChildren<CircuitLabButton>(true))
+                if (button.target == legacy)
+                {
+                    button.target = state;
+                    UdonSharpEditorUtility.CopyProxyToUdon(button);
+                    EditorUtility.SetDirty(button);
+                    EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(button));
+                }
+            UdonSharpEditorUtility.DestroyImmediate(legacy);
+        }
+        UdonSharpEditorUtility.CopyProxyToUdon(state);
+        EditorUtility.SetDirty(state);
+        EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(state));
+        return state;
+    }
+
+    public static object RepairIsaNetworkState()
+    {
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Repair authored ISA network state in Edit Mode.");
+        var world = SceneManager.GetActiveScene().GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
+        var state = EnsureIsaState(world.transform.Find("IsaManualPanel").gameObject);
+        EditorSceneManager.MarkSceneDirty(world.scene);
+        return new { repaired = true, stateObject = state.name, sharedPage = state.page };
+    }
+
+    public static object RepairTeachingOutputSpacing()
+    {
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Repair authored output spacing in Edit Mode.");
+        var world = SceneManager.GetActiveScene().GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
+        var canvas = world.transform.Find("LifeOutputPanel/LifeCanvas");
+        var status = canvas.Find("LifeStatus").GetComponent<RectTransform>();
+        var rule = canvas.Find("LifeRule").GetComponent<RectTransform>();
+        Undo.RecordObjects(new UnityEngine.Object[] { status, rule }, "Separate Life rules from pickup handle");
+        status.anchoredPosition = new Vector2(0, -184); status.sizeDelta = new Vector2(440, 32);
+        rule.anchoredPosition = new Vector2(0, -214); rule.sizeDelta = new Vector2(460, 20);
+        EditorSceneManager.MarkSceneDirty(world.scene);
+        return new { repaired = true, panel = "LifeOutputPanel" };
+    }
+
+    public static object CorrectTeachingPanelPositions()
+    {
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Correct authored panel positions in Edit Mode.");
+        var world = SceneManager.GetActiveScene().GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
+        var names = new[] { "IsaManualPanel", "LedOutputPanel", "LifeOutputPanel" };
+        var previous = new[] { new Vector3(-9.5f, 3.5f, -10.4f), new Vector3(-4.5f, 2.5f, -7.5f), new Vector3(4.5f, 3.25f, -9.3f) };
+        var current = new[] { new Vector3(-11.5f, 3.6f, 5.5f), new Vector3(-6.3f, 2.8f, 6f), new Vector3(8.7f, 3.6f, 6.3f) };
+        var yaws = new[] { -55f, -35f, 40f };
+        for (int i = 0; i < names.Length; i++)
+        {
+            var panel = world.transform.Find(names[i]);
+            bool migrated = Vector3.Distance(panel.position, previous[i]) < .001f;
+            MigrateTeachingPose(panel, previous[i], current[i], yaws[i]);
+            if (!migrated) continue;
+            var tool = panel.GetComponent<CircuitLabMovableTool>();
+            tool.initialPosition = panel.position; tool.initialRotation = panel.rotation;
+            UdonSharpEditorUtility.CopyProxyToUdon(tool); EditorUtility.SetDirty(tool);
+            EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(tool));
+        }
+        EditorSceneManager.MarkSceneDirty(world.scene);
+        return new { corrected = true, panels = names };
+    }
+
+    private static void MigrateTeachingPose(Transform panel, Vector3 previousDefault, Vector3 currentDefault, float yaw)
+    {
+        // Only correct the task's early defaults; preserve authored/manual placement.
+        if (Vector3.Distance(panel.position, previousDefault) > .001f) return;
+        Undo.RecordObject(panel, "Face teaching panel toward entrance");
+        panel.position = currentDefault; panel.eulerAngles = new Vector3(0, yaw, 0);
+        EditorUtility.SetDirty(panel);
+    }
+
+    private static RawImage OutputImage(Transform parent, string name, Vector2 position, Vector2 size, Material material)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+        go.transform.SetParent(parent, false); var rect = go.GetComponent<RectTransform>(); rect.anchoredPosition = position; rect.sizeDelta = size;
+        var image = go.GetComponent<RawImage>(); image.material = material; image.texture = Texture2D.whiteTexture; image.raycastTarget = false;
+        return image;
     }
 
     private static GameObject BuildAboutPanel(Transform world)
@@ -1341,16 +1512,26 @@ public static class BuildCircuitLab
         browser.simulator = simulator; browser.coordinator = _coordinator; browser.editorPanel = editor; browser.sharedState = sharedState;
         browser.pageSize = 12;
         browser.programNames = names; browser.programDescriptions = descriptions;
+        browser.programNamesEn = ProgramTranslations(programs, "nameTranslations", 0, "name");
+        browser.programNamesZh = ProgramTranslations(programs, "nameTranslations", 1, "name");
+        browser.programNamesJa = ProgramTranslations(programs, "nameTranslations", 2, "name");
+        browser.programDescriptionsEn = ProgramTranslations(programs, "descriptionTranslations", 0, "description");
+        browser.programDescriptionsZh = ProgramTranslations(programs, "descriptionTranslations", 1, "description");
+        browser.programDescriptionsJa = ProgramTranslations(programs, "descriptionTranslations", 2, "description");
+        browser.programExpectedTextsEn = ProgramTranslations(programs, "expectedTextTranslations", 0, "expectedText");
+        browser.programExpectedTextsZh = ProgramTranslations(programs, "expectedTextTranslations", 1, "expectedText");
+        browser.programExpectedTextsJa = ProgramTranslations(programs, "expectedTextTranslations", 2, "expectedText");
+        browser.programSourceCommentsEn = ProgramTranslations(programs, "sourceCommentTranslations", 0, "sourceComment");
+        browser.programSourceCommentsZh = ProgramTranslations(programs, "sourceCommentTranslations", 1, "sourceComment");
+        browser.programSourceCommentsJa = ProgramTranslations(programs, "sourceCommentTranslations", 2, "sourceComment");
         browser.programSources = programs.Select(program => (string)program["source"] ?? "").ToArray();
         browser.programExpectedTexts = programs.Select(program => (string)program["expectedText"] ?? "").ToArray();
         browser.programExpectedCycles = programs.Select(program => (int?)program["expectedCycles"] ?? 0).ToArray();
-        if (!isNew)
-        {
-            browser.selectedProgram = Mathf.Clamp(browser.selectedProgram, 0, Mathf.Max(0, programs.Length - 1));
-            HideLegacyProgramControls(panel.transform);
-            return browser;
-        }
-
+        int previousSelected = browser.selectedProgram;
+        int previousPage = browser.browsePage;
+        int previousMode = browser.browseMode;
+        var previousCanvas = panel.transform.Find("ProgramBrowserCanvas");
+        if (previousCanvas != null) Undo.DestroyObjectImmediate(previousCanvas.gameObject);
         var canvas = PanelCanvas(panel.transform, "ProgramBrowserCanvas", 8.8f, 6.8f);
         PanelText(canvas.transform, "ProgramBrowserTitle", "PROGRAM BROWSER", new Vector2(-97, 310), new Vector2(580, 34), 20, Color.white);
         PanelButton(canvas.transform, "BROWSER_REQUEST_CONTROL", "REQUEST / CLAIM CONTROL", browser, "ClaimControl", new Vector2(339, 309), new Vector2(190, 26), 9);
@@ -1380,7 +1561,7 @@ public static class BuildCircuitLab
         browser.statusText = PanelText(canvas.transform, "BrowserStatus", "SELECTING A PROGRAM ONLY BROWSES IT", new Vector2(142, -306), new Vector2(535, 19), 8, new Color(.63f, .76f, .80f));
 
         browser.programListScrollRect = PanelScrollRegion(canvas.transform, "ProgramListScrollRegion", new Vector2(-309, -5), new Vector2(250, 365), out RectTransform programListContent);
-        const float rowHeight = 29f;
+        const float rowHeight = 42f;
         programListContent.sizeDelta = new Vector2(programListContent.sizeDelta.x, programs.Length * rowHeight);
         for (int index = 0; index < programs.Length; index++)
         {
@@ -1390,9 +1571,9 @@ public static class BuildCircuitLab
             rowRect.anchorMin = new Vector2(0, 1); rowRect.anchorMax = Vector2.one; rowRect.pivot = new Vector2(.5f, 1);
             rowRect.anchoredPosition = new Vector2(0, -index * rowHeight); rowRect.sizeDelta = new Vector2(0, rowHeight - 1f);
             var rowLabel = rowObject.transform.Find("Label").GetComponent<Text>();
-            rowLabel.alignment = TextAnchor.MiddleLeft; rowLabel.resizeTextMinSize = 6; rowLabel.resizeTextMaxSize = 10;
+            rowLabel.alignment = TextAnchor.MiddleLeft; rowLabel.fontSize = 13; rowLabel.resizeTextMinSize = 12; rowLabel.resizeTextMaxSize = 13;
             rowLabel.horizontalOverflow = HorizontalWrapMode.Wrap; rowLabel.verticalOverflow = VerticalWrapMode.Truncate;
-            rowLabel.resizeTextForBestFit = true;
+            rowLabel.resizeTextForBestFit = false;
             var rowLabelRect = rowLabel.GetComponent<RectTransform>();
             rowLabelRect.anchorMin = Vector2.zero; rowLabelRect.anchorMax = Vector2.one;
             rowLabelRect.offsetMin = new Vector2(7, 0); rowLabelRect.offsetMax = new Vector2(-7, 0);
@@ -1402,8 +1583,8 @@ public static class BuildCircuitLab
         }
         PanelButton(canvas.transform, "PROGRAM_LIST_SCROLL_UP", "SCROLL UP", browser, "ScrollListUp", new Vector2(-309, 190), new Vector2(250, 24), 9);
         PanelButton(canvas.transform, "PROGRAM_LIST_SCROLL_DOWN", "SCROLL DOWN", browser, "ScrollListDown", new Vector2(-309, -202), new Vector2(250, 24), 9);
-        browser.selectedProgram = Mathf.Clamp(defaultPreset, 0, Mathf.Max(0, programs.Length - 1));
-        browser.browsePage = 0; browser.browseMode = 0;
+        browser.selectedProgram = Mathf.Clamp(isNew ? defaultPreset : previousSelected, 0, Mathf.Max(0, programs.Length - 1));
+        browser.browsePage = isNew ? 0 : previousPage; browser.browseMode = isNew ? 0 : previousMode;
         HideLegacyProgramControls(panel.transform);
         return browser;
     }
@@ -1717,6 +1898,7 @@ public static class BuildCircuitLab
         ui.navigation = new Navigation { mode = Navigation.Mode.None };
         var handler = Behaviour<CircuitLabButton>(go); handler.target = target; handler.eventName = eventName; handler.coordinator = _coordinator; handler.uiButton = ui;
         handler.requireControl = target is CircuitLabSimulator || target is CircuitLabProbe || target is CircuitLabLayout || target is CircuitLabHierarchyRow || target is CircuitLabHierarchyTree
+            || (target is CircuitLabIsaManual && eventName != "ClaimControl")
             || (target is CircuitLabProgramBrowser && eventName != "ClaimControl") || target is CircuitLabProgramRow
             || (target is CircuitLabProgramPanel && eventName != "ClaimControl") || (target is CircuitLabStateTablet && eventName != "ClaimControl");
         UnityEventTools.AddStringPersistentListener(ui.onClick, UdonSharpEditorUtility.GetBackingUdonBehaviour(handler).SendCustomEvent, "Press");
@@ -1753,7 +1935,7 @@ public static class BuildCircuitLab
         if (rigidbody == null) { go.AddComponent<Rigidbody>(); rigidbody = go.GetComponent<Rigidbody>(); }
         if (rigidbody == null) throw new InvalidOperationException("Rigidbody creation failed: " + go.name);
         rigidbody.useGravity = false; rigidbody.isKinematic = true;
-        var tool = Behaviour<CircuitLabMovableTool>(go); tool.pickup = ConfigurePickup(go, grip);
+        var tool = Behaviour<CircuitLabMovableTool>(go); tool.coordinator = _coordinator; tool.pickup = ConfigurePickup(go, grip);
         var sync = go.GetComponent<VRCObjectSync>(); if (sync == null) { go.AddComponent<VRCObjectSync>(); sync = go.GetComponent<VRCObjectSync>(); } tool.objectSync = sync;
         return tool;
     }
@@ -1830,9 +2012,10 @@ public static class BuildCircuitLab
         foreach (var texture in new[] { simulator.programTexture, simulator.ramInitialTexture, simulator.restoreRamTexture, simulator.restoreStateTexture })
             if (texture == null || !AssetDatabase.Contains(texture) || texture.filterMode != FilterMode.Point || texture.format != TextureFormat.RGBA32)
                 throw new InvalidOperationException("Invalid persistent ROM/RAM restore texture.");
-        if (simulator.programTexture.width != 512 || simulator.programTexture.height != 1 || simulator.ramInitialTexture.width != 16 || simulator.ramInitialTexture.height != 16
-            || simulator.restoreRamTexture.width != 16 || simulator.restoreRamTexture.height != 16 || simulator.restoreStateTexture.width != simulator.textureWidth || simulator.restoreStateTexture.height != 1
-            || simulator.programCount <= 0 || simulator.programWords == null || simulator.programWords.Length != 512 || simulator.initialRam == null || simulator.initialRam.Length != 256)
+        if (simulator.programTexture.width != 512 || simulator.programTexture.height != 1 || simulator.ramInitialTexture.width != 32 || simulator.ramInitialTexture.height != 32
+            || simulator.restoreRamTexture.width != 32 || simulator.restoreRamTexture.height != 32 || simulator.restoreStateTexture.width != simulator.textureWidth || simulator.restoreStateTexture.height != 1
+            || simulator.ramA.width != 32 || simulator.ramA.height != 32 || simulator.ramB.width != 32 || simulator.ramB.height != 32
+            || simulator.programCount <= 0 || simulator.programWords == null || simulator.programWords.Length != 512 || simulator.initialRam == null || simulator.initialRam.Length != 1024)
             throw new InvalidOperationException("Invalid program, RAM, or DFF restore data.");
         if (simulator.dffSignals == null || simulator.restoreStateTexture == null || simulator.currentRam != simulator.ramA && simulator.currentRam != simulator.ramB)
             throw new InvalidOperationException("Full-state restoration or current RAM reference is not configured.");

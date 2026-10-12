@@ -1,0 +1,991 @@
+[
+  {
+    "id": "pi-355-113",
+    "name": "π：355/113 十进制长除法",
+    "source": "pi_355_113.asm",
+    "description": "CPU 从 355 和 113 求出整数商、余数，再运行十进制长除法；π≈355/113，前 6 位小数正确，第 7 位起不同。",
+    "expectedText": "3.141592\n",
+    "translations": {
+      "en": {
+        "name": "Pi: 355/113 long division",
+        "description": "The CPU divides 355 by 113 and then generates six fractional digits by long division. This is the 355/113 approximation; digits agree with π through the sixth fractional place.",
+        "expectedText": "3.141592\n"
+      },
+      "zh": {
+        "name": "π：355/113 十进制长除法",
+        "description": "CPU 先用长除法求 355÷113，再逐位生成 6 位小数。这是 355/113 近似值，前六位小数与 π 一致。",
+        "expectedText": "3.141592\n"
+      },
+      "ja": {
+        "name": "π：355/113 の十進長除法",
+        "description": "CPUが355÷113を長除法で求め、小数6桁を逐次生成します。355/113の近似で、小数第6位までπと一致します。",
+        "expectedText": "3.141592\n"
+      }
+    },
+    "sourceComment": "Compute 355 / 113 using byte-wide repeated subtraction, then generate six",
+    "sourceCommentTranslations": {
+      "en": "CPU integer long division for the 355/113 approximation.",
+      "zh": "CPU 运行整数长除法，计算 355/113 近似值。",
+      "ja": "CPUで整数長除法を行い、355/113の近似値を計算します。"
+    }
+  },
+  {
+    "id": "counter",
+    "name": "循环计数器",
+    "source": "counter.asm",
+    "description": "累加、输出并循环跳转的基础程序。",
+    "translations": {
+      "en": {
+        "name": "Loop counter",
+        "description": "Accumulates, outputs, and loops.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "循环计数器",
+        "description": "累加、输出并循环跳转。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "ループカウンター",
+        "description": "加算して出力し、ループします。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "Looping accumulator demonstration.",
+      "zh": "循环累加器演示。",
+      "ja": "ループするアキュムレーターのデモ。"
+    }
+  },
+  {
+    "id": "logic",
+    "name": "逻辑运算",
+    "source": "logic.asm",
+    "description": "演示 AND、OR、XOR 立即数逻辑运算。",
+    "expectedText": "\u0000",
+    "translations": {
+      "en": {
+        "name": "Logic operations",
+        "description": "Demonstrates immediate AND, OR, and XOR.",
+        "expectedText": "\u0000"
+      },
+      "zh": {
+        "name": "逻辑运算",
+        "description": "演示立即数 AND、OR、XOR。",
+        "expectedText": "\u0000"
+      },
+      "ja": {
+        "name": "論理演算",
+        "description": "即値 AND、OR、XOR を示します。",
+        "expectedText": "\u0000"
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "Immediate bitwise logic demonstration.",
+      "zh": "立即数按位逻辑运算演示。",
+      "ja": "即値ビット演算のデモ。"
+    }
+  },
+  {
+    "id": "hello",
+    "name": "Hello",
+    "source": "hello.asm",
+    "description": "输出 HELLO 和换行。",
+    "expectedText": "HELLO\n",
+    "translations": {
+      "en": {
+        "name": "Hello",
+        "description": "Outputs HELLO and a newline.",
+        "expectedText": "HELLO\n"
+      },
+      "zh": {
+        "name": "Hello",
+        "description": "输出 HELLO 和换行。",
+        "expectedText": "HELLO\n"
+      },
+      "ja": {
+        "name": "Hello",
+        "description": "HELLO と改行を出力します。",
+        "expectedText": "HELLO\n"
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "Terminal output demonstration.",
+      "zh": "终端输出演示。",
+      "ja": "端末出力のデモ。"
+    }
+  },
+  {
+    "id": "halt",
+    "name": "HALT",
+    "source": "halt.asm",
+    "description": "立即停机的最小程序。",
+    "translations": {
+      "en": {
+        "name": "HALT",
+        "description": "The smallest stop program.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "停机",
+        "description": "最小停机程序。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "HALT",
+        "description": "最小の停止プログラム。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "Minimal CPU stop program.",
+      "zh": "最小 CPU 停机程序。",
+      "ja": "最小のCPU停止プログラム。"
+    }
+  },
+  {
+    "id": "blinker",
+    "name": "流水灯",
+    "source": "blinker.asm",
+    "description": "循环左移 ACC 中的单个亮位并输出。",
+    "translations": {
+      "en": {
+        "name": "Running light",
+        "description": "Rotates one lit bit through the accumulator.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "流水灯",
+        "description": "在累加器中循环移动一个亮位。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "流れるライト",
+        "description": "アキュムレーター内の点灯ビットを回転します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "Rotating single-bit light pattern.",
+      "zh": "循环旋转的单亮位图案。",
+      "ja": "1ビット点灯パターンを回転します。"
+    }
+  },
+  {
+    "id": "alternating-55-aa",
+    "name": "55 / AA 交替",
+    "source": "alternating_55_aa.asm",
+    "description": "交替输出 0x55 与 0xAA。",
+    "translations": {
+      "en": {
+        "name": "55 / AA alternation",
+        "description": "Alternates between 0x55 and 0xAA.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "55 / AA 交替",
+        "description": "交替输出 0x55 和 0xAA。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "55 / AA 交互",
+        "description": "0x55 と 0xAA を交互に出力します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "Alternates two bit patterns.",
+      "zh": "交替切换两个位图案。",
+      "ja": "2つのビットパターンを交互に出力します。"
+    }
+  },
+  {
+    "id": "ff-plus-one",
+    "name": "FF + 1",
+    "source": "ff_plus_one.asm",
+    "description": "演示 8 位加法回绕与进位标志。",
+    "expectedText": "\u0000",
+    "translations": {
+      "en": {
+        "name": "FF plus one",
+        "description": "Shows eight-bit wraparound and carry.",
+        "expectedText": "\u0000"
+      },
+      "zh": {
+        "name": "FF 加一",
+        "description": "演示 8 位回绕与进位。",
+        "expectedText": "\u0000"
+      },
+      "ja": {
+        "name": "FF に 1 を加算",
+        "description": "8ビットの桁あふれとキャリーを示します。",
+        "expectedText": "\u0000"
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "Eight-bit addition and carry demonstration.",
+      "zh": "8 位加法与进位演示。",
+      "ja": "8ビット加算とキャリーのデモ。"
+    }
+  },
+  {
+    "id": "countdown",
+    "name": "倒计时",
+    "source": "countdown.asm",
+    "description": "用零标志控制倒计时循环。",
+    "expectedText": "54321\n",
+    "translations": {
+      "en": {
+        "name": "Countdown",
+        "description": "Counts down to zero and outputs digits.",
+        "expectedText": "54321\n"
+      },
+      "zh": {
+        "name": "倒计时",
+        "description": "递减到零并输出数字。",
+        "expectedText": "54321\n"
+      },
+      "ja": {
+        "name": "カウントダウン",
+        "description": "ゼロまで減算し、数字を出力します。",
+        "expectedText": "54321\n"
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "Zero-flag-controlled countdown.",
+      "zh": "使用零标志控制倒计时。",
+      "ja": "ゼロフラグで制御するカウントダウン。"
+    }
+  },
+  {
+    "id": "ascii-digits",
+    "name": "ASCII 0123456789",
+    "source": "ascii_digits.asm",
+    "description": "输出字符 0 到 9。",
+    "expectedText": "0123456789\n",
+    "translations": {
+      "en": {
+        "name": "ASCII 0 to 9",
+        "description": "Outputs ASCII digits from zero through nine.",
+        "expectedText": "0123456789\n"
+      },
+      "zh": {
+        "name": "ASCII 数字 0 到 9",
+        "description": "输出 ASCII 字符 0 到 9。",
+        "expectedText": "0123456789\n"
+      },
+      "ja": {
+        "name": "ASCII 数字 0～9",
+        "description": "ASCII の0から9を出力します。",
+        "expectedText": "0123456789\n"
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "ASCII digit output loop.",
+      "zh": "ASCII 数字输出循环。",
+      "ja": "ASCII数字を出力するループ。"
+    }
+  },
+  {
+    "id": "step-count",
+    "name": "步长计数",
+    "source": "step_count.asm",
+    "description": "每轮加 3 并输出结果。",
+    "translations": {
+      "en": {
+        "name": "Step counter",
+        "description": "Adds three on every loop.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "步长计数",
+        "description": "每轮累加 3。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "ステップカウンター",
+        "description": "ループごとに3を加算します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "Fixed-step accumulator loop.",
+      "zh": "定步长累加循环。",
+      "ja": "一定幅で加算するループ。"
+    }
+  },
+  {
+    "id": "long-call",
+    "name": "9 位地址 CALL / RET",
+    "source": "long_call.asm",
+    "description": "在高于 255 的 ROM 地址执行 CALL 和 RET，并验证 9 位返回地址。",
+    "expectedText": "Hx\n",
+    "translations": {
+      "en": {
+        "name": "Nine-bit CALL / RET",
+        "description": "Calls and returns from ROM addresses above 255.",
+        "expectedText": "Hx\n"
+      },
+      "zh": {
+        "name": "9 位地址 CALL / RET",
+        "description": "从高于 255 的 ROM 地址调用并返回。",
+        "expectedText": "Hx\n"
+      },
+      "ja": {
+        "name": "9ビットアドレス CALL / RET",
+        "description": "255を超えるROMアドレスから呼び出して復帰します。",
+        "expectedText": "Hx\n"
+      }
+    },
+    "sourceComment": "",
+    "sourceCommentTranslations": {
+      "en": "Nine-bit call and return test.",
+      "zh": "9 位地址调用与返回测试。",
+      "ja": "9ビットアドレスの呼び出しと復帰テスト。"
+    }
+  },
+  {
+    "id": "cpu-fixture",
+    "name": "CPU / RAM 验证程序",
+    "source": "cpu_fixture.asm",
+    "description": "覆盖 RAM、X 寻址、进位/借位、CALL/RET 和高地址跳转。",
+    "initialRam": {
+      "32": 85
+    },
+    "translations": {
+      "en": {
+        "name": "CPU / RAM validation",
+        "description": "Covers RAM, X addressing, carry/borrow, CALL/RET, and a high ROM address.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "CPU / RAM 验证程序",
+        "description": "覆盖 RAM、X 寻址、进借位、CALL/RET 和高 ROM 地址。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "CPU / RAM 検証",
+        "description": "RAM、Xアドレス、キャリー/ボロー、CALL/RET、高位ROMアドレスを検証します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "Exercises RAM and X operations, 8-bit carry/no-borrow, high PC, CALL and RET.",
+    "sourceCommentTranslations": {
+      "en": "CPU and RAM architectural validation program.",
+      "zh": "CPU 与 RAM 架构验证程序。",
+      "ja": "CPUとRAMのアーキテクチャ検証プログラム。"
+    }
+  },
+  {
+    "id": "pi-spigot-64",
+    "name": "π 整数喷泉算法：小数 64 位",
+    "source": "pi_spigot_64.asm",
+    "description": "Rabinowitz–Wagon 整数喷泉算法。CPU 运行 10,421,948 周期（256 Hz 下约 11.3 小时），运行时计算并输出 64 位小数。",
+    "expectedText": "3.1415926535897932384626433832795028841971693993751058209749445923\n",
+    "digits": 64,
+    "oracle": "pi-spigot",
+    "initialRamPatterns": [
+      {
+        "start": 256,
+        "count": 216,
+        "values": [
+          2,
+          0
+        ]
+      }
+    ],
+    "translations": {
+      "en": {
+        "name": "Pi spigot: 64 fractional digits",
+        "description": "Rabinowitz–Wagon integer spigot. Runs 10,421,948 CPU cycles (about 11.3 hours at 256 Hz) and emits 64 fractional digits computed at runtime.",
+        "expectedText": "3.1415926535897932384626433832795028841971693993751058209749445923\n"
+      },
+      "zh": {
+        "name": "π 整数喷泉算法：小数 64 位",
+        "description": "Rabinowitz–Wagon 整数喷泉算法。CPU 运行 10,421,948 周期（256 Hz 下约 11.3 小时），运行时计算并输出 64 位小数。",
+        "expectedText": "3.1415926535897932384626433832795028841971693993751058209749445923\n"
+      },
+      "ja": {
+        "name": "πスピゴット：小数64桁",
+        "description": "Rabinowitz–Wagon 整数スピゴット。CPUを10,421,948サイクル実行（256 Hzで約11.3時間）し、小数64桁を実行時に計算して出力します。",
+        "expectedText": "3.1415926535897932384626433832795028841971693993751058209749445923\n"
+      }
+    },
+    "sourceComment": "Rabinowitz–Wagon CPU integer spigot; 64 fractional digits.",
+    "sourceCommentTranslations": {
+      "en": "Rabinowitz–Wagon CPU integer spigot; 64 fractional digits.",
+      "zh": "CPU运行整数喷泉算法，计算小数64位。",
+      "ja": "CPUで整数スピゴットを実行し、小数64桁を計算します。"
+    }
+  },
+  {
+    "id": "pi-spigot-100",
+    "name": "π 整数喷泉算法：小数 100 位",
+    "source": "pi_spigot_100.asm",
+    "description": "Rabinowitz–Wagon 整数喷泉算法。CPU 运行 25,244,764 周期（256 Hz 下约 27.4 小时），运行时计算并输出 100 位小数。",
+    "expectedText": "3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679\n",
+    "digits": 100,
+    "oracle": "pi-spigot",
+    "initialRamPatterns": [
+      {
+        "start": 256,
+        "count": 336,
+        "values": [
+          2,
+          0
+        ]
+      }
+    ],
+    "translations": {
+      "en": {
+        "name": "Pi spigot: 100 fractional digits",
+        "description": "Rabinowitz–Wagon integer spigot. Runs 25,244,764 CPU cycles (about 27.4 hours at 256 Hz) and emits 100 fractional digits computed at runtime.",
+        "expectedText": "3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679\n"
+      },
+      "zh": {
+        "name": "π 整数喷泉算法：小数 100 位",
+        "description": "Rabinowitz–Wagon 整数喷泉算法。CPU 运行 25,244,764 周期（256 Hz 下约 27.4 小时），运行时计算并输出 100 位小数。",
+        "expectedText": "3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679\n"
+      },
+      "ja": {
+        "name": "πスピゴット：小数100桁",
+        "description": "Rabinowitz–Wagon 整数スピゴット。CPUを25,244,764サイクル実行（256 Hzで約27.4時間）し、小数100桁を実行時に計算して出力します。",
+        "expectedText": "3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679\n"
+      }
+    },
+    "sourceComment": "Rabinowitz–Wagon CPU integer spigot; 100 fractional digits.",
+    "sourceCommentTranslations": {
+      "en": "Rabinowitz–Wagon CPU integer spigot; 100 fractional digits.",
+      "zh": "CPU运行整数喷泉算法，计算小数100位。",
+      "ja": "CPUで整数スピゴットを実行し、小数100桁を計算します。"
+    }
+  },
+  {
+    "id": "gray-code",
+    "name": "格雷码序列",
+    "source": "gray_code.asm",
+    "description": "CPU 逐位提取二进制计数器的相邻位并异或，运行时生成 0..15 的四位反射格雷码。",
+    "expectedBytes": [
+      0,
+      1,
+      3,
+      2,
+      6,
+      7,
+      5,
+      4,
+      12,
+      13,
+      15,
+      14,
+      10,
+      11,
+      9,
+      8
+    ],
+    "oracle": "gray4",
+    "translations": {
+      "en": {
+        "name": "Gray-code sequence",
+        "description": "Extracts adjacent bits from a binary counter and computes the four-bit reflected Gray sequence at runtime.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "格雷码序列",
+        "description": "CPU 逐位提取二进制计数器的相邻位并异或，运行时生成 0..15 的四位反射格雷码。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "グレイコード列",
+        "description": "二進カウンターの隣接ビットを取り出してXORし、4ビット反射グレイコードを実行時に生成します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "Computes the four-bit Gray sequence by extracting adjacent binary bits.",
+    "sourceCommentTranslations": {
+      "en": "Computes the four-bit Gray sequence by extracting adjacent binary bits.",
+      "zh": "提取相邻二进制位并计算四位格雷码。",
+      "ja": "隣接する二進ビットから4ビットのグレイコードを計算します。"
+    }
+  },
+  {
+    "id": "lfsr",
+    "name": "8 位 LFSR",
+    "source": "lfsr.asm",
+    "description": "使用多项式 x⁸+x⁶+x⁵+x⁴+1，从 A5 种子运行并输出 16 个状态。",
+    "expectedBytes": [
+      165,
+      234,
+      117,
+      130,
+      65,
+      152,
+      76,
+      38,
+      19,
+      177,
+      224,
+      112,
+      56,
+      28,
+      14,
+      7
+    ],
+    "oracle": "lfsr8",
+    "translations": {
+      "en": {
+        "name": "8-bit LFSR",
+        "description": "Runs an eight-bit right-shifting LFSR with polynomial x^8+x^6+x^5+x^4+1 from seed A5.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "8 位 LFSR",
+        "description": "使用多项式 x⁸+x⁶+x⁵+x⁴+1，从 A5 种子运行并输出 16 个状态。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "8ビットLFSR",
+        "description": "多項式 x⁸+x⁶+x⁵+x⁴+1、シードA5の8ビット右シフトLFSRを実行します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "8-bit maximal LFSR using a right shift and feedback polynomial.",
+    "sourceCommentTranslations": {
+      "en": "8-bit maximal LFSR using a right shift and feedback polynomial.",
+      "zh": "使用右移和反馈多项式的 8 位最大长度 LFSR。",
+      "ja": "右シフトとフィードバック多項式を使う8ビット最大長LFSR。"
+    }
+  },
+  {
+    "id": "fibonacci-16",
+    "name": "16 位 Fibonacci",
+    "source": "fibonacci16.asm",
+    "description": "用低/高字节的 ADD 与 ADC 在 CPU 上计算 F0..F15，终端按每项低字节、高字节输出。",
+    "expectedBytes": [
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      2,
+      0,
+      3,
+      0,
+      5,
+      0,
+      8,
+      0,
+      13,
+      0,
+      21,
+      0,
+      34,
+      0,
+      55,
+      0,
+      89,
+      0,
+      144,
+      0,
+      233,
+      0,
+      121,
+      1,
+      98,
+      2
+    ],
+    "oracle": "fibonacci16",
+    "translations": {
+      "en": {
+        "name": "16-bit Fibonacci",
+        "description": "Computes F0 through F15 with low/high-byte ADD and ADC; each value is emitted low byte then high byte.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "16 位 Fibonacci",
+        "description": "用低/高字节的 ADD 与 ADC 在 CPU 上计算 F0..F15，终端按每项低字节、高字节输出。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "16ビットFibonacci",
+        "description": "下位/上位バイトのADDとADCでF0～F15を計算し、各値を下位バイト、上位バイトの順に出力します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "Computes 16-bit Fibonacci values using carry propagation.",
+    "sourceCommentTranslations": {
+      "en": "Computes 16-bit Fibonacci values using carry propagation.",
+      "zh": "通过进位传播计算 16 位 Fibonacci 数。",
+      "ja": "キャリー伝播を使って16ビットのFibonacci数を計算します。"
+    }
+  },
+  {
+    "id": "array-sort",
+    "name": "8 项数组排序",
+    "source": "array_sort.asm",
+    "description": "CPU 对 RAM bank1 的八个输入字节执行冒泡排序，结果仍保存在原数组。",
+    "initialRam": {
+      "256": 7,
+      "257": 1,
+      "258": 5,
+      "259": 3,
+      "260": 8,
+      "261": 2,
+      "262": 6,
+      "263": 4
+    },
+    "inputValues": [
+      7,
+      1,
+      5,
+      3,
+      8,
+      2,
+      6,
+      4
+    ],
+    "oracle": "array-sort8",
+    "translations": {
+      "en": {
+        "name": "Eight-element array sort",
+        "description": "Bubble-sorts eight input bytes in RAM bank1 in place.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "8 项数组排序",
+        "description": "CPU 对 RAM bank1 的八个输入字节执行冒泡排序，结果仍保存在原数组。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "8要素配列ソート",
+        "description": "RAM bank1の8バイトをバブルソートし、元の配列へ書き戻します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "Bubble-sorts eight bytes in RAM bank1.",
+    "sourceCommentTranslations": {
+      "en": "Bubble-sorts eight bytes in RAM bank1.",
+      "zh": "对 RAM bank1 中的八个字节执行冒泡排序。",
+      "ja": "RAM bank1の8バイトをバブルソートします。"
+    }
+  },
+  {
+    "id": "prime-sieve",
+    "name": "2 到 100 素数筛",
+    "source": "prime_sieve.asm",
+    "description": "CPU 初始化候选标记并运行埃拉托斯特尼筛，RAM bank1 的 2..100 标记为 1 的位置是素数。",
+    "oracle": "prime-sieve100",
+    "translations": {
+      "en": {
+        "name": "Sieve of primes through 100",
+        "description": "Initializes candidate flags and runs the sieve of Eratosthenes. Prime entries remain set in RAM bank1.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "2 到 100 素数筛",
+        "description": "CPU 初始化候选标记并运行埃拉托斯特尼筛，RAM bank1 的 2..100 标记为 1 的位置是素数。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "100までのエラトステネスのふるい",
+        "description": "候補フラグを初期化してエラトステネスのふるいを実行し、RAM bank1の素数位置を1のまま残します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "Sieve of Eratosthenes for the integers 2 through 100.",
+    "sourceCommentTranslations": {
+      "en": "Sieve of Eratosthenes for the integers 2 through 100.",
+      "zh": "对 2 到 100 执行埃拉托斯特尼筛。",
+      "ja": "2から100までにエラトステネスのふるいを実行します。"
+    }
+  },
+  {
+    "id": "gcd",
+    "name": "欧几里得 GCD",
+    "source": "gcd.asm",
+    "description": "CPU 用重复减法执行欧几里得算法，计算 gcd(252,105)=21，并输出原始结果字节。",
+    "expectedBytes": [
+      21
+    ],
+    "oracle": "gcd",
+    "translations": {
+      "en": {
+        "name": "Euclidean GCD",
+        "description": "Uses repeated subtraction to compute gcd(252,105)=21 and emits the raw result byte.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "欧几里得 GCD",
+        "description": "CPU 用重复减法执行欧几里得算法，计算 gcd(252,105)=21，并输出原始结果字节。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "ユークリッドのGCD",
+        "description": "反復減算でgcd(252,105)=21を計算し、結果の生バイトを出力します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "Euclid's repeated-subtraction algorithm for gcd(252,105).",
+    "sourceCommentTranslations": {
+      "en": "Euclid's repeated-subtraction algorithm for gcd(252,105).",
+      "zh": "用重复减法计算 gcd(252,105)。",
+      "ja": "反復減算でgcd(252,105)を計算します。"
+    }
+  },
+  {
+    "id": "crc8",
+    "name": "CRC-8/ATM",
+    "source": "crc8.asm",
+    "description": "CPU 使用多项式 0x07 对输入字节 A5 逐位计算 CRC-8/ATM，输出结果字节 0x72。",
+    "expectedBytes": [
+      114
+    ],
+    "oracle": "crc8-atm-a5",
+    "translations": {
+      "en": {
+        "name": "CRC-8/ATM",
+        "description": "Computes CRC-8/ATM with polynomial 0x07 over input byte A5; result is 0x72.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "CRC-8/ATM",
+        "description": "CPU 使用多项式 0x07 对输入字节 A5 逐位计算 CRC-8/ATM，输出结果字节 0x72。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "CRC-8/ATM",
+        "description": "多項式0x07で入力バイトA5のCRC-8/ATMを計算し、結果0x72を出力します。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "CRC-8/ATM polynomial 07 over input byte A5.",
+    "sourceCommentTranslations": {
+      "en": "CRC-8/ATM polynomial 07 over input byte A5.",
+      "zh": "对输入 A5 使用 CRC-8/ATM 多项式 07。",
+      "ja": "入力A5にCRC-8/ATM多項式07を適用します。"
+    }
+  },
+  {
+    "id": "ram-cross-page",
+    "name": "跨页 RAM 自检",
+    "source": "ram_cross_page.asm",
+    "description": "在四个 RAM 页的 0x00 与 0xFF 写入不同哨兵值，再逐页读回；全部匹配时输出 PASS。",
+    "expectedText": "PASS\n",
+    "oracle": "ram-cross-page",
+    "translations": {
+      "en": {
+        "name": "Cross-page RAM self-test",
+        "description": "Writes distinct sentinels at 0x00 and 0xFF in all four pages, reads them back, and prints PASS on success.",
+        "expectedText": "PASS\n"
+      },
+      "zh": {
+        "name": "跨页 RAM 自检",
+        "description": "在四个 RAM 页的 0x00 与 0xFF 写入不同哨兵值，再逐页读回；全部匹配时输出 PASS。",
+        "expectedText": "PASS\n"
+      },
+      "ja": {
+        "name": "ページ跨ぎRAMセルフテスト",
+        "description": "4ページすべての0x00と0xFFに異なる値を書いて読み戻し、成功時にPASSを出力します。",
+        "expectedText": "PASS\n"
+      }
+    },
+    "sourceComment": "Checks distinct RAM sentinels across all four pages.",
+    "sourceCommentTranslations": {
+      "en": "Checks distinct RAM sentinels across all four pages.",
+      "zh": "检查四个 RAM 页中的不同哨兵值。",
+      "ja": "4つのRAMページにある異なる値を確認します。"
+    }
+  },
+  {
+    "id": "life-8x8",
+    "name": "Conway 生命游戏 8×8",
+    "source": "life_8x8.asm",
+    "description": "封闭边界 8×8 Conway 生命游戏，初始包含 glider 与 blinker；双缓冲完整写入后切换显示页，运行 8 帧。",
+    "initialRam": {
+      "0": 208,
+      "1": 248,
+      "2": 248,
+      "3": 248,
+      "4": 248,
+      "5": 248,
+      "6": 248,
+      "7": 104,
+      "8": 214,
+      "9": 255,
+      "10": 255,
+      "11": 255,
+      "12": 255,
+      "13": 255,
+      "14": 255,
+      "15": 107,
+      "16": 214,
+      "17": 255,
+      "18": 255,
+      "19": 255,
+      "20": 255,
+      "21": 255,
+      "22": 255,
+      "23": 107,
+      "24": 214,
+      "25": 255,
+      "26": 255,
+      "27": 255,
+      "28": 255,
+      "29": 255,
+      "30": 255,
+      "31": 107,
+      "32": 214,
+      "33": 255,
+      "34": 255,
+      "35": 255,
+      "36": 255,
+      "37": 255,
+      "38": 255,
+      "39": 107,
+      "40": 214,
+      "41": 255,
+      "42": 255,
+      "43": 255,
+      "44": 255,
+      "45": 255,
+      "46": 255,
+      "47": 107,
+      "48": 214,
+      "49": 255,
+      "50": 255,
+      "51": 255,
+      "52": 255,
+      "53": 255,
+      "54": 255,
+      "55": 107,
+      "56": 22,
+      "57": 31,
+      "58": 31,
+      "59": 31,
+      "60": 31,
+      "61": 31,
+      "62": 31,
+      "63": 11,
+      "257": 1,
+      "266": 1,
+      "272": 1,
+      "273": 1,
+      "274": 1,
+      "299": 1,
+      "300": 1,
+      "301": 1
+    },
+    "frameCount": 8,
+    "neighborMasks": [
+      208,
+      248,
+      248,
+      248,
+      248,
+      248,
+      248,
+      104,
+      214,
+      255,
+      255,
+      255,
+      255,
+      255,
+      255,
+      107,
+      214,
+      255,
+      255,
+      255,
+      255,
+      255,
+      255,
+      107,
+      214,
+      255,
+      255,
+      255,
+      255,
+      255,
+      255,
+      107,
+      214,
+      255,
+      255,
+      255,
+      255,
+      255,
+      255,
+      107,
+      214,
+      255,
+      255,
+      255,
+      255,
+      255,
+      255,
+      107,
+      214,
+      255,
+      255,
+      255,
+      255,
+      255,
+      255,
+      107,
+      22,
+      31,
+      31,
+      31,
+      31,
+      31,
+      31,
+      11
+    ],
+    "oracle": "life8x8",
+    "display": {
+      "displayRamBase": 256,
+      "displayAlternateBase": 320,
+      "selectorAddress": 224,
+      "generationAddress": 225,
+      "commitOrder": [
+        "selector",
+        "generation"
+      ]
+    },
+    "translations": {
+      "en": {
+        "name": "Conway's Game of Life 8×8",
+        "description": "Closed-edge 8×8 board seeded with a glider and blinker. Computes eight generations in two RAM buffers and commits each completed frame.",
+        "expectedText": ""
+      },
+      "zh": {
+        "name": "Conway 生命游戏 8×8",
+        "description": "封闭边界 8×8 Conway 生命游戏，初始包含 glider 与 blinker；双缓冲完整写入后切换显示页，运行 8 帧。",
+        "expectedText": ""
+      },
+      "ja": {
+        "name": "Conwayのライフゲーム 8×8",
+        "description": "閉じた境界の8×8盤面にグライダーとブリンカーを配置。2つのRAMバッファで8世代を計算し、完成したフレームを切り替えます。",
+        "expectedText": ""
+      }
+    },
+    "sourceComment": "Closed-edge Conway Life with two frame buffers and a commit selector.",
+    "sourceCommentTranslations": {
+      "en": "Closed-edge Conway Life with two frame buffers and a commit selector.",
+      "zh": "封闭边界 Conway 生命游戏，使用双缓冲与帧提交选择器。",
+      "ja": "閉じた境界のConwayライフゲーム。二重バッファとフレーム切替を使用します。"
+    }
+  }
+]

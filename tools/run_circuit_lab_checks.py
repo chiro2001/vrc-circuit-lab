@@ -43,6 +43,7 @@ def main():
         for entry, name in (
             ("ValidateCircuitLabRam.Initialization", "ram-initialization"),
             ("ValidateCircuitLabRam.EditingAndReset", "ram-edit-reset"),
+            ("ValidateCircuitLabRam.BankedRamAndStack", "ram-banks-stack"),
             ("ValidateCircuitLabRam.VirtualKeyboard", "ram-keyboard"),
             ("ValidateCircuitLabRam.RamProbe", "ram-probe"),
             ("ValidateCircuitLabRam.PrepareReplica", None),

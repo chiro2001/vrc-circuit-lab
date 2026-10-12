@@ -46,8 +46,8 @@ def main():
             for program in data.get("programs", []):
                 if len(program["words"]) != 512 or any(not 0 <= word <= 4095 for word in program["words"]):
                     raise ValueError("Program image must contain 512 valid 12-bit words")
-                if len(program["initialRam"]) != 256 or any(not 0 <= value <= 255 for value in program["initialRam"]):
-                    raise ValueError("Program RAM image must contain 256 bytes")
+                if len(program["initialRam"]) != 1024 or any(not 0 <= value <= 255 for value in program["initialRam"]):
+                    raise ValueError("Program RAM image must contain 1024 bytes")
             if not data.get("programs"):
                 raise ValueError("Schema 3 needs at least one loadable program")
             for name in ("fixturePrograms", "fixtureRamReset"):
@@ -65,8 +65,15 @@ def main():
         if data is not None:
             source = stage / "Assets/CircuitLab"
             copy_text_sources(ROOT / "Assets/CircuitLab", source)
+            # New font sources and locale dictionaries are copied; Unity imports them.
+            locale = ROOT / "Assets/CircuitLab/Localization"
+            for path in locale.rglob("*") if locale.exists() else ():
+                if path.is_file() and path.suffix in (".ttf", ".otf", ".txt", ".tsv", ".md"):
+                    target = source / "Localization" / path.relative_to(locale)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(path, target)
             for path in source.rglob("*"):
-                if path.is_file() and path.suffix not in (".cs", ".shader", ".json"):
+                if path.is_file() and path.suffix not in (".cs", ".shader", ".json", ".ttf", ".otf", ".txt", ".tsv", ".md"):
                     raise ValueError(f"Only text sources may be deployed: {path}")
             (source / "Data").mkdir(exist_ok=True)
             (source / "Data/gpu-netlist.json").write_text(json.dumps(data, separators=(",", ":")) + "\n")
@@ -97,7 +104,7 @@ try {{
   if ($LASTEXITCODE -ne 0) {{ throw 'Source extraction failed' }}
   foreach ($file in Get-ChildItem -LiteralPath $stage -Recurse -File) {{
     $relative = $file.FullName.Substring($stage.Length + 1)
-    if ($file.Extension -notin @('.cs', '.shader', '.json')) {{ throw "Unexpected source type: $relative" }}
+    if ($file.Extension -notin @('.cs', '.shader', '.json', '.ttf', '.otf', '.txt', '.tsv', '.md')) {{ throw "Unexpected source type: $relative" }}
     if ($relative -notlike 'Assets\\CircuitLab\\*' -and $relative -notlike 'AgentScripts\\*CircuitLab*.cs') {{ throw "Unexpected source path: $relative" }}
     $target = Join-Path $project $relative
     New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null

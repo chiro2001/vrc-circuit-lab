@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "ramBytes": 1024,
+  "ramTexture": "32x32",
+  "isaPages": 39,
+  "verticalHandles": 20,
+  "lifeProgram": 23,
+  "programCount": 24,
+  "localLanguageAuto": true,
+  "isaSharedStateSeparate": true,
+  "manualSyncObjectConflicts": 0,
+  "shaderErrors": 0
+}

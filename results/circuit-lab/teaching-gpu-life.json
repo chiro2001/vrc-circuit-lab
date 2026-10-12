@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "generation": 1,
+  "front": 320,
+  "cpuCycles": 19247,
+  "cells": "AAAAAAAAAAABAAEAAAAAAAABAQAAAAAAAAEAAAAAAAAAAAAAAQAAAAAAAAABAAAAAAAAAAEAAAAAAAAAAAAAAA==",
+  "rule": "B3/S23 closed boundary"
+}

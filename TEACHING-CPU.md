@@ -4,9 +4,9 @@ CPU RTL 位于 [circuits/teaching_cpu.v](circuits/teaching_cpu.v)，汇编与指
 
 ## 硬件与执行
 
-ACC、X、SP、OUT 均为 8 位，PC 为 9 位，程序为 512×12 位，数据 RAM 为 256×8 位。CPU 为单时钟、同步复位、二值零延迟模型。普通指令 FETCH/EXEC 两拍；长跳转、CALL/RET 使用额外微步，真实 phase 是三位总线。
+ACC、X、SP、OUT 均为 8 位，PC 为 9 位，程序为 512×12 位，数据 RAM 为 1024×8 位（四个 256 字节页）。CPU 为单时钟、同步复位、二值零延迟模型。普通指令 FETCH/EXEC 两拍；长跳转、CALL/RET 使用额外微步，真实 phase 是三位总线。
 
-RESET 清零 CPU 寄存器、标志和执行状态（Z 置一），保留全部 RAM；复位拍写使能被关闭，不能提交此前待执行的 STORE。冷启动、RESTART 和加载程序才应用该程序的 initialRam。CALL/RET 在 RAM 中保存和恢复九位返回地址；X 支持间接访存。
+RESET 清零 CPU 寄存器、标志和执行状态（Z 置一），保留全部 RAM；复位拍写使能被关闭，不能提交此前待执行的 STORE。冷启动、RESTART 和加载程序才应用该程序的 initialRam。BANK 选择当前 RAM 页；RESET 将 BANK 复位为零。CALL/RET 固定在第 0 页保存和恢复九位返回地址；X 支持间接访存。
 
 指令第一字仍为 opcode[11:8] + operand[7:0]，每字三位 HEX。跳转第二字低九位给出长地址。
 
@@ -28,8 +28,8 @@ EXT 使用 operand 高四位选择子操作：
 | 子操作 | 指令 |
 | --- | --- |
 | 0/1 | SHL/SHR，C为移出位 |
-| 2/3 | TAX/TXA |
-| 4/5 | LDAX/STAX，访问RAM[X] |
+| 2/3 | E20=TAX、E30=TXA；E21..E24=BANK 0..3，保留标志 |
+| 4/5 | LDAX/STAX，访问RAM[BANK×256+X] |
 | 6/7 | INX/DEX，更新Z，保留C |
 | 8/9 | ADDX/SUBX |
 | A/B | JC/JNC，第二字为长地址 |
@@ -38,15 +38,20 @@ EXT 使用 operand 高四位选择子操作：
 
 ## 计算 π
 
-默认程序 [pi_355_113.asm](circuits/programs/pi_355_113.asm) 使用 π≈355/113，通过CPU求整数商3和余数16，再运行十进制长除法逐位输出 `3.141592\n`。每位用十次有界8位累加、比较和减法产生，数字来自执行过程；程序未预置π数字串，也未由Udon代算。
+默认保留快速的 [355/113 长除法](circuits/programs/pi_355_113.asm) 演示，输出 `3.141592`；前六位小数正确，第七位起不同。另有 [64 位](circuits/programs/pi_spigot_64.asm) 与 [100 位](circuits/programs/pi_spigot_100.asm) Rabinowitz–Wagon 整数 spigot 程序。所有数位由 CPU 执行软件整数乘除与余数更新产生；初始 RAM 仅包含工作数组的初值 2，不存储 π 数字串。连续 9 暂存等待进位判定，保护位确保目标小数位准确。数字完成后停机。
 
-该近似的前六位小数与π一致，第七位起不一致，UI程序说明明确这一界限。`~/tmp/simple-cpu-pi` 的长除法实现是只读参考，本工程适配了不同的C/LDI语义；其Machin示例的级数项由汇编期预算，本轮没有把它称为CPU执行完整反正切级数。
+| 程序 | ROM 占用 | CPU 运行周期 | 256 Hz 理想耗时 |
+| --- | ---: | ---: | ---: |
+| π 64 位小数 | 301 字 | 10,421,948 | 11.31 小时 |
+| π 100 位小数 | 345 字 | 25,244,764 | 27.39 小时 |
 
-RTL与综合网表均执行2020个运行周期（另有1个初始化RESET周期）输出九个字节 `[51,46,49,52,49,53,57,50,10]`，并比较全部256字节末RAM。RAM[0:9]为 `[113,104,104,2,0,0,0,16,3]`。
+两程序均已完整执行参考模型、RTL 和综合门级网表，输出与独立 Chudnovsky 高精度结果一致，并比较最终寄存器和全部 1024 字节 RAM。Unity GPU 使用同一网表和程序映像；其冒烟检查不等待完整数十小时执行，实际速度低于 256 Hz 时总耗时更长。
 
 ## 预置程序
 
-目录 [circuits/programs](circuits/programs) 提供π长除法、循环计数、逻辑运算、HELLO、HALT、流水灯、55/AA交替、FF+1、倒计时、ASCII数字、步长计数、九位CALL/RET和CPU/RAM验证程序，共13项。程序元数据同时保存名称、说明、512字程序映像、256字节初始化映像及适用时的独立验证结果。
+[JSON 目录](circuits/programs/catalog.json) 是 24 项预置的唯一元数据源：保留原 13 项，新增两份高精度 π、格雷码、LFSR、16 位 Fibonacci、数组排序、素数筛、GCD、CRC-8、跨页 RAM 自检与 8×8 Conway 生命游戏。汇编、三语名称/说明/译注、512 字程序、1024 字节初始 RAM 和验证 oracle 随程序导出。生成器可以重新生成程序与目录，长 π 的元数据更新工具会先验证程序和初始 RAM 一致。
+
+生命游戏使用 B3/S23、封闭边界和 glider + blinker 初始图案，CPU 完成八代并提交双缓冲 RAM；每代约 17,080 个时钟周期，256 Hz 下约一分钟。LED 板读取真实 OUT[7:0]，适合查看流水灯与二进制程序；ASCII 终端只显示可打印字符和控制字符效果，数值字节可在 LED、RAM 平板及逻辑分析仪观察。
 
 ## GPU 边界与层次
 
@@ -54,7 +59,7 @@ CPU控制、PC、寄存器、输出单元、ALU及八个full-adder保留真实RT
 
 schema 3保留nodes/modules/signals/ports，新增memoryPorts、programs、isa、fixturePrograms、fixtureRamReset。op15=ROM_READ、op16=RAM_READ，a是输出位下标，组合依赖是对应读地址总线。所有ID位序低位先；nodes.level和modules.ports来自真实综合拓扑。RAM测点虚拟ID为nodeCount+address×8+bit，直接由GPU历史采样RAM纹理，未伪装成网表门节点。
 
-当前规模：1127节点、77个DFF、20个模块，状态纹理宽2048，组合深度42、稳定迭代43。独立RAM为16×16 ARGB32线性Point采样，每像素R通道保存一个字节。ROM的RGBA32纹理以R保存低八位、G保存高四位。
+当前规模：1172节点、79个DFF、20个模块，状态纹理宽2048，组合深度42、稳定迭代43。独立RAM为32×32 ARGB32线性Point采样，每像素R通道保存一个字节。ROM的RGBA32纹理以R保存低八位、G保存高四位。
 
 ## 构建与验证
 
@@ -67,14 +72,8 @@ python tools/unity_remote.py --check-result run_script --file AgentScripts/Build
 python tools/unity_remote.py --check-result run_script --file AgentScripts/BuildCircuitLab.cs --entry BuildCircuitLab.UpgradeScene
 ```
 
-默认产物为 `~/tmp/vrc-cpu-map/circuit-lab/hdl/`。本轮集成产物使用 `~/tmp/vrc-cpu-map/cpu-hdl-build/`，部署时显式传入 `--data`。UpgradeScene保留环境、原模块和工具摆放，标记修改但不自动保存。
+默认产物为 `~/tmp/vrc-cpu-map/circuit-lab/hdl/`。本轮集成产物使用 `~/tmp/vrc-cpu-map/cpu-hdl-stage/`，部署时显式传入 `--data`。UpgradeScene保留环境、原模块和工具摆放，标记修改但不自动保存。
 
-RTL、综合网表和指令参考模型比较真实端口、终端事件和RAM；短GPU fixture有128个向量，覆盖访存、进借位、间接地址、移位、长跳转、CALL/RET和reset取消写入。完整π单独验证，避免把全运行轨迹乘全部节点生成巨量fixture。Unity 验证入口为 `ValidateCircuitLabRam` 与 `ValidateCircuitLabRamReplica`。已通过 128 周期 × 1127 节点的 144,256 位 GPU 对照，以及 256 个低/高相位样本、1020 个有效端口值的独立 RTL 波形核对。实际 GPU π 输出 `3.141592\n`，九次 OUT、全部 256 字节末 RAM 与参考一致；256 Hz 下约 8–9 秒完成，终端读回错误和漏采均为 0。
+RTL、综合网表和指令参考模型比较真实端口、终端事件与完整 RAM。长 π 运行关闭逐拍 CSV，流式比较终端、最终寄存器与 RAM，避免生成数十 GB 文件。短 GPU fixture 检查所有节点及独立 RTL 波形；Unity 入口为 `ValidateCircuitLabRam`、`ValidateCircuitLabRamReplica` 和 `ValidateCircuitLabTeaching`。GPU 状态报告由 `tools/verify_gpu_teaching_state.py` 对照独立指令模型，验证代码不向 world 提供计算结果。
 
-HEX/BIN 及注释/前缀加载、非法输入不改变程序、RESET 保留 RAM/取消待写、RESTART 初始化 RAM、RAM 探头与冻结均经实际 Udon/GPU 验证。独立副本恢复 1127 节点、77 DFF、512 字程序与 256 字节 RAM，随后本地计算追赶 16 周期并验证实际 RAM 写入。报告位于 [results/circuit-lab](results/circuit-lab)；真实多人传输和原生 PC/VR 输入尚需客户端验收。
-
-```sh
-# 新一轮 PlayMode（默认暂停/LIVE）中执行
-python tools/run_circuit_lab_checks.py --suite ram
-python tools/run_circuit_lab_checks.py --suite gpu
-```
+独立 ISA 手册包含 39 页，中/日/英说明由每位玩家本地选择，页码共享。字体使用预制 TMP SDF 三语显示组，AUTO 读取 VRChat 当前语言；语言覆盖仅本次游玩、不同步。PC/VR 原生键盘、真实客户端语言热切换及多人网络传输仍需客户端验收。实际报告与截图位于 [results/circuit-lab](results/circuit-lab)。

@@ -100,7 +100,7 @@ public static class ValidateCircuitLabPresentation
         Check(Find<CircuitLabProgramRow>().Length == 13, "Preset list has the wrong length.");
         Check(browser.GetComponentsInChildren<ScrollRect>(true).Any(s => s.vertical), "Preset list cannot scroll.");
         Check(!Find<CircuitLabButton>().Any(b => b.eventName == "SelectProgram" && b.gameObject.activeInHierarchy), "Legacy single program switch is still active.");
-        return Save("presentation-authoring", new { passed = true, preservedExistingPoses = preserved, aboutUrl = "https://github.com/chiro2001/vrc-circuit-lab", programRows = 13, scrollableList = true, newPanelsInLayoutReset = true, legacySwitchHidden = true });
+        return Save("presentation-authoring", new { passed = true, preservedExistingPoses = preserved, aboutUrl = "https://github.com/chiro2001/vrc-circuit-lab", programRows = Find<CircuitLabProgramRow>().Length, scrollableList = true, newPanelsInLayoutReset = true, legacySwitchHidden = true });
     }
     public static async Task<object> BrowseAndLoad()
     {
@@ -112,6 +112,11 @@ public static class ValidateCircuitLabPresentation
         var browser = Find<CircuitLabProgramBrowser>().Single(); var vm = Vm(browser);
         var data = JObject.Parse(File.ReadAllText("Assets/CircuitLab/Data/gpu-netlist.json"));
         var programs = (JArray)data["programs"];
+        // Establish the loaded PI preset explicitly so the suite is independent of previous GPU tests.
+        int beforeLoad = Int(sim,"programRevision");
+        vm.SetProgramVariable("selectedProgram",0); BrowserClick("LoadSelectedPreset");
+        await Until(()=>Int(sim,"programRevision")>beforeLoad && Int(sim,"queuedCommandCount")==0,"PI baseline load failed.");
+        await Task.Delay(150);
         int hello = Enumerable.Range(0, programs.Count).Single(i => (string)programs[i]["id"] == "hello");
         int revision = Int(sim, "programRevision"), cycle = Int(sim, "cycleCount"), samples = Int(sim, "sampleCount");
         var originalWords = (int[])((int[])sim.GetProgramVariable("programWords")).Clone();

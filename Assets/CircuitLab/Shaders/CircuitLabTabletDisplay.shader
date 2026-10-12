@@ -14,6 +14,7 @@ Shader "VrcCpuWorld/CircuitLabTabletDisplay"
         _SelectedSignal ("Selected Signal", Float) = -1
         _DisplayMode ("Display Mode", Float) = 0
         _RawRam ("Raw RAM", Float) = 0
+        _RamPage ("RAM Page", Float) = 0
         [HideInInspector] _StencilComp ("Stencil Comparison", Float) = 8
         [HideInInspector] _Stencil ("Stencil ID", Float) = 0
         [HideInInspector] _StencilOp ("Stencil Operation", Float) = 0
@@ -37,6 +38,7 @@ Shader "VrcCpuWorld/CircuitLabTabletDisplay"
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma multi_compile_instancing
             #pragma target 3.0
             #include "UnityCG.cginc"
             #include "UnityUI.cginc"
@@ -53,11 +55,17 @@ Shader "VrcCpuWorld/CircuitLabTabletDisplay"
             float _SelectedSignal;
             float _DisplayMode;
             float _RawRam;
-            struct appdata { float4 vertex : POSITION; float4 color : COLOR; float2 texcoord : TEXCOORD0; };
-            struct v2f { float4 vertex : SV_POSITION; fixed4 color : COLOR; float2 uv : TEXCOORD0; float4 worldPosition : TEXCOORD1; };
+            float _RamPage;
+            const int RAM_TEXTURE_WIDTH = 32;
+            const int RAM_PAGE_BYTES = 256;
+            const int RAM_PAGE_GRID_WIDTH = 16;
+            struct appdata { float4 vertex : POSITION; float4 color : COLOR; float2 texcoord : TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct v2f { float4 vertex : SV_POSITION; fixed4 color : COLOR; float2 uv : TEXCOORD0; float4 worldPosition : TEXCOORD1; UNITY_VERTEX_OUTPUT_STEREO };
             v2f vert(appdata v)
             {
                 v2f o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
                 o.worldPosition = v.vertex;
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.uv = v.texcoord;
@@ -77,6 +85,7 @@ Shader "VrcCpuWorld/CircuitLabTabletDisplay"
             }
             fixed4 frag(v2f i) : SV_Target
             {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 float2 uv = i.uv;
                 fixed3 color = fixed3(.025, .05, .075);
                 float2 grid;
@@ -124,16 +133,23 @@ Shader "VrcCpuWorld/CircuitLabTabletDisplay"
                 }
                 else
                 {
-                    grid = uv * 16.0;
+                    bool fullTexture = _RawRam > .5;
+                    int gridWidth = fullTexture ? RAM_TEXTURE_WIDTH : RAM_PAGE_GRID_WIDTH;
+                    grid = uv * gridWidth;
                     cell = frac(grid);
-                    int x = (int)floor(grid.x);
-                    int y = (int)floor((1.0 - uv.y) * 16.0);
-                    int address = y * 16 + x;
-                    float4 value = tex2D(_RamTex, float2((x + .5) / 16.0, (y + .5) / 16.0));
+                    int x = min(gridWidth - 1, (int)floor(grid.x));
+                    int y = min(gridWidth - 1, (int)floor((1.0 - uv.y) * gridWidth));
+                    int address = fullTexture ? y * RAM_TEXTURE_WIDTH + x
+                        : (int)_RamPage * RAM_PAGE_BYTES + y * RAM_PAGE_GRID_WIDTH + x;
+                    int ramX = address % RAM_TEXTURE_WIDTH;
+                    int ramY = address / RAM_TEXTURE_WIDTH;
+                    float2 ramUv = float2((ramX + .5) / RAM_TEXTURE_WIDTH, (ramY + .5) / RAM_TEXTURE_WIDTH);
+                    float4 value = tex2D(_RamTex, ramUv);
                     float v = value.r;
                     color = _RawRam > .5 ? fixed3(v, v, v) : lerp(fixed3(.06, .26, .37), fixed3(.93, .67, .22), v);
                     if (address == (int)_SelectedSignal) color = lerp(color, fixed3(.30, .95, .78), .55);
-                    if (cell.x < .045 || cell.y < .045 || cell.x > .955 || cell.y > .955) color *= .28;
+                    float edge = fullTexture ? .025 : .045;
+                    if (cell.x < edge || cell.y < edge || cell.x > 1.0 - edge || cell.y > 1.0 - edge) color *= .28;
                 }
                 fixed4 output = fixed4(color, 1.0) * i.color;
                 #ifdef UNITY_UI_CLIP_RECT

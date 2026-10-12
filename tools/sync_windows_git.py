@@ -81,6 +81,11 @@ if (!(Test-Path '.git')) {{
     if ($origin -ne {pwsh_literal(url)}) {{ throw 'Windows Git has a different origin' }}
 }}
 & git config core.autocrlf false
+if ((Test-Path '.gitattributes') -and (Select-String -LiteralPath '.gitattributes' -Pattern 'filter=lfs' -Quiet)) {{
+    # Unity assets remain in place; the clean filter records their existing bytes as LFS objects.
+    & git lfs install --local | Out-Null
+    if ($LASTEXITCODE -ne 0) {{ throw 'Windows Git LFS setup failed' }}
+}}
 & git fetch (Join-Path $stage 'main.bundle') main 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) {{ throw 'Git bundle fetch failed' }}
 # Only HEAD/index change. Scene, assets, meta files and settings are untouched.

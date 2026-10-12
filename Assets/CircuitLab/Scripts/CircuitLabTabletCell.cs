@@ -12,8 +12,7 @@ public class CircuitLabTabletCell : UdonSharpBehaviour
         if (tablet == null) return;
         if (ramAddressCell)
         {
-            tablet.selectRamAddress = slot;
-            tablet.SelectRamAddress();
+            tablet.SelectRamCell(slot);
         }
         else
         {

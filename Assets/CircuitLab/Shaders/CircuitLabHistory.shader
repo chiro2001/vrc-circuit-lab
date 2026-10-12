@@ -16,6 +16,7 @@ Shader "VrcCpuWorld/CircuitLabHistory"
             #pragma fragment frag
             #pragma target 3.5
             #include "UnityCG.cginc"
+            #define RAM_TEXTURE_WIDTH 32
             sampler2D _MainTex, _StateTex, _RamTex;
             int _TextureWidth, _NodeCount, _HistoryCapacity, _WriteSlot, _SampleIndex, _ClearMode, _CopyMode;
             int _RestoreMode, _EventMode, _EventCapacity, _EventCycle, _WriteSignal;
@@ -41,7 +42,8 @@ Shader "VrcCpuWorld/CircuitLabHistory"
                 int virtualId = (int)round(id) - _NodeCount;
                 int address = virtualId / 8;
                 int bit = virtualId & 7;
-                float2 uv = float2((address % 16 + 0.5) / 16.0, (address / 16 + 0.5) / 16.0);
+                float2 uv = float2((address % RAM_TEXTURE_WIDTH + 0.5) / RAM_TEXTURE_WIDTH,
+                    (address / RAM_TEXTURE_WIDTH + 0.5) / RAM_TEXTURE_WIDTH);
                 uint value = (uint)round(tex2Dlod(_RamTex, float4(uv, 0, 0)).r * 255.0);
                 return (value >> bit) & 1u;
             }
@@ -78,7 +80,7 @@ Shader "VrcCpuWorld/CircuitLabHistory"
                     if (bit < width)
                     {
                         float id = Id(channel, bit);
-                        if (id < 0 || id >= _NodeCount + 2048) valid = 0;
+                        if (id < 0 || id >= _NodeCount + 8192) valid = 0;
                         else
                         {
                             float state = id < _NodeCount

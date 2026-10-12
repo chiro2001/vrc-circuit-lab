@@ -7,6 +7,13 @@ using VRC.SDKBase;
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class CircuitLabSimulator : UdonSharpBehaviour
 {
+    public const int RamPageSize = 256;
+    public const int RamPageCount = 4;
+    public const int RamByteCount = RamPageSize * RamPageCount;
+    public const int RamTextureWidth = 32;
+    public const int RamAddressBits = 10;
+    public const int RamProbeCount = RamByteCount * 8;
+
     public Material simulationMaterial;
     public Material displayMaterial;
     public Material[] displayMaterials;
@@ -74,6 +81,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     public int[] ramReadDataSignals;
     public int[] ramWriteAddressSignals;
     public int[] ramWriteDataSignals;
+    public int[] bankSignals;
     public int ramWriteEnableSignal = -1;
     public int[] programWords;
     public byte[] initialRam;
@@ -119,7 +127,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     public int observedX;
     public int observedSp;
     public int observedPhaseValue;
-    public byte[] observedRam = new byte[256];
+    public byte[] observedRam = new byte[RamByteCount];
     public bool observedRamStable;
     public int observedRamCycle;
     public int observedRamReadAddress;
@@ -127,6 +135,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     public int observedRamWriteAddress;
     public int observedRamWriteData;
     public int observedRamWriteEnable;
+    public int observedBank;
     public float actualCyclesPerSecond;
     public float catchupLag;
     public int selfTestRunId;
@@ -234,10 +243,10 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         _sharedDffBits = new int[coordinator.snapshotDffBits.Length];
         for (int i = 0; i < _sharedDffBits.Length; i++) _sharedDffBits[i] = coordinator.snapshotDffBits[i];
         _sharedProgramWords = new int[512];
-        _sharedInitialRam = new byte[256];
-        _sharedRam = new byte[256];
+        _sharedInitialRam = new byte[RamByteCount];
+        _sharedRam = new byte[RamByteCount];
         for (int i = 0; i < 512; i++) _sharedProgramWords[i] = coordinator.snapshotProgramWords[i];
-        for (int i = 0; i < 256; i++)
+        for (int i = 0; i < RamByteCount; i++)
         {
             _sharedInitialRam[i] = coordinator.snapshotInitialRam[i];
             _sharedRam[i] = coordinator.snapshotRam[i];
@@ -267,7 +276,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     {
         EnsureStateArrays();
         for (int i = 0; i < 512; i++) programWords[i] = _sharedProgramWords[i];
-        for (int i = 0; i < 256; i++) initialRam[i] = _sharedInitialRam[i];
+        for (int i = 0; i < RamByteCount; i++) initialRam[i] = _sharedInitialRam[i];
         activeProgramName = _sharedProgramName;
         programRevision = _sharedProgramRevision;
         ApplyProgramTexture();
@@ -283,7 +292,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         cycleCount = _sharedInts[3]; sampleCount = _sharedInts[4]; historyHead = sampleCount % historyCapacity;
         completedVectors = testRunning ? Mathf.Clamp(cycleCount, 0, _fixtureCount) : 0;
         historyFrozen = _sharedInts[7] != 0; frozenSampleCount = _sharedInts[8];
-        for (int i = 0; i < 256; i++) observedRam[i] = _sharedRam[i];
+        for (int i = 0; i < RamByteCount; i++) observedRam[i] = _sharedRam[i];
         observedRamStable = true;
         observedRamCycle = cycleCount;
         _observedStateAvailable = false;
@@ -412,7 +421,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         _queuedProbeWidths = new int[4];
         _queuedProbeLabels = new string[4];
         _loadQueueWords = new int[4 * 512];
-        _loadQueueRam = new byte[4 * 256];
+        _loadQueueRam = new byte[4 * RamByteCount];
         _loadQueueNames = new string[4];
         _loadQueuePresetIds = new int[4];
         probeWidths = new int[4];
@@ -436,9 +445,10 @@ public class CircuitLabSimulator : UdonSharpBehaviour
             && stateA.width == textureWidth && stateB.width == textureWidth && stateA.height == 1 && stateB.height == 1
             && restoreStateTexture.width == textureWidth && restoreStateTexture.height == 1
             && programTexture.width == 512 && programTexture.height == 1
-            && ramInitialTexture.width == 16 && ramInitialTexture.height == 16
-            && restoreRamTexture.width == 16 && restoreRamTexture.height == 16
-            && ramA.width == 16 && ramA.height == 16 && ramB.width == 16 && ramB.height == 16
+            && ramInitialTexture.width == RamTextureWidth && ramInitialTexture.height == RamTextureWidth
+            && restoreRamTexture.width == RamTextureWidth && restoreRamTexture.height == RamTextureWidth
+            && ramA.width == RamTextureWidth && ramA.height == RamTextureWidth
+            && ramB.width == RamTextureWidth && ramB.height == RamTextureWidth
             && ramA.format == RenderTextureFormat.ARGB32 && ramB.format == RenderTextureFormat.ARGB32
             && programTexture.format == TextureFormat.RGBA32 && ramInitialTexture.format == TextureFormat.RGBA32
             && restoreRamTexture.format == TextureFormat.RGBA32 && restoreStateTexture.format == TextureFormat.RGBA32
@@ -465,9 +475,9 @@ public class CircuitLabSimulator : UdonSharpBehaviour
             CopyPresetToActive(Mathf.Clamp(programSelect, 0, programCount - 1));
         EnsureStateArrays();
         _pixels = new Color32[textureWidth];
-        _ramReadbackPixels = new Color32[256];
+        _ramReadbackPixels = new Color32[RamByteCount];
         _uploadPixels = new Color32[512];
-        _uploadRamPixels = new Color32[256];
+        _uploadRamPixels = new Color32[RamByteCount];
         _restorePixels = new Color32[textureWidth];
         programTexture.filterMode = FilterMode.Point;
         programTexture.wrapMode = TextureWrapMode.Clamp;
@@ -501,12 +511,12 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     private void EnsureStateArrays()
     {
         if (programWords == null || programWords.Length != 512) programWords = new int[512];
-        if (initialRam == null || initialRam.Length != 256) initialRam = new byte[256];
+        if (initialRam == null || initialRam.Length != RamByteCount) initialRam = new byte[RamByteCount];
         if (programCount <= 0 && presetProgramWords != null) programCount = presetProgramWords.Length / 512;
         if (_uploadPixels == null || _uploadPixels.Length != 512) _uploadPixels = new Color32[512];
-        if (_uploadRamPixels == null || _uploadRamPixels.Length != 256) _uploadRamPixels = new Color32[256];
+        if (_uploadRamPixels == null || _uploadRamPixels.Length != RamByteCount) _uploadRamPixels = new Color32[RamByteCount];
         if (_restorePixels == null || _restorePixels.Length != textureWidth) _restorePixels = new Color32[textureWidth];
-        if (observedRam == null || observedRam.Length != 256) observedRam = new byte[256];
+        if (observedRam == null || observedRam.Length != RamByteCount) observedRam = new byte[RamByteCount];
     }
 
     private bool ApplyProgramTexture()
@@ -527,8 +537,8 @@ public class CircuitLabSimulator : UdonSharpBehaviour
 
     private void UploadRamTexture(Texture2D texture, byte[] data)
     {
-        if (texture == null || data == null || data.Length < 256) return;
-        for (int i = 0; i < 256; i++) _uploadRamPixels[i] = new Color32(data[i], 0, 0, 255);
+        if (texture == null || data == null || data.Length < RamByteCount) return;
+        for (int i = 0; i < RamByteCount; i++) _uploadRamPixels[i] = new Color32(data[i], 0, 0, 255);
         texture.filterMode = FilterMode.Point;
         texture.wrapMode = TextureWrapMode.Clamp;
         texture.SetPixels32(_uploadRamPixels);
@@ -566,11 +576,13 @@ public class CircuitLabSimulator : UdonSharpBehaviour
             simulationMaterial.SetVector("_RomAddressC", SignalVector(romAddressSignals, 8));
             simulationMaterial.SetVector("_RamReadAddressA", SignalVector(ramReadAddressSignals, 0));
             simulationMaterial.SetVector("_RamReadAddressB", SignalVector(ramReadAddressSignals, 4));
+            simulationMaterial.SetVector("_RamReadAddressC", SignalVector(ramReadAddressSignals, 8));
         }
         if (ramMaterial != null)
         {
             ramMaterial.SetVector("_RamWriteAddressA", SignalVector(ramWriteAddressSignals, 0));
             ramMaterial.SetVector("_RamWriteAddressB", SignalVector(ramWriteAddressSignals, 4));
+            ramMaterial.SetVector("_RamWriteAddressC", SignalVector(ramWriteAddressSignals, 8));
             ramMaterial.SetVector("_RamWriteDataA", SignalVector(ramWriteDataSignals, 0));
             ramMaterial.SetVector("_RamWriteDataB", SignalVector(ramWriteDataSignals, 4));
             ramMaterial.SetInt("_RamWriteEnableSignal", ramWriteEnableSignal);
@@ -893,10 +905,10 @@ public class CircuitLabSimulator : UdonSharpBehaviour
 
     public bool LoadProgram(int[] words, byte[] ram, string name, int presetId)
     {
-        if (words == null || words.Length < 512 || ram == null || ram.Length < 256 || !CanQueueProgram()) return false;
+        if (words == null || words.Length < 512 || ram == null || ram.Length < RamByteCount || !CanQueueProgram()) return false;
         int loadSlot = (_loadQueueHead + _loadQueueCount) % _loadQueuePresetIds.Length;
         for (int i = 0; i < 512; i++) _loadQueueWords[loadSlot * 512 + i] = words[i] & 4095;
-        for (int i = 0; i < 256; i++) _loadQueueRam[loadSlot * 256 + i] = ram[i];
+        for (int i = 0; i < RamByteCount; i++) _loadQueueRam[loadSlot * RamByteCount + i] = ram[i];
         _loadQueueNames[loadSlot] = name == null ? "CUSTOM" : name;
         _loadQueuePresetIds[loadSlot] = presetId;
         QueueProgramCommand();
@@ -906,10 +918,10 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     public void LoadPreset(int id)
     {
         if (id < 0 || id >= programCount || presetProgramWords == null || presetProgramWords.Length < (id + 1) * 512
-            || presetInitialRam == null || presetInitialRam.Length < (id + 1) * 256 || !CanQueueProgram()) return;
+            || presetInitialRam == null || presetInitialRam.Length < (id + 1) * RamByteCount || !CanQueueProgram()) return;
         int loadSlot = (_loadQueueHead + _loadQueueCount) % _loadQueuePresetIds.Length;
         for (int i = 0; i < 512; i++) _loadQueueWords[loadSlot * 512 + i] = presetProgramWords[id * 512 + i] & 4095;
-        for (int i = 0; i < 256; i++) _loadQueueRam[loadSlot * 256 + i] = presetInitialRam[id * 256 + i];
+        for (int i = 0; i < RamByteCount; i++) _loadQueueRam[loadSlot * RamByteCount + i] = presetInitialRam[id * RamByteCount + i];
         _loadQueueNames[loadSlot] = programNames != null && id < programNames.Length ? programNames[id] : "PROGRAM " + id;
         _loadQueuePresetIds[loadSlot] = id;
         QueueProgramCommand();
@@ -928,7 +940,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         if (_loadQueueCount <= 0) return;
         int slot = _loadQueueHead;
         for (int i = 0; i < 512; i++) programWords[i] = _loadQueueWords[slot * 512 + i];
-        for (int i = 0; i < 256; i++) initialRam[i] = _loadQueueRam[slot * 256 + i];
+        for (int i = 0; i < RamByteCount; i++) initialRam[i] = _loadQueueRam[slot * RamByteCount + i];
         activeProgramName = _loadQueueNames[slot];
         programSelect = _loadQueuePresetIds[slot];
         programRevision++;
@@ -941,10 +953,10 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     private bool CopyPresetToActive(int id)
     {
         if (id < 0 || id >= programCount || presetProgramWords == null || presetProgramWords.Length < (id + 1) * 512
-            || presetInitialRam == null || presetInitialRam.Length < (id + 1) * 256) return false;
+            || presetInitialRam == null || presetInitialRam.Length < (id + 1) * RamByteCount) return false;
         EnsureStateArrays();
         for (int i = 0; i < 512; i++) programWords[i] = presetProgramWords[id * 512 + i] & 4095;
-        for (int i = 0; i < 256; i++) initialRam[i] = presetInitialRam[id * 256 + i];
+        for (int i = 0; i < RamByteCount; i++) initialRam[i] = presetInitialRam[id * RamByteCount + i];
         activeProgramName = programNames != null && id < programNames.Length ? programNames[id] : "PROGRAM " + id;
         programSelect = id;
         return true;
@@ -1157,7 +1169,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
                 UpdateHud();
                 return;
             }
-            for (int i = 0; i < 256; i++) observedRam[i] = _ramReadbackPixels[i].r;
+            for (int i = 0; i < RamByteCount; i++) observedRam[i] = _ramReadbackPixels[i].r;
             observedRamStable = true;
             observedRamCycle = _requestedCycle;
             UpdateHud();
@@ -1196,6 +1208,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         observedRamWriteAddress = ReadBus(ramWriteAddressSignals);
         observedRamWriteData = ReadBus(ramWriteDataSignals);
         observedRamWriteEnable = ReadBit(ramWriteEnableSignal);
+        observedBank = ReadBus(bankSignals);
         if (_readbackForTest && testRunning)
         {
             int offset = _requestedVector * nodeCount;
@@ -1233,10 +1246,16 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         if (_pixels == null || !_observedStateAvailable) return -1;
         if (signalId >= 0 && signalId < nodeCount) return _pixels[signalId].r >= 128 ? 1 : 0;
         int virtualIndex = signalId - nodeCount;
-        if (virtualIndex < 0 || virtualIndex >= 2048 || !observedRamStable || observedRam == null || observedRam.Length < 256) return -1;
+        if (virtualIndex < 0 || virtualIndex >= RamProbeCount || !observedRamStable || observedRam == null || observedRam.Length < RamByteCount) return -1;
         int address = virtualIndex / 8;
         int bit = virtualIndex & 7;
         return (observedRam[address] >> bit) & 1;
+    }
+
+    public int GetRamByte(int address)
+    {
+        if (address < 0 || address >= RamByteCount || !observedRamStable || observedRam == null || observedRam.Length < RamByteCount) return -1;
+        return observedRam[address];
     }
 
     private int ReadBit(int id)

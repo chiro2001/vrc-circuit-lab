@@ -1,0 +1,125 @@
+{
+  "passed": true,
+  "hardware": {
+    "ramBytes": 1024,
+    "ramTexture": "32x32",
+    "romWords": 512,
+    "nodes": 1172,
+    "dffBits": 79,
+    "modules": 20
+  },
+  "hdl": {
+    "report": "teaching-hdl.json",
+    "programCount": 24,
+    "referenceRtlGateAndIndependentOraclePassed": true
+  },
+  "gpu": {
+    "report": "gpu.json",
+    "nodeBitsCompared": 150016,
+    "mismatches": 0,
+    "shortProgramsFinalStatePassed": [
+      {
+        "id": "array-sort",
+        "cycles": 2024,
+        "ramBytesCompared": 1024,
+        "report": "teaching-state-array-sort.json"
+      },
+      {
+        "id": "crc8",
+        "cycles": 845,
+        "ramBytesCompared": 1024,
+        "report": "teaching-state-crc8.json"
+      },
+      {
+        "id": "fibonacci-16",
+        "cycles": 1498,
+        "ramBytesCompared": 1024,
+        "report": "teaching-state-fibonacci-16.json"
+      },
+      {
+        "id": "gcd",
+        "cycles": 883,
+        "ramBytesCompared": 1024,
+        "report": "teaching-state-gcd.json"
+      },
+      {
+        "id": "gray-code",
+        "cycles": 2800,
+        "ramBytesCompared": 1024,
+        "report": "teaching-state-gray-code.json"
+      },
+      {
+        "id": "lfsr",
+        "cycles": 836,
+        "ramBytesCompared": 1024,
+        "report": "teaching-state-lfsr.json"
+      },
+      {
+        "id": "prime-sieve",
+        "cycles": 6355,
+        "ramBytesCompared": 1024,
+        "report": "teaching-state-prime-sieve.json"
+      },
+      {
+        "id": "ram-cross-page",
+        "cycles": 968,
+        "ramBytesCompared": 1024,
+        "report": "teaching-state-ram-cross-page.json"
+      }
+    ],
+    "longPiPartialStateChecks": [
+      {
+        "id": "pi-spigot-100",
+        "cycles": 4146,
+        "ramBytesCompared": 1024,
+        "report": "teaching-state-pi-spigot-100.json"
+      },
+      {
+        "id": "pi-spigot-64",
+        "cycles": 4108,
+        "ramBytesCompared": 1024,
+        "report": "teaching-state-pi-spigot-64.json"
+      }
+    ],
+    "lifeFirstGenerationStateCheck": {
+      "id": "life-8x8",
+      "cycles": 19247,
+      "ramBytesCompared": 1024,
+      "report": "teaching-state-life-8x8.json"
+    }
+  },
+  "ui": {
+    "structureReport": "teaching-structure.json",
+    "localeInteractionReport": "teaching-manual-locale.json",
+    "isaPages": 39,
+    "localLanguages": [
+      "en",
+      "zh-Hans",
+      "ja"
+    ],
+    "lifeRunDisplayReport": "teaching-life-running-display.json"
+  },
+  "delivery": {
+    "authoringReport": "ram-final-authoring.json",
+    "editorMode": "Edit",
+    "defaultProgram": "pi-355-113",
+    "paused": true,
+    "analyzer": "LIVE",
+    "languageOverride": "AUTO"
+  },
+  "limits": [
+    "64/100 digit pi: full output checked in reference/RTL/gates, Unity GPU checked only about 4100 cycles per program.",
+    "Life: eight generations checked in reference/RTL/gates; Unity GPU first-generation grid and full CPU/RAM state checked.",
+    "Real VRChat multiplayer, native PC/VR input, and client automatic language change require device validation."
+  ],
+  "estimatedPiHoursAt256Hz": {
+    "64": 11.31,
+    "100": 27.39
+  },
+  "playModeConsole": {
+    "projectErrors": 0,
+    "missingGlyphWarnings": 0,
+    "manualSyncObjectWarnings": 0,
+    "clientSimWarning": "SceneDescriptor reference camera unset; preview cameras remain disabled."
+  }
+}

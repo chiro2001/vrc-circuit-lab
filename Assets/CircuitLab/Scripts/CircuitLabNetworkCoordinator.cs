@@ -29,8 +29,8 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
     [UdonSynced] public int snapshotFrozenSamples;
     [UdonSynced] public int[] snapshotDffBits = new int[0];
     [UdonSynced] public int[] snapshotProgramWords = new int[512];
-    [UdonSynced] public byte[] snapshotInitialRam = new byte[256];
-    [UdonSynced] public byte[] snapshotRam = new byte[256];
+    [UdonSynced] public byte[] snapshotInitialRam = new byte[CircuitLabSimulator.RamByteCount];
+    [UdonSynced] public byte[] snapshotRam = new byte[CircuitLabSimulator.RamByteCount];
     [UdonSynced] public string snapshotProgramName = "";
     [UdonSynced] public int snapshotProgramRevision;
     [UdonSynced] public int[] snapshotProbeIds = new int[64];
@@ -299,7 +299,7 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
         if (simulator.readbackPending) return;
         if (simulator.dffSignals == null || simulator.restoreStateTexture == null || simulator.currentRam == null
             || simulator.programWords == null || simulator.programWords.Length < 512
-            || simulator.initialRam == null || simulator.initialRam.Length < 256)
+            || simulator.initialRam == null || simulator.initialRam.Length < CircuitLabSimulator.RamByteCount)
         { snapshotErrors++; _snapshotRequested = false; _nextSnapshotAt = Time.realtimeSinceStartup + 8f; return; }
         _snapshotRequested = false;
         snapshotCaptureStage = 1;
@@ -312,10 +312,10 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
         snapshotProgramName = simulator.activeProgramName;
         snapshotDffBits = new int[(simulator.dffSignals.Length + 31) / 32];
         snapshotProgramWords = new int[512];
-        snapshotInitialRam = new byte[256];
-        snapshotRam = new byte[256];
+        snapshotInitialRam = new byte[CircuitLabSimulator.RamByteCount];
+        snapshotRam = new byte[CircuitLabSimulator.RamByteCount];
         for (int i = 0; i < 512; i++) snapshotProgramWords[i] = simulator.programWords[i] & 4095;
-        for (int i = 0; i < 256; i++) snapshotInitialRam[i] = simulator.initialRam[i];
+        for (int i = 0; i < CircuitLabSimulator.RamByteCount; i++) snapshotInitialRam[i] = simulator.initialRam[i];
         snapshotRunning = simulator.running;
         snapshotFrozen = simulator.historyFrozen;
         snapshotFrozenSamples = simulator.frozenSampleCount;
@@ -323,7 +323,7 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
         snapshotHistory = new byte[simulator.historyCapacity * 9];
         snapshotFrozenHistory = snapshotFrozen ? new byte[simulator.historyCapacity * 9] : new byte[0];
         _statePixels = new Color32[simulator.textureWidth];
-        _ramPixels = new Color32[256];
+        _ramPixels = new Color32[CircuitLabSimulator.RamByteCount];
         _historyPixels = new Color[simulator.historyCapacity * 4];
         _readbackPending = true;
         VRCAsyncGPUReadback.Request(simulator.currentState, 0, this);
@@ -362,7 +362,7 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
             success = success && request.TryGetData(_ramPixels);
             if (success)
             {
-                for (int i = 0; i < 256; i++) snapshotRam[i] = _ramPixels[i].r;
+                for (int i = 0; i < CircuitLabSimulator.RamByteCount; i++) snapshotRam[i] = _ramPixels[i].r;
                 snapshotCaptureStage = 2;
             }
         }
@@ -412,7 +412,7 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
         snapshotRevision++;
         appliedSnapshotRevision = snapshotRevision;
         snapshotCaptureStage = 0;
-        snapshotBytes = snapshotHistory.Length + snapshotFrozenHistory.Length + 512 * 4 + 256 * 2 + snapshotDffBits.Length * 4;
+        snapshotBytes = snapshotHistory.Length + snapshotFrozenHistory.Length + 512 * 4 + CircuitLabSimulator.RamByteCount * 2 + snapshotDffBits.Length * 4;
         _nextSnapshotAt = Time.realtimeSinceStartup + Mathf.Max(snapshotInterval, snapshotBytes / 2500f);
         if (_handoffId >= 0 || _releaseRequested)
         {
@@ -442,7 +442,8 @@ public class CircuitLabNetworkCoordinator : UdonSharpBehaviour
         int requiredDffWords = simulator == null || simulator.dffSignals == null ? 0 : (simulator.dffSignals.Length + 31) / 32;
         if (snapshotRevision <= 0 || simulator == null || snapshotDffBits == null || snapshotDffBits.Length < requiredDffWords
             || snapshotProgramWords == null || snapshotProgramWords.Length < 512
-            || snapshotInitialRam == null || snapshotInitialRam.Length < 256 || snapshotRam == null || snapshotRam.Length < 256
+            || snapshotInitialRam == null || snapshotInitialRam.Length < CircuitLabSimulator.RamByteCount
+            || snapshotRam == null || snapshotRam.Length < CircuitLabSimulator.RamByteCount
             || snapshotHistory.Length != simulator.historyCapacity * 9
             || (snapshotFrozen && snapshotFrozenHistory.Length != simulator.historyCapacity * 9))
         { snapshotErrors++; return; }

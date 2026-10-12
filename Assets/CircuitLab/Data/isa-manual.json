@@ -1,0 +1,472 @@
+{
+  "pages": [
+    {
+      "titles": [
+        "CPU OVERVIEW",
+        "CPU 概览",
+        "CPU 概要"
+      ],
+      "bodies": [
+        "8-bit ACC / X / SP / OUT\n9-bit PC · 512 × 12-bit ROM\n1 KiB RAM = 4 pages × 256 bytes\nBANK = 0..3; ordinary RAM accesses use BANK.\nCALL / RET stack always uses page 0.\nRESET: CPU + BANK=0; all RAM retained.\nLOAD / RESTART: restore program initial RAM.\nEvery clock edge runs the synthesized GPU netlist.",
+        "ACC / X / SP / OUT：8 位\nPC：9 位 · ROM：512 × 12 位\nRAM：1 KiB = 4 页 × 256 字节\nBANK：0..3；普通访存使用当前页。\nCALL / RET 栈始终位于第 0 页。\nRESET：复位 CPU 与 BANK，保留全部 RAM。\nLOAD / RESTART：恢复程序初始 RAM。\n每个时钟沿执行综合网表，由 GPU 计算。",
+        "ACC / X / SP / OUT：8 ビット\nPC：9 ビット · ROM：512 × 12 ビット\nRAM：1 KiB = 4 ページ × 256 バイト\nBANK：0..3；通常アクセスは現在のページ。\nCALL / RET のスタックは常にページ 0。\nRESET：CPU と BANK をリセット、RAM を保持。\nLOAD / RESTART：プログラムの初期 RAM を復元。\n各クロックで合成ネットリストを GPU で計算。"
+      ]
+    },
+    {
+      "titles": [
+        "WORD ENCODING",
+        "指令编码",
+        "命令エンコード"
+      ],
+      "bodies": [
+        "[11:8] opcode | [7:0] imm / RAM offset\nExample: LDI 0x41 = 0x041 = 0000 0100 0001\nEXT: [11:8]=E | [7:4] subop | [3:0] modifier\nBANK 0/1/2/3: E21 / E22 / E23 / E24\nE20 remains TAX.\nJC/JNC/JMP9/JZ9/CALL: two ROM words.\nWord 2: [8:0] absolute PC target.\nShort JMP/JZ can only target 0x000..0x0FF.",
+        "[11:8] 操作码 | [7:0] 立即数 / RAM 页内偏移\n示例：LDI 0x41 = 0x041 = 0000 0100 0001\nEXT：[11:8]=E | [7:4] 子操作码 | [3:0] 修饰\nBANK 0/1/2/3：E21 / E22 / E23 / E24\nE20 仍然是 TAX。\nJC/JNC/JMP9/JZ9/CALL 占两个 ROM 字。\n第二字：[8:0] 是绝对 PC 目标地址。\n短 JMP/JZ 只可跳至 0x000..0x0FF。",
+        "[11:8] オペコード | [7:0] 即値 / RAM オフセット\n例：LDI 0x41 = 0x041 = 0000 0100 0001\nEXT：[11:8]=E | [7:4] サブ命令 | [3:0] 修飾\nBANK 0/1/2/3：E21 / E22 / E23 / E24\nE20 は TAX のまま。\nJC/JNC/JMP9/JZ9/CALL は ROM 2 ワード。\n第 2 ワード：[8:0] は絶対 PC アドレス。\n短い JMP/JZ の範囲は 0x000..0x0FF。"
+      ]
+    },
+    {
+      "titles": [
+        "INSTRUCTION DIRECTORY",
+        "基本指令目录",
+        "基本命令一覧"
+      ],
+      "bodies": [
+        "0 LDI   1 ADDI   2 ANDI   3 ORI\n4 XORI  5 OUT    6 JMP    7 JZ\n8 LD    9 ST     A ADD    B SUB\nC ADC   D SBC    E EXT    F HALT\n\nNext pages: extensions, flags and examples.\nThen one page per instruction, in opcode order.\nUse PREVIOUS / NEXT to inspect details.",
+        "0 LDI   1 ADDI   2 ANDI   3 ORI\n4 XORI  5 OUT    6 JMP    7 JZ\n8 LD    9 ST     A ADD    B SUB\nC ADC   D SBC    E EXT    F HALT\n\n接下来是扩展指令、标志规则与例子。\n其后按操作码顺序，每条指令独立一页。\n使用上一页 / 下一页查看详情。",
+        "0 LDI   1 ADDI   2 ANDI   3 ORI\n4 XORI  5 OUT    6 JMP    7 JZ\n8 LD    9 ST     A ADD    B SUB\nC ADC   D SBC    E EXT    F HALT\n\n次は拡張命令、フラグと例。\n以降はオペコード順、各命令に独立したページ。\n前 / 次で詳細を表示。"
+      ]
+    },
+    {
+      "titles": [
+        "EXTENSION DIRECTORY",
+        "扩展指令目录",
+        "拡張命令一覧"
+      ],
+      "bodies": [
+        "E00 SHL  E10 SHR  E20 TAX  E30 TXA\nE40 LDAX E50 STAX E60 INX  E70 DEX\nE80 ADDX E90 SUBX EA0 JC   EB0 JNC\nEC0 JMP9 ED0 JZ9  EE0 CALL EF0 RET\nE21..E24 BANK 0..3\n\nRAM physical address = BANK × 256 + offset.\n8-bit operations wrap modulo 256.",
+        "E00 SHL  E10 SHR  E20 TAX  E30 TXA\nE40 LDAX E50 STAX E60 INX  E70 DEX\nE80 ADDX E90 SUBX EA0 JC   EB0 JNC\nEC0 JMP9 ED0 JZ9  EE0 CALL EF0 RET\nE21..E24 BANK 0..3\n\nRAM 物理地址 = BANK × 256 + 页内偏移。\n8 位运算结果按模 256 回绕。",
+        "E00 SHL  E10 SHR  E20 TAX  E30 TXA\nE40 LDAX E50 STAX E60 INX  E70 DEX\nE80 ADDX E90 SUBX EA0 JC   EB0 JNC\nEC0 JMP9 ED0 JZ9  EE0 CALL EF0 RET\nE21..E24 BANK 0..3\n\nRAM 物理アドレス = BANK × 256 + オフセット。\n8 ビット演算は 256 を法として循環。"
+      ]
+    },
+    {
+      "titles": [
+        "FLAGS AND MULTI-BYTE ARITHMETIC",
+        "标志与多字节运算",
+        "フラグと多バイト演算"
+      ],
+      "bodies": [
+        "Z = 1 when the updated result is zero.\nADD / ADC: C = unsigned carry out.\nSUB / SBC: C = 1 means NO BORROW.\nSBC computes ACC − RAM − (1 − C).\nLD / LDAX / TXA preserve C; LDI clears C.\nFor 16-bit add: ADD low, LD high, ADC high.\nFor 16-bit subtract: SUB low, LD high, SBC high.\nDo not insert LDI between the low and high words.",
+        "Z = 1：本次更新结果为零。\nADD / ADC：C 表示无符号进位。\nSUB / SBC：C = 1 表示没有借位。\nSBC 计算 ACC − RAM − (1 − C)。\nLD / LDAX / TXA 保留 C；LDI 清除 C。\n16 位加法：低字节 ADD，高字节 LD 后 ADC。\n16 位减法：低字节 SUB，高字节 LD 后 SBC。\n不要在低、高字节之间插入 LDI。",
+        "Z = 1：更新した結果がゼロ。\nADD / ADC：C は符号なしの桁上がり。\nSUB / SBC：C = 1 は借りなし。\nSBC は ACC − RAM − (1 − C)。\nLD / LDAX / TXA は C を保持；LDI は C をクリア。\n16 ビット加算：下位 ADD、上位 LD の後 ADC。\n16 ビット減算：下位 SUB、上位 LD の後 SBC。\n下位と上位の間に LDI を挿入しない。"
+      ]
+    },
+    {
+      "titles": [
+        "WORKED EXAMPLE",
+        "编码实例",
+        "実行例"
+      ],
+      "bodies": [
+        "LDI 0x41  → 041   ACC=65, Z=0, C=0\nOUT       → 500   terminal prints A; LEDs=01000001\nBANK 2    → E23   BANK=2, flags unchanged\nST 0x10   → 910   RAM[0x210]=65\nLDI 0     → 000   ACC=0, Z=1, C=0\nLD 0x10   → 810   ACC=65, Z=0, C remains 0\nHALT      → F00   pause until RESET / RESTART\n\nShared page; each player chooses their own language.",
+        "LDI 0x41  → 041   ACC=65，Z=0，C=0\nOUT       → 500   终端输出 A，LED=01000001\nBANK 2    → E23   BANK=2，不改变标志\nST 0x10   → 910   RAM[0x210]=65\nLDI 0     → 000   ACC=0，Z=1，C=0\nLD 0x10   → 810   ACC=65，Z=0，C 仍为 0\nHALT      → F00   停机，等待 RESET / RESTART\n\n页码为共享状态；各玩家独立选择语言。",
+        "LDI 0x41  → 041   ACC=65、Z=0、C=0\nOUT       → 500   端末に A、LED=01000001\nBANK 2    → E23   BANK=2、フラグは保持\nST 0x10   → 910   RAM[0x210]=65\nLDI 0     → 000   ACC=0、Z=1、C=0\nLD 0x10   → 810   ACC=65、Z=0、C は 0\nHALT      → F00   RESET / RESTART まで停止\n\nページは共有、言語はプレイヤーごとに選択。"
+      ]
+    },
+    {
+      "titles": [
+        "0  LDI",
+        "0  LDI",
+        "0  LDI"
+      ],
+      "bodies": [
+        "ENCODING: 0xx · 1 ROM word\n\nEFFECT\nACC ← imm8\n\nFLAGS: Z=result==0, C=0\n\nEXAMPLE: LDI 0x10\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: 0xx · 1 ROM word\n\n作用\nACC ← imm8\n\n标志: Z=result==0, C=0\n\n例子: LDI 0x10\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: 0xx · 1 ROM word\n\n動作\nACC ← imm8\n\nフラグ: Z=result==0, C=0\n\n例: LDI 0x10\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "1  ADDI",
+        "1  ADDI",
+        "1  ADDI"
+      ],
+      "bodies": [
+        "ENCODING: 1xx · 1 ROM word\n\nEFFECT\nACC ← ACC + imm8\n\nFLAGS: Z=result==0, C=carry\n\nEXAMPLE: ADDI 0x10\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: 1xx · 1 ROM word\n\n作用\nACC ← ACC + imm8\n\n标志: Z=result==0, C=carry\n\n例子: ADDI 0x10\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: 1xx · 1 ROM word\n\n動作\nACC ← ACC + imm8\n\nフラグ: Z=result==0, C=carry\n\n例: ADDI 0x10\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "2  ANDI",
+        "2  ANDI",
+        "2  ANDI"
+      ],
+      "bodies": [
+        "ENCODING: 2xx · 1 ROM word\n\nEFFECT\nACC ← ACC AND imm8\n\nFLAGS: Z=result==0, C=0\n\nEXAMPLE: ANDI 0x10\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: 2xx · 1 ROM word\n\n作用\nACC ← ACC AND imm8\n\n标志: Z=result==0, C=0\n\n例子: ANDI 0x10\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: 2xx · 1 ROM word\n\n動作\nACC ← ACC AND imm8\n\nフラグ: Z=result==0, C=0\n\n例: ANDI 0x10\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "3  ORI",
+        "3  ORI",
+        "3  ORI"
+      ],
+      "bodies": [
+        "ENCODING: 3xx · 1 ROM word\n\nEFFECT\nACC ← ACC OR imm8\n\nFLAGS: Z=result==0, C=0\n\nEXAMPLE: ORI 0x10\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: 3xx · 1 ROM word\n\n作用\nACC ← ACC OR imm8\n\n标志: Z=result==0, C=0\n\n例子: ORI 0x10\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: 3xx · 1 ROM word\n\n動作\nACC ← ACC OR imm8\n\nフラグ: Z=result==0, C=0\n\n例: ORI 0x10\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "4  XORI",
+        "4  XORI",
+        "4  XORI"
+      ],
+      "bodies": [
+        "ENCODING: 4xx · 1 ROM word\n\nEFFECT\nACC ← ACC XOR imm8\n\nFLAGS: Z=result==0, C=0\n\nEXAMPLE: XORI 0x10\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: 4xx · 1 ROM word\n\n作用\nACC ← ACC XOR imm8\n\n标志: Z=result==0, C=0\n\n例子: XORI 0x10\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: 4xx · 1 ROM word\n\n動作\nACC ← ACC XOR imm8\n\nフラグ: Z=result==0, C=0\n\n例: XORI 0x10\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "5  OUT",
+        "5  OUT",
+        "5  OUT"
+      ],
+      "bodies": [
+        "ENCODING: 500 · 1 ROM word\n\nEFFECT\nOUT ← ACC; terminal write\n\nFLAGS: —\n\nEXAMPLE: OUT \nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: 500 · 1 ROM word\n\n作用\nOUT ← ACC; terminal write\n\n标志: —\n\n例子: OUT \n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: 500 · 1 ROM word\n\n動作\nOUT ← ACC; terminal write\n\nフラグ: —\n\n例: OUT \n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "6  JMP",
+        "6  JMP",
+        "6  JMP"
+      ],
+      "bodies": [
+        "ENCODING: 6xx · 1 ROM word\n\nEFFECT\nPC ← addr8\n\nFLAGS: —\n\nEXAMPLE: JMP 0x10\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: 6xx · 1 ROM word\n\n作用\nPC ← addr8\n\n标志: —\n\n例子: JMP 0x10\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: 6xx · 1 ROM word\n\n動作\nPC ← addr8\n\nフラグ: —\n\n例: JMP 0x10\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "7  JZ",
+        "7  JZ",
+        "7  JZ"
+      ],
+      "bodies": [
+        "ENCODING: 7xx · 1 ROM word\n\nEFFECT\nif Z=1: PC ← addr8\n\nFLAGS: —\n\nEXAMPLE: JZ 0x10\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: 7xx · 1 ROM word\n\n作用\nif Z=1: PC ← addr8\n\n标志: —\n\n例子: JZ 0x10\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: 7xx · 1 ROM word\n\n動作\nif Z=1: PC ← addr8\n\nフラグ: —\n\n例: JZ 0x10\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "8  LD",
+        "8  LD",
+        "8  LD"
+      ],
+      "bodies": [
+        "ENCODING: 8xx · 1 ROM word\n\nEFFECT\nACC ← RAM[BANK:addr8]\n\nFLAGS: Z=result==0; C preserved\n\nEXAMPLE: LD 0x10\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: 8xx · 1 ROM word\n\n作用\nACC ← RAM[BANK:addr8]\n\n标志: Z=result==0; C preserved\n\n例子: LD 0x10\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: 8xx · 1 ROM word\n\n動作\nACC ← RAM[BANK:addr8]\n\nフラグ: Z=result==0; C preserved\n\n例: LD 0x10\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "9  ST",
+        "9  ST",
+        "9  ST"
+      ],
+      "bodies": [
+        "ENCODING: 9xx · 1 ROM word\n\nEFFECT\nRAM[BANK:addr8] ← ACC\n\nFLAGS: —\n\nEXAMPLE: ST 0x10\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: 9xx · 1 ROM word\n\n作用\nRAM[BANK:addr8] ← ACC\n\n标志: —\n\n例子: ST 0x10\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: 9xx · 1 ROM word\n\n動作\nRAM[BANK:addr8] ← ACC\n\nフラグ: —\n\n例: ST 0x10\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "A  ADD",
+        "A  ADD",
+        "A  ADD"
+      ],
+      "bodies": [
+        "ENCODING: Axx · 1 ROM word\n\nEFFECT\nACC ← ACC + RAM[BANK:addr8]\n\nFLAGS: Z=result==0, C=carry\n\nEXAMPLE: ADD 0x10\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: Axx · 1 ROM word\n\n作用\nACC ← ACC + RAM[BANK:addr8]\n\n标志: Z=result==0, C=carry\n\n例子: ADD 0x10\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: Axx · 1 ROM word\n\n動作\nACC ← ACC + RAM[BANK:addr8]\n\nフラグ: Z=result==0, C=carry\n\n例: ADD 0x10\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "B  SUB",
+        "B  SUB",
+        "B  SUB"
+      ],
+      "bodies": [
+        "ENCODING: Bxx · 1 ROM word\n\nEFFECT\nACC ← ACC − RAM[BANK:addr8]\n\nFLAGS: Z=result==0, C=no-borrow\n\nEXAMPLE: SUB 0x10\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: Bxx · 1 ROM word\n\n作用\nACC ← ACC − RAM[BANK:addr8]\n\n标志: Z=result==0, C=no-borrow\n\n例子: SUB 0x10\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: Bxx · 1 ROM word\n\n動作\nACC ← ACC − RAM[BANK:addr8]\n\nフラグ: Z=result==0, C=no-borrow\n\n例: SUB 0x10\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "C  ADC",
+        "C  ADC",
+        "C  ADC"
+      ],
+      "bodies": [
+        "ENCODING: Cxx · 1 ROM word\n\nEFFECT\nACC ← ACC + RAM[BANK:addr8] + C\n\nFLAGS: Z=result==0, C=carry\n\nEXAMPLE: ADC 0x10\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: Cxx · 1 ROM word\n\n作用\nACC ← ACC + RAM[BANK:addr8] + C\n\n标志: Z=result==0, C=carry\n\n例子: ADC 0x10\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: Cxx · 1 ROM word\n\n動作\nACC ← ACC + RAM[BANK:addr8] + C\n\nフラグ: Z=result==0, C=carry\n\n例: ADC 0x10\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "D  SBC",
+        "D  SBC",
+        "D  SBC"
+      ],
+      "bodies": [
+        "ENCODING: Dxx · 1 ROM word\n\nEFFECT\nACC ← ACC − RAM[BANK:addr8] − (1−C)\n\nFLAGS: Z=result==0, C=no-borrow\n\nEXAMPLE: SBC 0x10\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: Dxx · 1 ROM word\n\n作用\nACC ← ACC − RAM[BANK:addr8] − (1−C)\n\n标志: Z=result==0, C=no-borrow\n\n例子: SBC 0x10\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: Dxx · 1 ROM word\n\n動作\nACC ← ACC − RAM[BANK:addr8] − (1−C)\n\nフラグ: Z=result==0, C=no-borrow\n\n例: SBC 0x10\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "E  EXT",
+        "E  EXT",
+        "E  EXT"
+      ],
+      "bodies": [
+        "ENCODING: E00 · 1 ROM word\n\nEFFECT\nEXT → subopcode\n\nFLAGS: see extension page\n\nEXAMPLE: EXT \nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: E00 · 1 ROM word\n\n作用\nEXT → subopcode\n\n标志: see extension page\n\n例子: EXT \n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: E00 · 1 ROM word\n\n動作\nEXT → subopcode\n\nフラグ: see extension page\n\n例: EXT \n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "F  HALT",
+        "F  HALT",
+        "F  HALT"
+      ],
+      "bodies": [
+        "ENCODING: F00 · 1 ROM word\n\nEFFECT\nHALT ← 1\n\nFLAGS: —\n\nEXAMPLE: HALT \nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: F00 · 1 ROM word\n\n作用\nHALT ← 1\n\n标志: —\n\n例子: HALT \n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: F00 · 1 ROM word\n\n動作\nHALT ← 1\n\nフラグ: —\n\n例: HALT \n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "E00  SHL",
+        "E00  SHL",
+        "E00  SHL"
+      ],
+      "bodies": [
+        "ENCODING: E00 · 1 ROM word\n\nEFFECT\nACC ← ACC << 1; C ← old bit7\n\nFLAGS: Z=result==0; C=old bit7\n\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: E00 · 1 ROM word\n\n作用\nACC ← ACC << 1; C ← old bit7\n\n标志: Z=result==0; C=old bit7\n\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: E00 · 1 ROM word\n\n動作\nACC ← ACC << 1; C ← old bit7\n\nフラグ: Z=result==0; C=old bit7\n\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "E10  SHR",
+        "E10  SHR",
+        "E10  SHR"
+      ],
+      "bodies": [
+        "ENCODING: E10 · 1 ROM word\n\nEFFECT\nACC ← ACC >> 1; C ← old bit0\n\nFLAGS: Z=result==0; C=old bit0\n\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: E10 · 1 ROM word\n\n作用\nACC ← ACC >> 1; C ← old bit0\n\n标志: Z=result==0; C=old bit0\n\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: E10 · 1 ROM word\n\n動作\nACC ← ACC >> 1; C ← old bit0\n\nフラグ: Z=result==0; C=old bit0\n\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "E20  TAX",
+        "E20  TAX",
+        "E20  TAX"
+      ],
+      "bodies": [
+        "ENCODING: E20 · 1 ROM word\n\nEFFECT\nX ← ACC\n\nFLAGS: —\n\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: E20 · 1 ROM word\n\n作用\nX ← ACC\n\n标志: —\n\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: E20 · 1 ROM word\n\n動作\nX ← ACC\n\nフラグ: —\n\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "E30  TXA",
+        "E30  TXA",
+        "E30  TXA"
+      ],
+      "bodies": [
+        "ENCODING: E30 · 1 ROM word\n\nEFFECT\nACC ← X\n\nFLAGS: Z=result==0; C preserved\n\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: E30 · 1 ROM word\n\n作用\nACC ← X\n\n标志: Z=result==0; C preserved\n\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: E30 · 1 ROM word\n\n動作\nACC ← X\n\nフラグ: Z=result==0; C preserved\n\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "E40  LDAX",
+        "E40  LDAX",
+        "E40  LDAX"
+      ],
+      "bodies": [
+        "ENCODING: E40 · 1 ROM word\n\nEFFECT\nACC ← RAM[BANK:X]\n\nFLAGS: Z=result==0; C preserved\n\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: E40 · 1 ROM word\n\n作用\nACC ← RAM[BANK:X]\n\n标志: Z=result==0; C preserved\n\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: E40 · 1 ROM word\n\n動作\nACC ← RAM[BANK:X]\n\nフラグ: Z=result==0; C preserved\n\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "E50  STAX",
+        "E50  STAX",
+        "E50  STAX"
+      ],
+      "bodies": [
+        "ENCODING: E50 · 1 ROM word\n\nEFFECT\nRAM[BANK:X] ← ACC\n\nFLAGS: —\n\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: E50 · 1 ROM word\n\n作用\nRAM[BANK:X] ← ACC\n\n标志: —\n\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: E50 · 1 ROM word\n\n動作\nRAM[BANK:X] ← ACC\n\nフラグ: —\n\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "E60  INX",
+        "E60  INX",
+        "E60  INX"
+      ],
+      "bodies": [
+        "ENCODING: E60 · 1 ROM word\n\nEFFECT\nX ← X + 1\n\nFLAGS: Z=X==0; C preserved\n\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: E60 · 1 ROM word\n\n作用\nX ← X + 1\n\n标志: Z=X==0; C preserved\n\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: E60 · 1 ROM word\n\n動作\nX ← X + 1\n\nフラグ: Z=X==0; C preserved\n\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "E70  DEX",
+        "E70  DEX",
+        "E70  DEX"
+      ],
+      "bodies": [
+        "ENCODING: E70 · 1 ROM word\n\nEFFECT\nX ← X − 1\n\nFLAGS: Z=X==0; C preserved\n\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: E70 · 1 ROM word\n\n作用\nX ← X − 1\n\n标志: Z=X==0; C preserved\n\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: E70 · 1 ROM word\n\n動作\nX ← X − 1\n\nフラグ: Z=X==0; C preserved\n\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "E80  ADDX",
+        "E80  ADDX",
+        "E80  ADDX"
+      ],
+      "bodies": [
+        "ENCODING: E80 · 1 ROM word\n\nEFFECT\nACC ← ACC + X\n\nFLAGS: Z=result==0; C=carry\n\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: E80 · 1 ROM word\n\n作用\nACC ← ACC + X\n\n标志: Z=result==0; C=carry\n\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: E80 · 1 ROM word\n\n動作\nACC ← ACC + X\n\nフラグ: Z=result==0; C=carry\n\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "E90  SUBX",
+        "E90  SUBX",
+        "E90  SUBX"
+      ],
+      "bodies": [
+        "ENCODING: E90 · 1 ROM word\n\nEFFECT\nACC ← ACC − X\n\nFLAGS: Z=result==0; C=no-borrow\n\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: E90 · 1 ROM word\n\n作用\nACC ← ACC − X\n\n标志: Z=result==0; C=no-borrow\n\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: E90 · 1 ROM word\n\n動作\nACC ← ACC − X\n\nフラグ: Z=result==0; C=no-borrow\n\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "EA0  JC",
+        "EA0  JC",
+        "EA0  JC"
+      ],
+      "bodies": [
+        "ENCODING: EA0 + 0..1FF · 2 ROM word\n\nEFFECT\nif C=1: PC ← word2[8:0]\n\nFLAGS: —\n\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: EA0 + 0..1FF · 2 ROM word\n\n作用\nif C=1: PC ← word2[8:0]\n\n标志: —\n\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: EA0 + 0..1FF · 2 ROM word\n\n動作\nif C=1: PC ← word2[8:0]\n\nフラグ: —\n\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "EB0  JNC",
+        "EB0  JNC",
+        "EB0  JNC"
+      ],
+      "bodies": [
+        "ENCODING: EB0 + 0..1FF · 2 ROM word\n\nEFFECT\nif C=0: PC ← word2[8:0]\n\nFLAGS: —\n\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: EB0 + 0..1FF · 2 ROM word\n\n作用\nif C=0: PC ← word2[8:0]\n\n标志: —\n\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: EB0 + 0..1FF · 2 ROM word\n\n動作\nif C=0: PC ← word2[8:0]\n\nフラグ: —\n\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "EC0  JMP9",
+        "EC0  JMP9",
+        "EC0  JMP9"
+      ],
+      "bodies": [
+        "ENCODING: EC0 + 0..1FF · 2 ROM word\n\nEFFECT\nPC ← word2[8:0]\n\nFLAGS: —\n\nNo signed overflow flag. Values are 8-bit unsigned bytes.",
+        "编码: EC0 + 0..1FF · 2 ROM word\n\n作用\nPC ← word2[8:0]\n\n标志: —\n\n没有有符号溢出标志；数值为 8 位无符号字节。",
+        "コード: EC0 + 0..1FF · 2 ROM word\n\n動作\nPC ← word2[8:0]\n\nフラグ: —\n\n符号付きオーバーフローのフラグはない。値は 8 ビット符号なし。"
+      ]
+    },
+    {
+      "titles": [
+        "ED0  JZ9",
+        "ED0  JZ9",
+        "ED0  JZ9"
+      ],
+      "bodies": [
+        "ENCODING: ED0 + 0..1FF · 2 ROM word\n\nEFFECT\nif Z=1: PC ← word2[8:0]\n\nFLAGS: —\n\nThis is a rising-edge functional model; no gate delays or glitches.",
+        "编码: ED0 + 0..1FF · 2 ROM word\n\n作用\nif Z=1: PC ← word2[8:0]\n\n标志: —\n\n这里使用上升沿功能仿真，不包含门延迟和毛刺。",
+        "コード: ED0 + 0..1FF · 2 ROM word\n\n動作\nif Z=1: PC ← word2[8:0]\n\nフラグ: —\n\n立ち上がりエッジの機能シミュレーション。遅延やグリッチは含まない。"
+      ]
+    },
+    {
+      "titles": [
+        "EE0  CALL",
+        "EE0  CALL",
+        "EE0  CALL"
+      ],
+      "bodies": [
+        "ENCODING: EE0 + 0..1FF · 2 ROM word\n\nEFFECT\nRAM[0:SP] ← return low; RAM[0:SP+1] ← return high; SP ← SP+2; PC ← word2[8:0]\n\nFLAGS: —\n\nCALL / RET always access page 0, independent of BANK.",
+        "编码: EE0 + 0..1FF · 2 ROM word\n\n作用\nRAM[0:SP] ← return low; RAM[0:SP+1] ← return high; SP ← SP+2; PC ← word2[8:0]\n\n标志: —\n\nCALL / RET 始终访问第 0 页，不受 BANK 影响。",
+        "コード: EE0 + 0..1FF · 2 ROM word\n\n動作\nRAM[0:SP] ← return low; RAM[0:SP+1] ← return high; SP ← SP+2; PC ← word2[8:0]\n\nフラグ: —\n\nCALL / RET は BANK に関係なくページ 0 にアクセス。"
+      ]
+    },
+    {
+      "titles": [
+        "EF0  RET",
+        "EF0  RET",
+        "EF0  RET"
+      ],
+      "bodies": [
+        "ENCODING: EF0 · 1 ROM word\n\nEFFECT\nPC ← RAM[0:SP−2] + 256×RAM[0:SP−1]; SP ← SP−2\n\nFLAGS: —\n\nCALL / RET always access page 0, independent of BANK.",
+        "编码: EF0 · 1 ROM word\n\n作用\nPC ← RAM[0:SP−2] + 256×RAM[0:SP−1]; SP ← SP−2\n\n标志: —\n\nCALL / RET 始终访问第 0 页，不受 BANK 影响。",
+        "コード: EF0 · 1 ROM word\n\n動作\nPC ← RAM[0:SP−2] + 256×RAM[0:SP−1]; SP ← SP−2\n\nフラグ: —\n\nCALL / RET は BANK に関係なくページ 0 にアクセス。"
+      ]
+    },
+    {
+      "titles": [
+        "BANK n",
+        "BANK n：选择 RAM 页",
+        "BANK n：RAM ページ選択"
+      ],
+      "bodies": [
+        "BANK 0 = E21   BANK 1 = E22\nBANK 2 = E23   BANK 3 = E24\n\nBANK ← n; all other registers and flags preserved.\nRAM address = n × 256 + 8-bit offset.\nExample: BANK 3; ST 0xFF writes RAM[0x3FF].\nRESET sets BANK=0 and retains every page.\nCALL / RET do not change BANK.",
+        "BANK 0 = E21   BANK 1 = E22\nBANK 2 = E23   BANK 3 = E24\n\nBANK ← n；保留其它寄存器和标志。\nRAM 地址 = n × 256 + 8 位页内偏移。\n示例：BANK 3；ST 0xFF 写入 RAM[0x3FF]。\nRESET 设置 BANK=0，并保留全部页。\nCALL / RET 不改变 BANK。",
+        "BANK 0 = E21   BANK 1 = E22\nBANK 2 = E23   BANK 3 = E24\n\nBANK ← n；他のレジスタとフラグは保持。\nRAM アドレス = n × 256 + 8 ビットオフセット。\n例：BANK 3；ST 0xFF は RAM[0x3FF] に書く。\nRESET は BANK=0、全ページを保持。\nCALL / RET は BANK を変更しない。"
+      ]
+    }
+  ]
+}

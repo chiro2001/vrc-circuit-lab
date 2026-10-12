@@ -6,8 +6,8 @@
   "unclaimedControl": true,
   "defaultPi": true,
   "noTestDraftOrTerminal": true,
-  "validMaterialShaders": 125,
+  "validMaterialShaders": 171,
   "initialProgramWordsCompared": 512,
-  "initialRamBytesCompared": 256,
+  "initialRamBytesCompared": 1024,
   "userFloorPreserved": true
 }

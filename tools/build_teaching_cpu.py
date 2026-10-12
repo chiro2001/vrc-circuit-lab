@@ -12,6 +12,7 @@ from pathlib import Path
 import subprocess
 
 from teaching_cpu_assembler import CpuReference, ISA, Program, load_programs
+from verify_teaching_cpu_programs import verify_program
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,8 +22,8 @@ GATE_OPS = {"CONST0": 0, "CONST1": 1, "INPUT": 2, "DFF": 3,
             "XNOR": 9, "MUX": 10, "NAND": 11, "NOR": 12,
             "ANDNOT": 13, "ORNOT": 14}
 DEBUG_PORTS = ("pc", "instruction", "phase", "acc", "x", "sp", "out", "zero",
-               "carry", "halt", "terminal_data", "terminal_write", "terminal_sequence")
-TRACE_COLUMNS = ("pc", "instruction", "phase", "acc", "x", "sp", "out", "zero",
+               "carry", "halt", "terminal_data", "terminal_write", "terminal_sequence", "bank")
+TRACE_COLUMNS = ("pc", "instruction", "phase", "acc", "x", "sp", "out", "bank", "zero",
                  "carry", "halt", "terminal_data", "terminal_write", "terminal_sequence",
                  "rom_address", "rom_data", "ram_read_address", "ram_read_data",
                  "ram_write_address", "ram_write_data", "ram_write_enable")
@@ -39,22 +40,29 @@ def run(command: list[str], directory: Path, log_path: Path) -> str:
     return result.stdout
 
 
-def write_program_inputs(directory: Path, program: Program, resets: list[int]) -> tuple[Path, Path, Path]:
+def write_program_inputs(directory: Path, program: Program) -> tuple[Path, Path]:
     program_path = directory / "active-program.hex"
     ram_path = directory / "active-initial-ram.hex"
-    resets_path = directory / "active-resets.mem"
     program_path.write_text("".join(f"{word:03x}\n" for word in program.words))
     ram_path.write_text("".join(f"{byte:02x}\n" for byte in program.initial_ram))
-    reset_values = resets + [0] * (8192 - len(resets))
-    resets_path.write_text("".join(f"{value}\n" for value in reset_values))
-    return program_path, ram_path, resets_path
+    return program_path, ram_path
+
+
+def reset_plusargs(reset_indices: list[int]) -> list[str]:
+    """Pass the sparse reset schedule without allocating a cycle-sized HDL array."""
+    if len(reset_indices) > 2:
+        raise ValueError("the teaching CPU testbench supports at most two reset pulses")
+    slots = reset_indices + [-1] * (2 - len(reset_indices))
+    return [f"+reset_cycle0={slots[0]}", f"+reset_cycle1={slots[1]}"]
 
 
 def reference_run(program: Program, *, inject_reset_on_store: bool = False,
-                  max_cycles: int = 200000) -> tuple[list[dict[str, int]], CpuReference, list[int], int | None]:
+                  max_cycles: int = 200000, collect_rows: bool = True
+                  ) -> tuple[list[dict[str, int]], CpuReference, list[int], int | None, int, list[int]]:
     cpu = CpuReference(program)
     rows: list[dict[str, int]] = []
-    resets: list[int] = []
+    reset_indices: list[int] = []
+    terminal_bytes: list[int] = []
     injected = False
     reset_write_attempt_cycle: int | None = None
     for cycle in range(max_cycles):
@@ -66,22 +74,28 @@ def reference_run(program: Program, *, inject_reset_on_store: bool = False,
                 reset = 1
                 injected = True
                 reset_write_attempt_cycle = cycle
-        resets.append(reset)
-        state = cpu.step(reset)
+        if reset:
+            reset_indices.append(cycle)
+        terminal_write = bool(cpu.phase == 1 and not cpu.halt and cpu.instruction >> 8 == 5 and not reset)
+        state = cpu.step(reset, capture_state=collect_rows)
+        if terminal_write:
+            terminal_bytes.append(cpu.out)
         if reset_write_attempt_cycle == cycle and cpu.ram[32] != before:
             raise AssertionError("CPU reset changed RAM during an attempted store")
-        rows.append({"cycle": cycle, "reset": reset, **state, **cpu.buses(reset)})
-        if state["halt"]:
+        if collect_rows:
+            rows.append({"cycle": cycle, "reset": reset, **state, **cpu.buses(reset)})
+        if cpu.halt:
+            cycles_including_reset = cycle + 1
             break
     else:
         if not inject_reset_on_store:
             # Deliberately running programs are captured as a small bounded fixture.
-            pass
+            cycles_including_reset = max_cycles
         else:
             raise RuntimeError(f"{program.id}: reset-injected program did not halt within {max_cycles} cycles")
     if inject_reset_on_store and not injected:
         raise RuntimeError("No pending RAM store was found for reset cancellation check")
-    return rows, cpu, resets, reset_write_attempt_cycle
+    return rows, cpu, reset_indices, reset_write_attempt_cycle, cycles_including_reset, terminal_bytes
 
 
 def parse_trace(path: Path) -> list[dict[str, int]]:
@@ -101,13 +115,14 @@ def parse_waveform(path: Path) -> list[dict[str, str]]:
 
 
 def build_waveform_reference(rtl_wave_path: Path, gate_wave_path: Path, program: Program,
-                             resets: list[int], reference_rows: list[dict[str, int]]) -> list[dict]:
+                             reset_indices: list[int], reference_rows: list[dict[str, int]]) -> list[dict]:
     rtl_rows, gate_rows = parse_waveform(rtl_wave_path), parse_waveform(gate_wave_path)
     expected_count = len(reference_rows) * 2
     if len(rtl_rows) != expected_count or len(gate_rows) != expected_count:
         raise AssertionError(f"Waveform must have two actual RTL/gate phases per cycle: {len(rtl_rows)}/{len(gate_rows)} != {expected_count}")
 
     model = CpuReference(program)
+    reset_set = set(reset_indices)
     samples: list[dict] = []
     for sample_index, (rtl_row, gate_row) in enumerate(zip(rtl_rows, gate_rows)):
         source_cycle = sample_index // 2
@@ -144,13 +159,14 @@ def build_waveform_reference(rtl_wave_path: Path, gate_wave_path: Path, program:
 
         if half == 0:
             if valid:
-                expected = {**model.state(), **model.buses(resets[source_cycle])}
+                expected = {**model.state(), **model.buses(int(source_cycle in reset_set))}
                 for key in TRACE_COLUMNS:
                     if values[key] != expected[key]:
                         raise AssertionError(f"RTL low-phase waveform differs from reference at cycle {source_cycle} {key}: {values[key]} != {expected[key]}")
         else:
-            state = model.step(resets[source_cycle])
-            expected = {**state, **model.buses(resets[source_cycle])}
+            reset = int(source_cycle in reset_set)
+            state = model.step(reset)
+            expected = {**state, **model.buses(reset)}
             for key in TRACE_COLUMNS:
                 if values[key] != expected[key] or values[key] != reference_rows[source_cycle][key]:
                     raise AssertionError(f"RTL high-phase waveform differs from reference trace at cycle {source_cycle} {key}")
@@ -169,6 +185,17 @@ def check_trace(actual: list[dict[str, int]], expected: list[dict[str, int]], la
         for key in keys:
             if got[key] != want[key]:
                 raise AssertionError(f"{label}: cycle {index} {key} differs {got[key]} != {want[key]}")
+
+
+FINAL_STATE_FIELDS = ("pc", "instruction", "phase", "acc", "x", "sp", "bank", "out",
+                      "zero", "carry", "halt", "terminal_data", "terminal_sequence")
+
+
+def read_final_state(path: Path) -> dict[str, int]:
+    values = [int(value) for value in path.read_text().strip().split(",")]
+    if len(values) != len(FINAL_STATE_FIELDS):
+        raise AssertionError(f"Malformed final CPU state in {path}")
+    return dict(zip(FINAL_STATE_FIELDS, values))
 
 
 class Aliases:
@@ -330,9 +357,9 @@ def export_netlist(design: dict, programs: list[Program], fixture_rows: list[dic
             write_address = bit_ports["write_address"]
             write_data = bit_ports["write_data"]
             write_enable = bit_ports["write_enable"]
-            if (len(read_address) != 8 or len(read_data) != 8 or len(write_address) != 8 or
+            if (len(read_address) != 10 or len(read_data) != 8 or len(write_address) != 10 or
                     len(write_data) != 8 or len(write_enable) != 1):
-                raise ValueError("RAM ports do not match the 256 x 8 memory contract")
+                raise ValueError("RAM ports do not match the 1024 x 8 memory contract")
             memory_ports["ramReadAddress"] = read_address
             memory_ports["ramReadData"] = read_data
             memory_ports["ramWriteAddress"] = write_address
@@ -462,7 +489,9 @@ def export_netlist(design: dict, programs: list[Program], fixture_rows: list[dic
     ram = list(programs[fixture_program_index].initial_ram)
     fixture_program_ids = [fixture_program_index] * len(fixture_rows)
     fixture_ram_reset = list(fixture_ram_reset)
-    for index, (row, reset) in enumerate(zip(fixture_rows, fixture_resets)):
+    reset_set = set(fixture_resets)
+    for index, row in enumerate(fixture_rows):
+        reset = int(index in reset_set)
         program = programs[fixture_program_ids[index]]
         if fixture_ram_reset[index]:
             ram = list(program.initial_ram)
@@ -497,15 +526,24 @@ def export_netlist(design: dict, programs: list[Program], fixture_rows: list[dic
     exported_programs = []
     for index, program in enumerate(programs):
         verified = validated_runs[index]
-        sim_rows, final_cpu, _, _ = reference_run(program, max_cycles=verified["cyclesIncludingReset"])
-        output_bytes = [row["terminal_data"] for row in sim_rows if row["terminal_write"]]
-        if verified["terminalBytes"] != output_bytes or verified["finalRam"] != final_cpu.ram:
-            raise AssertionError(f"{program.id}: RTL/netlist results differ from program metadata model")
         record = {"id": program.id, "name": program.name, "description": program.description,
                   "source": program.source,
                   "words": program.words, "initialRam": program.initial_ram,
-                  "expectedText": program.expected_text}
-        if final_cpu.halt:
+                  "expectedText": program.expected_text,
+                  "nameTranslations": program.name_translations,
+                  "descriptionTranslations": program.description_translations,
+                  "expectedTextTranslations": program.expected_text_translations,
+                  "sourceComment": program.source_comment,
+                  "sourceCommentTranslations": program.source_comment_translations}
+        if program.expected_bytes is not None:
+            record["expectedBytes"] = program.expected_bytes
+        if program.display is not None:
+            record["display"] = program.display
+        for key in ("digits", "frameCount", "oracle", "inputValues", "neighborMasks"):
+            if program.metadata and key in program.metadata:
+                record[key] = program.metadata[key]
+        record["romWordCount"] = max((i + 1 for i, word in enumerate(program.words) if word), default=0)
+        if verified["halted"]:
             record["expectedTerminalBytes"] = verified["terminalBytes"]
             record["expectedTerminalSequence"] = verified["terminalSequence"]
             record["expectedCycles"] = verified["cycles"]
@@ -524,6 +562,7 @@ def export_netlist(design: dict, programs: list[Program], fixture_rows: list[dic
             "terminalSequenceSignals": ports["terminal_sequence"],
             "phaseSignal": ports["phase"][0], "phaseSignals": ports["phase"],
             "xSignals": ports["x"], "spSignals": ports["sp"],
+            "bankSignals": ports["bank"],
             "romAddressSignals": memory_ports["romAddress"],
             "ramReadAddressSignals": memory_ports["ramReadAddress"],
             "ramWriteAddressSignals": memory_ports["ramWriteAddress"],
@@ -539,10 +578,11 @@ def export_netlist(design: dict, programs: list[Program], fixture_rows: list[dic
 
 
 def _reference_ram_at(program: Program, rows: list[dict[str, int]], index: int,
-                      resets: list[int]) -> list[int]:
+                      reset_indices: list[int]) -> list[int]:
     cpu = CpuReference(program)
+    reset_set = set(reset_indices)
     for row_index in range(index + 1):
-        cpu.step(resets[row_index])
+        cpu.step(int(row_index in reset_set))
     return cpu.ram
 
 
@@ -587,6 +627,8 @@ def main() -> None:
     parser.add_argument("--output", type=Path,
                         default=Path.home() / "tmp/vrc-cpu-map/circuit-lab/hdl")
     parser.add_argument("--infinite-cycles", type=int, default=128)
+    parser.add_argument("--reuse-existing-runs", action="store_true",
+                        help="revalidate saved RTL/netlist run artifacts against the current reference and catalog")
     options = parser.parse_args()
     output = options.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -594,7 +636,7 @@ def main() -> None:
     models = ROOT / "circuits/teaching_memory_models.v"
     programs = load_programs()
     for program in programs:
-        if len(program.words) != 512 or len(program.initial_ram) != 256:
+        if len(program.words) != 512 or len(program.initial_ram) != 1024:
             raise ValueError(f"{program.id} does not match the ROM/RAM dimensions")
 
     rtl_vvp = output / "rtl-cpu.vvp"
@@ -630,90 +672,130 @@ def main() -> None:
 
     run_summaries = []
     verified_programs: list[dict] = []
-    fixture_result = None
     fixture_program_index = next(i for i, p in enumerate(programs) if p.id == "cpu-fixture")
+    traced_program_count = 0
     for program_index, program in enumerate(programs):
         inject = False
-        rows, final_cpu, resets, reset_attempt_cycle = reference_run(
-            program, inject_reset_on_store=inject,
-            max_cycles=options.infinite_cycles if program.id in {"counter", "blinker", "alternating-55-aa", "step-count"} else 200000)
-        halted = bool(rows[-1]["halt"])
+        max_cycles = options.infinite_cycles if program.id in {"counter", "blinker", "alternating-55-aa", "step-count"} else 200000
+        if program.id == "pi-spigot-64":
+            max_cycles = 11_000_000
+        elif program.id == "pi-spigot-100":
+            max_cycles = 26_000_000
+        collect_rows = program.id not in {"life-8x8", "pi-spigot-64", "pi-spigot-100"}
+        rows, final_cpu, reset_indices, reset_attempt_cycle, cycles_including_reset, output_bytes = reference_run(
+            program, inject_reset_on_store=inject, max_cycles=max_cycles, collect_rows=collect_rows)
+        halted = bool(final_cpu.halt)
         if halted:
-            program.expected_cycles = len(rows) - 1
-        output_bytes = [row["terminal_data"] for row in rows if row["terminal_write"]]
+            program.expected_cycles = cycles_including_reset - 1
         text = bytes(output_bytes).decode("latin1")
         if program.expected_text and text != program.expected_text:
             raise AssertionError(f"{program.id}: reference output {text!r} != {program.expected_text!r}")
-        program_path, ram_path, reset_path = write_program_inputs(output, program, resets)
+        if program.expected_bytes is not None and output_bytes != program.expected_bytes:
+            raise AssertionError(f"{program.id}: reference output bytes differ from expectedBytes")
+        verify_program(program, output_bytes, final_cpu.ram)
+        program_path, ram_path = write_program_inputs(output, program)
 
         actual_traces = {}
         actual_final_rams = {}
+        actual_terminal = {}
+        actual_final_states = {}
         for variant, executable in (("rtl", rtl_vvp), ("gate", gate_vvp)):
             trace_path = output / f"{variant}-{program.id}.csv"
             wave_path = output / f"{variant}-{program.id}-wave.csv"
             final_ram_path = output / f"{variant}-{program.id}-final-ram.hex"
-            result = run(["vvp", str(executable), f"+program={program_path}", f"+ram={ram_path}",
-                          f"+resets={reset_path}", f"+trace={trace_path}",
-                          f"+waveform={wave_path}", f"+final_ram={final_ram_path}",
-                          f"+cycles={len(rows)}"], output, output / f"{variant}-{program.id}.log")
+            terminal_path = output / f"{variant}-{program.id}-terminal.bin"
+            state_path = output / f"{variant}-{program.id}-final-state.csv"
+            log_path = output / f"{variant}-{program.id}.log"
+            if options.reuse_existing_runs:
+                artifacts = (trace_path, final_ram_path, terminal_path, state_path, log_path)
+                if any(not artifact.exists() for artifact in artifacts):
+                    raise FileNotFoundError(f"{program.id}: missing saved {variant} validation artifacts")
+                result = log_path.read_text()
+            else:
+                result = run(["vvp", str(executable), f"+program={program_path}", f"+ram={ram_path}",
+                              *reset_plusargs(reset_indices), f"+terminal={terminal_path}", f"+state={state_path}",
+                              f"+quiet={int(not collect_rows)}", f"+trace={trace_path}",
+                              f"+waveform={wave_path}", f"+final_ram={final_ram_path}",
+                              f"+cycles={cycles_including_reset}"], output, log_path)
             if "TEACHING_CPU_PASS" not in result:
                 raise AssertionError(f"{variant} {program.id}: simulator did not finish")
-            trace = parse_trace(trace_path)
-            check_trace(trace, rows, f"{variant} {program.id}")
+            if collect_rows:
+                trace = parse_trace(trace_path)
+                check_trace(trace, rows, f"{variant} {program.id}")
+                actual_traces[variant] = trace_path
+                traced_program_count += int(variant == "rtl")
             final_ram = [int(line, 16) for line in final_ram_path.read_text().splitlines()]
             if final_ram != final_cpu.ram:
                 raise AssertionError(f"{variant} {program.id}: final RAM differs from reference")
             actual_final_rams[variant] = final_ram
-            actual_traces[variant] = trace_path
+            actual_terminal[variant] = list(terminal_path.read_bytes())
+            if actual_terminal[variant] != output_bytes:
+                raise AssertionError(f"{variant} {program.id}: terminal file differs from reference")
+            final_state = read_final_state(state_path)
+            expected_state = final_cpu.state()
+            for field in FINAL_STATE_FIELDS:
+                if final_state[field] != expected_state[field]:
+                    raise AssertionError(f"{variant} {program.id}: final state {field} differs: {final_state[field]} != {expected_state[field]}")
+            actual_final_states[variant] = final_state
             if inject and reset_attempt_cycle is not None:
                 log_text = (output / f"{variant}-{program.id}.log").read_text()
                 expected_marker = f"RESET_WRITE_SUPPRESSED cycle={reset_attempt_cycle} raw=1 effective=0"
                 if expected_marker not in log_text:
                     raise AssertionError(f"{variant} did not suppress reset-time RAM write")
-        if actual_traces["rtl"].read_bytes() != actual_traces["gate"].read_bytes():
+        if collect_rows and actual_traces["rtl"].read_bytes() != actual_traces["gate"].read_bytes():
             raise AssertionError(f"RTL and synthesized traces differ for {program.id}")
         if actual_final_rams["rtl"] != actual_final_rams["gate"]:
             raise AssertionError(f"RTL and synthesized final RAM differ for {program.id}")
-
-        actual_output = [row["terminal_data"] for row in parse_trace(actual_traces["rtl"])
-                         if row["terminal_write"]]
-        if actual_output != output_bytes:
-            raise AssertionError(f"RTL {program.id}: terminal sequence differs from reference")
-        verified_programs.append({"cycles": len(rows) - 1, "cyclesIncludingReset": len(rows),
+        if actual_terminal["rtl"] != actual_terminal["gate"] or actual_final_states["rtl"] != actual_final_states["gate"]:
+            raise AssertionError(f"RTL and synthesized terminal/final state differ for {program.id}")
+        verified_programs.append({"cycles": cycles_including_reset - 1,
+                                  "cyclesIncludingReset": cycles_including_reset,
                                   "finalRam": actual_final_rams["rtl"],
-                                  "terminalBytes": actual_output,
-                                  "terminalSequence": rows[-1]["terminal_sequence"]})
+                                  "terminalBytes": output_bytes,
+                                  "terminalSequence": final_cpu.terminal_sequence,
+                                  "finalState": actual_final_states["rtl"], "halted": halted,
+                                  "traceVerified": collect_rows})
 
-        if program.id == "cpu-fixture":
-            fixture_result = (rows, resets, None)
-        run_summaries.append({"id": program.id, "cycles": len(rows),
-                              "cyclesIncludingReset": len(rows), "runCycles": len(rows) - 1,
+        run_summaries.append({"id": program.id, "cycles": cycles_including_reset,
+                              "cyclesIncludingReset": cycles_including_reset,
+                              "runCycles": cycles_including_reset - 1,
                               "halted": halted,
                               "outputBytes": output_bytes, "outputText": text,
                               "finalPc": final_cpu.pc, "finalAcc": final_cpu.acc,
-                              "finalX": final_cpu.x, "finalSp": final_cpu.sp,
+                              "finalX": final_cpu.x, "finalSp": final_cpu.sp, "finalBank": final_cpu.bank,
                               "finalRam": list(final_cpu.ram),
+                              "romWords": max((i + 1 for i, word in enumerate(program.words) if word), default=0),
+                              "algorithm": (program.metadata or {}).get("oracle", ""),
+                              "traceVerified": collect_rows,
                               "resetWriteSuppressedCycle": reset_attempt_cycle})
 
-    if fixture_result is None:
-        raise AssertionError("CPU fixture program is missing")
     fixture_program = programs[fixture_program_index]
-    fixture_rows, fixture_cpu, fixture_resets, reset_attempt_cycle = reference_run(
+    fixture_rows, fixture_cpu, fixture_reset_indices, reset_attempt_cycle, fixture_cycles, fixture_terminal = reference_run(
         fixture_program, inject_reset_on_store=True)
-    fixture_input_paths = write_program_inputs(output, fixture_program, fixture_resets)
+    fixture_input_paths = write_program_inputs(output, fixture_program)
     fixture_gate_results = {}
     for variant, executable in (("rtl", rtl_vvp), ("gate", gate_vvp)):
         trace_path = output / f"{variant}-cpu-fixture-reset-test.csv"
         wave_path = output / f"{variant}-cpu-fixture-reset-test-wave.csv"
         final_ram_path = output / f"{variant}-cpu-fixture-reset-test-final-ram.hex"
+        terminal_path = output / f"{variant}-cpu-fixture-reset-test-terminal.bin"
+        state_path = output / f"{variant}-cpu-fixture-reset-test-final-state.csv"
         result = run(["vvp", str(executable), f"+program={fixture_input_paths[0]}",
-                      f"+ram={fixture_input_paths[1]}", f"+resets={fixture_input_paths[2]}",
+                      f"+ram={fixture_input_paths[1]}",
+                      *reset_plusargs(fixture_reset_indices), f"+terminal={terminal_path}", f"+state={state_path}",
                       f"+trace={trace_path}", f"+waveform={wave_path}",
-                      f"+final_ram={final_ram_path}", f"+cycles={len(fixture_rows)}"],
+                      f"+final_ram={final_ram_path}", f"+cycles={fixture_cycles}"],
                      output, output / f"{variant}-cpu-fixture-reset-test.log")
         if "TEACHING_CPU_PASS" not in result:
             raise AssertionError(f"{variant} reset-injection fixture did not finish")
         check_trace(parse_trace(trace_path), fixture_rows, f"{variant} reset-injection fixture")
+        if terminal_path.read_bytes() != bytes(fixture_terminal):
+            raise AssertionError(f"{variant} reset-injection terminal bytes differ")
+        final_state = read_final_state(state_path)
+        expected_state = fixture_cpu.state()
+        for field in FINAL_STATE_FIELDS:
+            if final_state[field] != expected_state[field]:
+                raise AssertionError(f"{variant} reset-injection state {field} differs: {final_state[field]} != {expected_state[field]}")
         log_text = (output / f"{variant}-cpu-fixture-reset-test.log").read_text()
         marker = f"RESET_WRITE_SUPPRESSED cycle={reset_attempt_cycle} raw=1 effective=0"
         if marker not in log_text:
@@ -726,10 +808,9 @@ def main() -> None:
         raise AssertionError("RTL and synthesized reset-injection fixture traces differ")
     if fixture_gate_results["rtl"][1] != fixture_gate_results["gate"][1]:
         raise AssertionError("RTL and synthesized reset-injection final RAM differs")
-    fixture_result = (fixture_rows, fixture_resets, reset_attempt_cycle)
     fixture_ram_reset = [index == 0 for index in range(len(fixture_rows))]
     design = json.loads((output / "netlist.json").read_text())
-    exported = export_netlist(design, programs, fixture_rows, fixture_resets,
+    exported = export_netlist(design, programs, fixture_rows, fixture_reset_indices,
                               fixture_program_index, fixture_ram_reset, verified_programs,
                               reset_attempt_cycle)
     validate_hierarchy(exported)
@@ -741,7 +822,7 @@ def main() -> None:
     waveform_samples = build_waveform_reference(
         output / "rtl-cpu-fixture-reset-test-wave.csv",
         output / "gate-cpu-fixture-reset-test-wave.csv",
-        programs[fixture_program_index], fixture_resets, fixture_rows)
+        programs[fixture_program_index], fixture_reset_indices, fixture_rows)
     if len(waveform_samples) != 2 * exported["vectorCount"]:
         raise AssertionError("Waveform reference must include low and high phases for every GPU fixture vector")
     (output / "waveform-reference.json").write_text(json.dumps({
@@ -755,15 +836,28 @@ def main() -> None:
     pi = run_summaries[pi_index]
     if pi["outputText"] != "3.141592\n" or pi["finalRam"][6:9] != [0, 16, 3]:
         raise AssertionError("CPU π program did not calculate quotient 3 and remainder 16")
+    pi_spigot_runs = []
+    for digits in (64, 100):
+        run_record = next(item for item in run_summaries if item["id"] == f"pi-spigot-{digits}")
+        pi_spigot_runs.append({"digits": digits, "algorithm": "Rabinowitz-Wagon integer spigot",
+                               "romWords": run_record["romWords"], "runCycles": run_record["runCycles"],
+                               "cyclesIncludingReset": run_record["cyclesIncludingReset"],
+                               "outputBytes": len(run_record["outputBytes"]),
+                               "outputText": run_record["outputText"],
+                               "estimatedHoursAt256Hz": run_record["cyclesIncludingReset"] / 256 / 3600,
+                               "referenceOracle": "independent Chudnovsky Decimal computation"})
     summary = {"name": TOP, "schema": exported["schema"], "nodeCount": exported["nodeCount"],
                "textureWidth": exported["textureWidth"], "maxDepth": exported["maxDepth"],
                "settlePasses": exported["settlePasses"], "registerCount": exported["registerCount"],
                "vectorCount": exported["vectorCount"], "moduleCount": len(exported["modules"]),
                "memoryPortCount": len(exported["memoryPorts"]), "cellCounts": exported["cellCounts"],
                "programCount": len(programs), "programRuns": run_summaries,
+               "piSpigotRuns": pi_spigot_runs, "traceProgramCount": traced_program_count,
+               "streamedProgramIds": [item["id"] for item in run_summaries if not item["traceVerified"]],
                "ramAndRomBlackboxesPreserved": True, "rtlPassed": True,
                "synthesizedPassed": True, "tracesEqual": True,
                "architecturalReferenceEqual": True, "netlistInterpreterEqual": True,
+               "independentProgramOraclesPassed": True,
                "resetRetainsRam": True, "resetSuppressesPendingStore": True,
                "longAddressAndStackPassed": True,
                "waveformSamples": len(waveform_samples),

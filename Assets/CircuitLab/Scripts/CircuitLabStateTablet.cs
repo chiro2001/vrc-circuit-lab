@@ -96,6 +96,7 @@ public class CircuitLabStateTablet : UdonSharpBehaviour
                 displayMaterial.SetInt("_SelectedSignal", activeTab == 3 ? selectRamAddress : selectNode);
                 displayMaterial.SetInt("_DisplayMode", activeTab);
                 displayMaterial.SetInt("_RawRam", rawRam ? 1 : 0);
+                displayMaterial.SetInt("_RamPage", activeTab == 3 ? page : 0);
             }
         }
         if (activeTab != _lastTab || page != _lastPage || selectNode != _lastSelectedNode || rawRam != _lastRaw || showInitialRam != _lastInitial)
@@ -121,9 +122,9 @@ public class CircuitLabStateTablet : UdonSharpBehaviour
             if (activeTab == 0) pageText.text = "SIGNALS  /  PAGE " + (page + 1) + " OF " + PageCount();
             else if (activeTab == 1) pageText.text = "GATE TEXTURE  /  PAGE " + (page + 1) + " OF " + PageCount();
             else if (activeTab == 2) pageText.text = "ROM TEXTURE  /  512 WORDS";
-            else pageText.text = "CYCLE " + simulator.cycleCount;
+            else pageText.text = "RAM PAGE " + page + " / 3  ·  0x" + Hex(page * 256, 3) + "–0x" + Hex(page * 256 + 255, 3) + "  /  CYCLE " + simulator.cycleCount;
         }
-        if (tabText != null) tabText.text = activeTab == 0 ? "LIVE SIGNAL STATE" : activeTab == 1 ? "GATE TEXTURE" : activeTab == 2 ? "PROGRAM ROM TEXTURE" : "RAM 16 x 16";
+        if (tabText != null) tabText.text = activeTab == 0 ? "LIVE SIGNAL STATE" : activeTab == 1 ? "GATE TEXTURE" : activeTab == 2 ? "PROGRAM ROM TEXTURE" : rawRam ? "RAM FULL TEXTURE 32 x 32" : "RAM 1 KiB / 4 PAGES";
     }
 
     public void SelectCell(int slot)
@@ -152,8 +153,16 @@ public class CircuitLabStateTablet : UdonSharpBehaviour
     public void SelectRamAddress()
     {
         if (!EnsureControl()) return;
-        selectRamAddress = Mathf.Clamp(selectRamAddress, 0, 255);
-        activeTab = 3; page = 0;
+        selectRamAddress = Mathf.Clamp(selectRamAddress, 0, 1023);
+        activeTab = 3; page = selectRamAddress / 256;
+        RefreshRamDetails();
+        PublishViewState();
+    }
+
+    public void SelectRamCell(int slot)
+    {
+        if (!EnsureControl()) return;
+        selectRamAddress = page * 256 + Mathf.Clamp(slot, 0, 255);
         RefreshRamDetails();
         PublishViewState();
     }
@@ -222,7 +231,7 @@ public class CircuitLabStateTablet : UdonSharpBehaviour
     {
         int channel = Mathf.Clamp(probe.channel, 0, 3);
         int signal = simulator.nodeCount + selectRamAddress * 8;
-        string label = width == 8 ? "RAM[" + Hex(selectRamAddress, 2) + "][7:0]" : "RAM[" + Hex(selectRamAddress, 2) + "]." + selectedRamBit;
+        string label = width == 8 ? "RAM[" + Hex(selectRamAddress, 3) + "][7:0]" : "RAM[" + Hex(selectRamAddress, 3) + "]." + selectedRamBit;
         if (width == 1) signal += selectedRamBit;
         CircuitLabSignalTarget target = ramProbeTargets != null && channel < ramProbeTargets.Length ? ramProbeTargets[channel] : null;
         if (target == null) return;
@@ -257,7 +266,7 @@ public class CircuitLabStateTablet : UdonSharpBehaviour
     {
         if (HasControl()) return;
         _applyingSharedState = true;
-        selectNode = node; selectRamAddress = Mathf.Clamp(ramAddress, 0, 255); selectedRamBit = Mathf.Clamp(ramBit, 0, 7);
+        selectNode = node; selectRamAddress = Mathf.Clamp(ramAddress, 0, 1023); selectedRamBit = Mathf.Clamp(ramBit, 0, 7);
         activeTab = Mathf.Clamp(tab, 0, 3); page = Mathf.Clamp(currentPage, 0, Mathf.Max(0, PageCount() - 1)); rawRam = showRaw; showInitialRam = initial;
         _applyingSharedState = false;
     }
@@ -282,6 +291,7 @@ public class CircuitLabStateTablet : UdonSharpBehaviour
     {
         if (activeTab == 0) return Mathf.Max(1, (nodeCount + 63) / 64);
         if (activeTab == 1) return Mathf.Max(1, (nodeCount + 255) / 256);
+        if (activeTab == 3) return 4;
         return 1;
     }
 
@@ -346,11 +356,12 @@ public class CircuitLabStateTablet : UdonSharpBehaviour
     private void RefreshRamGrid()
     {
         if (ramCellLabels == null || (!showInitialRam && simulator.observedRam == null)) return;
-        for (int address = 0; address < ramCellLabels.Length && address < 256; address++)
+        for (int slot = 0; slot < ramCellLabels.Length && slot < 256; slot++)
         {
-            if (ramCellLabels[address] == null) continue;
+            int address = page * 256 + slot;
+            if (ramCellLabels[slot] == null) continue;
             int value = showInitialRam && simulator.initialRam != null ? simulator.initialRam[address] : simulator.observedRam[address];
-            ramCellLabels[address].text = Hex(address, 2) + "\n" + Hex(value, 2);
+            ramCellLabels[slot].text = Hex(address, 3) + "\n" + Hex(value, 2);
         }
     }
 
@@ -374,7 +385,7 @@ public class CircuitLabStateTablet : UdonSharpBehaviour
         if (ram == null || ram.Length <= selectRamAddress) { ramDetailText.text = "RAM SAMPLE WAITING"; return; }
         int value = ram[selectRamAddress];
         int bitValue = simulator.GetObservedSignal(simulator.nodeCount + selectRamAddress * 8 + selectedRamBit);
-        ramDetailText.text = "RAM[" + Hex(selectRamAddress, 2) + "] = 0x" + Hex(value, 2) + "  /  " + Binary(value, 8)
+        ramDetailText.text = "RAM[" + Hex(selectRamAddress, 3) + "] = 0x" + Hex(value, 2) + "  /  " + Binary(value, 8)
             + "\nBIT " + selectedRamBit + " = " + (bitValue < 0 ? "WAIT" : bitValue.ToString())
             + (showInitialRam ? "  /  INITIAL" : "  /  GPU CURRENT RAM");
     }
@@ -384,8 +395,8 @@ public class CircuitLabStateTablet : UdonSharpBehaviour
         if (memoryStatusText == null || simulator == null) return;
         string stable = simulator.observedRamStable ? "STABLE GPU SAMPLE" : "WAITING FOR STABLE SAMPLE";
         memoryStatusText.text = "CYCLE " + simulator.cycleCount + "  /  RAM SAMPLE " + simulator.observedRamCycle + "  /  " + stable
-            + "\nA READ  0x" + Hex(simulator.observedRamReadAddress, 2) + " -> 0x" + Hex(simulator.observedRamReadData, 2)
-            + "\nB NEXT EDGE WRITE INTENT  0x" + Hex(simulator.observedRamWriteAddress, 2) + " <- 0x" + Hex(simulator.observedRamWriteData, 2)
+            + "\nBANK " + simulator.observedBank + " / 3  ·  A READ  0x" + Hex(simulator.observedRamReadAddress, 3) + " -> 0x" + Hex(simulator.observedRamReadData, 2)
+            + "\nB NEXT EDGE WRITE INTENT  0x" + Hex(simulator.observedRamWriteAddress, 3) + " <- 0x" + Hex(simulator.observedRamWriteData, 2)
             + "  WE " + simulator.observedRamWriteEnable;
     }
 

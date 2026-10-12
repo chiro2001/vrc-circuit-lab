@@ -131,14 +131,13 @@ public class CircuitLabModule : UdonSharpBehaviour
         float sx = Mathf.Max(.0001f, Mathf.Abs(scale.x));
         float sy = Mathf.Max(.0001f, Mathf.Abs(scale.y));
         float sz = Mathf.Max(.0001f, Mathf.Abs(scale.z));
-        Vector3 gripSize = new Vector3(Mathf.Max(.85f, .25f / sx), Mathf.Max(.15f, .20f / sy), Mathf.Max(.18f, .08f / sz));
+        Vector3 gripSize = new Vector3(Mathf.Max(.12f, .12f / sx), Mathf.Max(.62f, .45f / sy), Mathf.Max(.14f, .08f / sz));
         if (handle != null) handle.localPosition = new Vector3(handleSide * ((expanded ? expandedWidth : 2.8f) * .5f + gripSize.x * .5f + .04f / sx), 0f, -.04f);
         if (pickupCollider != null && handle != null) { pickupCollider.center = handle.localPosition; pickupCollider.size = gripSize; }
         if (grabVisual != null) grabVisual.localScale = gripSize;
         if (grabText != null)
         {
-            grabText.transform.localScale = Vector3.one * (.01f / Mathf.Min(sx, sy));
-            grabText.transform.localPosition = new Vector3(0f, 0f, -gripSize.z * .5f - .012f / sz);
+            grabText.gameObject.SetActive(false);
         }
         if (probeAnchor != null) probeAnchor.localPosition = new Vector3(0f, -height * .5f + .16f, -.18f);
         if (channelBadge != null) channelBadge.transform.localPosition = new Vector3(0f, -height * .5f + .08f, -.13f);

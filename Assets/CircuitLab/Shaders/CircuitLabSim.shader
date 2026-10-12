@@ -18,11 +18,12 @@ Shader "VrcCpuWorld/CircuitLabSim"
             #pragma fragment frag
             #pragma target 3.5
             #include "UnityCG.cginc"
+            #define RAM_TEXTURE_WIDTH 32u
             sampler2D _MainTex, _Gates, _ProgramTex, _RamTex;
             sampler2D _RestoreState;
             int _NodeCount, _TextureWidth, _Mode, _InputMask;
             float4 _RomAddressA, _RomAddressB, _RomAddressC;
-            float4 _RamReadAddressA, _RamReadAddressB;
+            float4 _RamReadAddressA, _RamReadAddressB, _RamReadAddressC;
 
             uint Bit(float id)
             {
@@ -52,7 +53,7 @@ Shader "VrcCpuWorld/CircuitLabSim"
             uint RamReadAddress()
             {
                 uint address = 0u;
-                [unroll] for (int bit = 0; bit < 8; bit++) address |= BusBit(_RamReadAddressA, _RamReadAddressB, float4(-1, -1, -1, -1), bit) << bit;
+                [unroll] for (int bit = 0; bit < 10; bit++) address |= BusBit(_RamReadAddressA, _RamReadAddressB, _RamReadAddressC, bit) << bit;
                 return address;
             }
 
@@ -67,7 +68,8 @@ Shader "VrcCpuWorld/CircuitLabSim"
             uint RamBit(uint bit)
             {
                 uint address = RamReadAddress();
-                float2 uv = float2((address % 16u + 0.5) / 16.0, (address / 16u + 0.5) / 16.0);
+                float2 uv = float2((address % RAM_TEXTURE_WIDTH + 0.5) / RAM_TEXTURE_WIDTH,
+                    (address / RAM_TEXTURE_WIDTH + 0.5) / RAM_TEXTURE_WIDTH);
                 uint value = (uint)round(tex2Dlod(_RamTex, float4(uv, 0, 0)).r * 255.0);
                 return (value >> bit) & 1u;
             }

@@ -6,11 +6,17 @@ using VRC.SDK3.Components;
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class CircuitLabMovableTool : UdonSharpBehaviour
 {
+    public CircuitLabNetworkCoordinator coordinator;
     public VRC_Pickup pickup;
     public VRCObjectSync objectSync;
     public Vector3 initialPosition;
     public Quaternion initialRotation = Quaternion.identity;
     public Vector3 initialScale = Vector3.one;
+    public override void OnPickup()
+    {
+        if (coordinator != null && !coordinator.TryAcquireUnclaimedControl() && pickup != null)
+            pickup.Drop();
+    }
     public void RestoreInitialPose()
     {
         if (pickup != null && pickup.IsHeld && Networking.IsOwner(gameObject)) pickup.Drop();

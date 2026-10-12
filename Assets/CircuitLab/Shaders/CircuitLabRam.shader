@@ -16,9 +16,10 @@ Shader "VrcCpuWorld/CircuitLabRam"
             #pragma fragment frag
             #pragma target 3.5
             #include "UnityCG.cginc"
+            #define RAM_TEXTURE_WIDTH 32
             sampler2D _MainTex, _StateTex, _InitialRAM;
             int _Mode, _Reset, _TextureWidth, _NodeCount, _RamWriteEnableSignal;
-            float4 _RamWriteAddressA, _RamWriteAddressB, _RamWriteDataA, _RamWriteDataB;
+            float4 _RamWriteAddressA, _RamWriteAddressB, _RamWriteAddressC, _RamWriteDataA, _RamWriteDataB;
             float4 _MainTex_TexelSize;
 
             uint SignalBit(float id)
@@ -27,16 +28,26 @@ Shader "VrcCpuWorld/CircuitLabRam"
                 return tex2Dlod(_StateTex, float4((id + 0.5) / _TextureWidth, 0.5, 0, 0)).r > 0.5 ? 1u : 0u;
             }
 
-            float AddressSignal(float4 a, float4 b, int bit)
+            float AddressSignal(float4 a, float4 b, float4 c, int bit)
             {
-                return bit < 4 ? a[bit & 3] : b[bit & 3];
+                if (bit < 4) return a[bit & 3];
+                if (bit < 8) return b[bit & 3];
+                return c[bit & 3];
             }
 
-            uint ReadBus(float4 a, float4 b, int bits)
+            uint ReadBus(float4 a, float4 b, float4 c, int bits)
+            {
+                uint value = 0u;
+                [unroll] for (int bit = 0; bit < 10; bit++)
+                    if (bit < bits) value |= SignalBit(AddressSignal(a, b, c, bit)) << bit;
+                return value;
+            }
+
+            uint ReadData(float4 a, float4 b)
             {
                 uint value = 0u;
                 [unroll] for (int bit = 0; bit < 8; bit++)
-                    if (bit < bits) value |= SignalBit(AddressSignal(a, b, bit)) << bit;
+                    value |= SignalBit(bit < 4 ? a[bit & 3] : b[bit & 3]) << bit;
                 return value;
             }
 
@@ -54,11 +65,11 @@ Shader "VrcCpuWorld/CircuitLabRam"
                 }
                 if (_Reset != 0 || SignalBit(_RamWriteEnableSignal) == 0u) return previous;
 
-                uint address = ReadBus(_RamWriteAddressA, _RamWriteAddressB, 8);
-                uint data = ReadBus(_RamWriteDataA, _RamWriteDataB, 8);
-                uint pixelX = (uint)min(15, (int)(outputUv.x * 16.0));
-                uint pixelY = (uint)min(15, (int)(outputUv.y * 16.0));
-                uint pixelAddress = pixelY * 16u + pixelX;
+                uint address = ReadBus(_RamWriteAddressA, _RamWriteAddressB, _RamWriteAddressC, 10);
+                uint data = ReadData(_RamWriteDataA, _RamWriteDataB);
+                uint pixelX = (uint)min(RAM_TEXTURE_WIDTH - 1, (int)(outputUv.x * RAM_TEXTURE_WIDTH));
+                uint pixelY = (uint)min(RAM_TEXTURE_WIDTH - 1, (int)(outputUv.y * RAM_TEXTURE_WIDTH));
+                uint pixelAddress = pixelY * RAM_TEXTURE_WIDTH + pixelX;
                 if (pixelAddress != address) return previous;
                 return float4(data / 255.0, 0, 0, 1);
             }
