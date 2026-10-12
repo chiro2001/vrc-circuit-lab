@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "adaptiveSettle": true,
+  "settlePasses": 43,
+  "clockSettlePasses": 2,
+  "depthCurrent": 29,
+  "depthLearned": 23,
+  "depthNeeded": 23,
+  "samples": 53,
+  "truncations": 0,
+  "truncationDepth": 0,
+  "truncationCycle": 0,
+  "margin": 6,
+  "cycles": 56428,
+  "program": "Running light"
+}

@@ -24,8 +24,10 @@ Shader "VrcCpuWorld/CircuitLabSim"
             int _NodeCount, _TextureWidth, _Mode, _InputMask;
             // Measurement probes, both disabled (0) in every shipped configuration.
             // _ProbeMode 1 skips the whole node evaluation for blit-cost baselines.
-            // _TrackChanges stores the last pass index that changed a node in .g,
-            // which is how the settle depth actually needed per phase is measured.
+            // _TrackChanges makes .g carry how many passes a node has held its value
+            // (its quiet streak) and .b carry the window minimum of that streak. The
+            // solver reads them back to learn how deep a settle really had to run, so
+            // waves that converge early do not pay for the full combinational depth.
             int _TrackChanges, _PassIndex, _ProbeMode;
             float4 _RomAddressA, _RomAddressB, _RomAddressC;
             float4 _RamReadAddressA, _RamReadAddressB, _RamReadAddressC;
@@ -95,6 +97,9 @@ Shader "VrcCpuWorld/CircuitLabSim"
                     else value = Bit(id);
                 }
                 else if (_Mode == 0) value = 0u;
+                // Mode 5 rewrites each node with its own value: a self copy used to
+                // restart the probe window without disturbing the logic state.
+                else if (_Mode == 5) value = Bit(id);
                 // Mode 2 reads every D from the same old state, so all DFFs commit atomically.
                 else if (op == 3u) value = _Mode == 2 ? Bit(instruction.y) : Bit(id);
                 else if (_Mode == 2) value = Bit(id);
@@ -116,16 +121,20 @@ Shader "VrcCpuWorld/CircuitLabSim"
                     else if (op == 16u) value = RamBit((uint)round(instruction.y));
                 }
                 float4 result = float4(value, 0, 0, 1);
-                if (_TrackChanges != 0)
+                // The probe window restart must work even while change tracking is
+                // off, so a later window never inherits a stale minimum.
+                if (_Mode == 5) { result.g = 0.0; result.b = 1.0; }
+                else if (_TrackChanges != 0)
                 {
                     float4 previousSelf = tex2Dlod(_MainTex, float4((id + 0.5) / _TextureWidth, 0.5, 0, 0));
                     uint previousValue = previousSelf.r > 0.5 ? 1u : 0u;
-                    // Pass 0 re-seeds the carry so a fresh settle cannot inherit a
-                    // stale depth from the previous phase.
-                    float carried = _PassIndex == 0 ? 0.0 : previousSelf.g;
                     // The state texture is ARGB32 (8 bits per channel), so the pass
-                    // index is carried as (index + 1) / 255 to survive the quantization.
-                    result.g = previousValue == value ? carried : (_PassIndex + 1) / 255.0;
+                    // counter is kept in 1/255 steps and saturates at 1.0.
+                    float streak = previousValue == value ? min(previousSelf.g + (1.0 / 255.0), 1.0) : 0.0;
+                    result.g = streak;
+                    result.b = previousSelf.b;
+                    if (_Mode == 2) result.g = 0.0;                       // register commit restarts the streak
+                    else if (_Mode == 6) result.b = min(previousSelf.b, streak);  // fold the window minimum
                 }
                 return result;
             }

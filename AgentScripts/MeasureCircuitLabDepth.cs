@@ -290,6 +290,30 @@ public static class MeasureCircuitLabDepth
         });
     }
 
+    // Adaptive settle status: the depth currently used versus the full depth, plus
+    // how deep the probe measured and whether any window was ever truncated.
+    public static object AdaptiveStatus()
+    {
+        UdonBehaviour sim = Vm();
+        return Save("perf-adaptive", new
+        {
+            passed = true,
+            adaptiveSettle = Convert.ToBoolean(sim.GetProgramVariable("adaptiveSettle")),
+            settlePasses = Convert.ToInt32(sim.GetProgramVariable("settlePasses")),
+            clockSettlePasses = Convert.ToInt32(sim.GetProgramVariable("clockSettlePasses")),
+            depthCurrent = Convert.ToInt32(sim.GetProgramVariable("settleDepthCurrent")),
+            depthLearned = Convert.ToInt32(sim.GetProgramVariable("settleDepthLearned")),
+            depthNeeded = Convert.ToInt32(sim.GetProgramVariable("settleDepthNeeded")),
+            samples = Convert.ToInt32(sim.GetProgramVariable("settleProbeSamples")),
+            truncations = Convert.ToInt32(sim.GetProgramVariable("settleTruncations")),
+            truncationDepth = Convert.ToInt32(sim.GetProgramVariable("settleTruncationDepth")),
+            truncationCycle = Convert.ToInt32(sim.GetProgramVariable("settleTruncationCycle")),
+            margin = Convert.ToInt32(sim.GetProgramVariable("settleDepthMargin")),
+            cycles = Convert.ToInt32(sim.GetProgramVariable("cycleCount")),
+            program = Convert.ToString(sim.GetProgramVariable("activeProgramName"))
+        });
+    }
+
     // Why would the terminal never read back? FinishCapture() waits on it, and a
     // terminal that never advances freezes SubmissionBlocked() forever.
     public static object TerminalHealth()

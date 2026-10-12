@@ -1470,6 +1470,16 @@ public static class BuildCircuitLab
         Undo.RecordObject(simulator, "Adopt half-phase settle depths");
         simulator.settlePasses = (int)data["settlePasses"];
         simulator.clockSettlePasses = (int?)data["clockSettlePasses"] ?? 2;
+        // Adaptive settle: learn the depth each phase actually needs from the GPU
+        // probe channels, then stop paying for the full combinational depth.
+        simulator.adaptiveSettle = true;
+        simulator.settleDepthMargin = 6;
+        simulator.settleMinDepth = 5;
+        simulator.settleLearnWindows = 2;
+        simulator.settleDepthCurrent = simulator.settlePasses;
+        simulator.settleDepthLearned = 0;
+        simulator.settleTruncations = 0;
+        simulator.trackSettlePasses = false;
         UdonSharpEditorUtility.CopyProxyToUdon(simulator);
         EditorUtility.SetDirty(simulator);
         EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(simulator));

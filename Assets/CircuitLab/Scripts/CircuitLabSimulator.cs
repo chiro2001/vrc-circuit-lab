@@ -75,6 +75,22 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     // from the netlist's clock cone of influence, so it is a proven bound rather
     // than a guess; the full depth is used whenever any other input changed.
     public int clockSettlePasses = 2;
+    // Early exit for the register-commit settle. The GPU reports, through the .g/.b
+    // channels of the state texture, how many passes each phase actually needed;
+    // the solver learns that depth from the existing telemetry readback and stops
+    // paying for the full combinational depth on every cycle. The clock-low settle
+    // is already cut analytically (clockSettlePasses), this covers the deep phase.
+    public bool adaptiveSettle = true;
+    public int settleDepthMargin = 6;
+    public int settleMinDepth = 5;
+    public int settleLearnWindows = 2;
+    public int settleDepthCurrent;
+    public int settleDepthLearned;
+    public int settleDepthNeeded;
+    public int settleTruncations;
+    public int settleTruncationDepth;
+    public int settleTruncationCycle;
+    public int settleProbeSamples;
     // Measurement probe: when set, each settle pass publishes its index to the
     // simulation shader's .g channel so the depth a phase actually needed can be
     // read back and histogrammed. Shipped configurations leave this off.
@@ -258,6 +274,15 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     private RenderTexture _lastPublishedState;
     private bool _ramUniformsReady;
     private int _ramResetFlag = -1;
+    // Cached _Mode, so a settle does not re-issue the same SetInt 45 times per cycle.
+    private int _stateMode = -1;
+    // Adaptive settle bookkeeping.
+    private int _adaptiveDepth = -1;
+    private int _windowDepth;
+    private int _learnWindowsLeft;
+    private int _cyclesSinceProbe;
+    private int _probeCycles;
+    private bool _probePending;
     public int sharedRestoreRevision;
 
     public void CopySnapshotMetadata()
@@ -503,6 +528,9 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     {
         EnsureQueues();
         _initialized = true;
+        _adaptiveDepth = settlePasses;
+        _learnWindowsLeft = Mathf.Max(1, settleLearnWindows);
+        settleDepthCurrent = settlePasses;
         _configurationValid = ValidConfiguration();
         if (!_configurationValid)
         {
@@ -648,6 +676,11 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         if (currentRam != null) historyMaterial.SetTexture("_RamTex", currentRam);
         UpdateMemoryUniforms();
         UpdateProbeUniforms();
+        // Re-assert the shader mode next pass: an external owner (an editor asset
+        // refresh, or a validation harness) may have changed it since the last pass.
+        _stateMode = -1;
+        if (simulationMaterial != null)
+            simulationMaterial.SetInt("_TrackChanges", adaptiveSettle && !testRunning ? 1 : 0);
         // Display and wire materials declare _StateTex as a shader property, so an
         // editor asset refresh keeps that binding; rebinding them every frame both
         // cost time and dirtied the shared material assets during Play Mode.
@@ -656,13 +689,21 @@ public class CircuitLabSimulator : UdonSharpBehaviour
 
     private void StatePass(int mode)
     {
-        simulationMaterial.SetInt("_Mode", mode);
+        // The mode only changes a handful of times per cycle, so the 45+ settle
+        // passes reuse one SetInt instead of one each.
+        if (_stateMode != mode)
+        {
+            simulationMaterial.SetInt("_Mode", mode);
+            _stateMode = mode;
+        }
         VRCGraphics.Blit(_readState, _writeState, simulationMaterial);
         RenderTexture previous = _readState;
         _readState = _writeState;
         _writeState = previous;
         currentState = _readState;
-        if (displayMaterial != null) displayMaterial.SetTexture("_StateTex", _readState);
+        // No display rebinding here: every cycle ends on StateA (the pass count is
+        // kept even for exactly that reason) and that is the texture the authored
+        // display and wire materials already point at.
     }
 
     private void BuildRestoreStateTexture(int[] dffWords)
@@ -687,16 +728,68 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         simulationMaterial.SetTexture("_RestoreState", restoreStateTexture);
     }
 
-    private void Settle() { Settle(settlePasses); }
+    private void Settle() { Settle(settlePasses, false); }
 
-    private void Settle(int passes)
+    private void Settle(int passes) { Settle(passes, false); }
+
+    private void Settle(int passes, bool foldProbe)
     {
         if (currentRam != null) simulationMaterial.SetTexture("_RamTex", currentRam);
         for (int i = 0; i < passes; i++)
         {
             if (trackSettlePasses) simulationMaterial.SetInt("_PassIndex", i + 1);
-            StatePass(1);
+            // Mode 6 evaluates normally and folds the quiet streak into the probe
+            // window minimum, so the last pass of a settle carries the answer.
+            StatePass(foldProbe && i == passes - 1 ? 6 : 1);
         }
+    }
+
+    // Depth for the register-commit settle. Always kept so that
+    // (clock passes + commit + depth) is even: a cycle must end on StateA, which is
+    // the texture the authored display and wire materials are bound to.
+    private int HighSettleDepth(int lowPasses)
+    {
+        int depth = settlePasses;
+        if (adaptiveSettle && !trackSettlePasses && !testRunning
+            && settlePasses > settleMinDepth && _learnWindowsLeft <= 0)
+            depth = Mathf.Clamp(_adaptiveDepth, settleMinDepth, settlePasses);
+        if (((lowPasses + 1 + depth) & 1) != 0) depth = Mathf.Min(depth + 1, settlePasses);
+        if (((lowPasses + 1 + depth) & 1) != 0) depth = Mathf.Max(settleMinDepth, depth - 1);
+        return depth;
+    }
+
+    // Restarts the probe window: two self-copy passes clear the window minimum in
+    // .b and land the state back on StateA.
+    private void ResetSettleProbe()
+    {
+        StatePass(5);
+        StatePass(5);
+        _cyclesSinceProbe = 0;
+    }
+
+    private void ApplySettleProbe(int minStreak)
+    {
+        settleProbeSamples++;
+        int needed = _windowDepth - minStreak;
+        settleDepthNeeded = needed;
+        if (minStreak <= 0)
+        {
+            // Some node still changed on the final pass, so the window ran shallower
+            // than the circuit needed: go back to full depth and re-learn.
+            settleTruncations++;
+            settleTruncationDepth = _windowDepth;
+            settleTruncationCycle = cycleCount;
+            settleDepthLearned = 0;
+            _learnWindowsLeft = Mathf.Max(2, settleLearnWindows);
+            _adaptiveDepth = settlePasses;
+        }
+        else
+        {
+            if (needed > settleDepthLearned) settleDepthLearned = needed;
+            if (_learnWindowsLeft > 0) _learnWindowsLeft--;
+            _adaptiveDepth = Mathf.Clamp(settleDepthLearned + settleDepthMargin, settleMinDepth, settlePasses);
+        }
+        settleDepthCurrent = HighSettleDepth(clockSettlePasses);
     }
 
     private void RestartState()
@@ -727,6 +820,20 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         simulationMaterial.SetInt("_InputMask", currentInputMask);
         Settle();
         _lastSettledInputMask = currentInputMask;
+        // A fresh program has a new depth profile: learn it again at full depth.
+        _adaptiveDepth = settlePasses;
+        _learnWindowsLeft = Mathf.Max(1, settleLearnWindows);
+        _cyclesSinceProbe = 0;
+        _probePending = false;
+        settleDepthLearned = 0;
+        settleDepthNeeded = 0;
+        settleTruncations = 0;
+        settleTruncationDepth = 0;
+        settleTruncationCycle = 0;
+        settleDepthCurrent = settlePasses;
+        // Clear the probe window so the new program cannot inherit a stale minimum
+        // (which would read as a false truncation on its first sample).
+        ResetSettleProbe();
         // Every state pass count in this file is even per cycle, so a finished cycle
         // always leaves the live state in StateA — the texture the authored display
         // and wire materials already point at. Recording that here means the display
@@ -797,6 +904,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         // Intermediate propagation passes are never recorded: this is a binary, zero-delay clock model.
         int lowMask = mask & ~1;
         bool otherInputsChanged = (_lastSettledInputMask & ~1) != lowMask;
+        int lowPasses = otherInputsChanged ? settlePasses + 1 : clockSettlePasses;
         simulationMaterial.SetInt("_InputMask", lowMask);
         // Lowering the clock only perturbs the clock node's cone of influence; the
         // rest of the circuit still holds the fixed point from the previous high
@@ -805,14 +913,17 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         // leaves the live state in StateA — the texture the authored display and
         // wire materials point at. That invariant is what lets the runtime skip
         // rebinding ~50 materials per cycle (and keeps Play Mode from dirtying them).
-        Settle(otherInputsChanged ? settlePasses + 1 : clockSettlePasses);
+        Settle(lowPasses);
         RecordStableHalfCycle();
         simulationMaterial.SetInt("_InputMask", mask | 1);
         // Pass 0 is the register commit, the origin every settle depth is measured from.
         if (trackSettlePasses) simulationMaterial.SetInt("_PassIndex", 0);
         StatePass(2);
         RamPass(_writeState, (mask & 2) != 0);
-        Settle();
+        int highDepth = HighSettleDepth(lowPasses);
+        _windowDepth = highDepth;
+        _cyclesSinceProbe++;
+        Settle(highDepth, adaptiveSettle && !trackSettlePasses && !testRunning);
         _lastSettledInputMask = mask | 1;
         RecordStableHalfCycle();
         cycleCount++;
@@ -940,6 +1051,16 @@ public class CircuitLabSimulator : UdonSharpBehaviour
             _telemetryRequested = false;
             _nextTelemetryAt = now + Mathf.Max(0.1f, telemetryInterval);
             RequestReadback(false);
+            // The settle probe rides the telemetry readback: the request above
+            // captures the window minimum from .b, then the window restarts. No extra
+            // readback and no extra stall, and the samples cover every cycle in the
+            // window rather than one lucky cycle.
+            if (adaptiveSettle && _cyclesSinceProbe >= 4)
+            {
+                _probePending = true;
+                _probeCycles = _cyclesSinceProbe;
+                ResetSettleProbe();
+            }
         }
         UpdateWaveformUniforms();
         UpdateRateTelemetry(now);
@@ -1274,6 +1395,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         {
             readbackPending = false;
             _readbackStage = 0;
+            _probePending = false;
             running = false;
             testRunning = false;
             statusCode = 4;
@@ -1330,6 +1452,18 @@ public class CircuitLabSimulator : UdonSharpBehaviour
                 string result = mismatchCount == 0 ? "PASS" : "FAIL";
                 Debug.Log("CIRCUIT_LAB_SELF_TEST_" + result + " run=" + selfTestRunId + " vectors=" + completedVectors + " compared_bits=" + lastSelfTestComparedBits + " mismatches=" + mismatchCount + " elapsed_ms=" + elapsedMilliseconds);
             }
+        }
+        else if (_probePending)
+        {
+            _probePending = false;
+            int minStreak = 255;
+            int limit = Mathf.Min(nodeCount, _pixels.Length);
+            for (int id = 0; id < limit; id++)
+            {
+                int quiet = Mathf.Min(_pixels[id].b, _pixels[id].g);
+                if (quiet < minStreak) minStreak = quiet;
+            }
+            if (_probeCycles >= 4) ApplySettleProbe(minStreak);
         }
         _readbackStage = 2;
         VRCAsyncGPUReadback.Request(currentRam, 0, this);
@@ -1490,7 +1624,8 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         string text = state + " | TARGET " + cyclesPerSecond + " Hz | ACTUAL " + Mathf.Round(actualCyclesPerSecond * 10f) / 10f + " Hz"
             + "\nCYCLE " + cycleCount + "  LAG " + catchupLag + " cycles  PHASE " + observedPhase
             + "\nPC " + observedPc + "  ACC " + observedAcc + "  X " + observedX + "  OUT " + observedOut
-            + "  Z" + observedZero + " C" + observedCarry + " HALT" + observedHalt;
+            + "  Z" + observedZero + " C" + observedCarry + " HALT" + observedHalt
+            + (adaptiveSettle ? "  DEPTH " + HighSettleDepth(clockSettlePasses) + "/" + settlePasses : "");
         if (simHudText != null) simHudText.text = text;
         if (statusText != null && statusText != simHudText)
         {
