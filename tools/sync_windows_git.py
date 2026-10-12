@@ -52,7 +52,7 @@ def main():
                     tar.add(ROOT / path, arcname=path)
             for file in stage.iterdir():
                 subprocess.run(["scp", "-q", "-o", "BatchMode=yes", "-o", "LogLevel=ERROR", str(file), options.host + ":" + remote_stage.replace("\\", "/") + "/" + file.name], check=True)
-        result = checked_pwsh(f"""
+        sync_script = f"""
 Set-Location -LiteralPath {pwsh_literal(options.project_path)}
 $stage = {pwsh_literal(remote_stage)}
 $expected = Get-Content -Raw (Join-Path $stage 'files.json') | ConvertFrom-Json -AsHashtable
@@ -97,7 +97,15 @@ $actual = (& git rev-parse HEAD).Trim()
 $status = @(& git status --porcelain)
 if ($actual -ne {pwsh_literal(head)} -or $status.Count -ne 0) {{ throw "Windows Git is not clean: $($status -join ', ')" }}
 [pscustomobject]@{{ synced=$true; windowsHead=$actual; githubHead={pwsh_literal(head)}; origin={pwsh_literal(url)}; unityAssetsRewritten=$false }} | ConvertTo-Json
-""", options.host)
+"""
+        # Windows OpenSSH may launch commands through cmd.exe, whose 8191-character
+        # limit is easily exceeded by a UTF-16/base64 encoded alignment script.
+        with tempfile.TemporaryDirectory(prefix="git-sync-script-", dir=TASK_TMP) as temporary:
+            script_path = Path(temporary) / "align.ps1"
+            script_path.write_text(sync_script, encoding="utf-8")
+            remote_script = remote_stage.replace("\\", "/") + "/align.ps1"
+            subprocess.run(["scp", "-q", "-o", "BatchMode=yes", "-o", "LogLevel=ERROR", str(script_path), options.host + ":" + remote_script], check=True)
+        result = checked_pwsh("& " + pwsh_literal(remote_script), options.host)
         print(result)
     finally:
         checked_pwsh(f"Remove-Item -LiteralPath {pwsh_literal(remote_stage)} -Recurse -Force", options.host)
