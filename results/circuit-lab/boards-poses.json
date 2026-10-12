@@ -1,0 +1,1247 @@
+{
+  "passed": true,
+  "scene": "Assets/CircuitLab/Scenes/CircuitLab.unity",
+  "movedModules": 14,
+  "movedTools": 8,
+  "modules": [
+    {
+      "key": "module:teaching_cpu",
+      "position": [
+        -4.518,
+        2.319,
+        0.5
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ],
+      "positionDelta": 0.845922768,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": true,
+      "initialExpanded": true,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "",
+      "dockLocalPosition": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "localPosition": [
+        -4.518,
+        2.319,
+        0.5
+      ],
+      "dockPositionDelta": 5.10294867
+    },
+    {
+      "key": "module:teaching_cpu/alu",
+      "position": [
+        -6.25,
+        5.71,
+        2.861
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 2.90225816,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": true,
+      "initialExpanded": true,
+      "detached": true,
+      "initialDetached": true,
+      "logicalParent": "teaching_cpu",
+      "dockLocalPosition": [
+        -1.48,
+        1.8,
+        -0.22
+      ],
+      "localPosition": [
+        -6.25,
+        5.71,
+        2.861
+      ],
+      "dockPositionDelta": 6.894459
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder",
+      "position": [
+        -7.74359226,
+        4.165,
+        2.95034385
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.90175271,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": true,
+      "initialExpanded": true,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu",
+      "dockLocalPosition": [
+        -1.48,
+        -1.54500008,
+        -0.22
+      ],
+      "localPosition": [
+        -1.48000014,
+        -1.54499984,
+        -0.219999984
+      ],
+      "dockPositionDelta": 2.66976258E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa0",
+      "position": [
+        -8.370901,
+        4.1545,
+        2.98786831
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.90154171,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu/adder",
+      "dockLocalPosition": [
+        -1.48,
+        -0.0250000954,
+        -0.22
+      ],
+      "localPosition": [
+        -1.48000062,
+        -0.0250001755,
+        -0.220000282
+      ],
+      "dockPositionDelta": 6.647138E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa1",
+      "position": [
+        -7.762611,
+        4.1545,
+        2.85992241
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.90163922,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu/adder",
+      "dockLocalPosition": [
+        0.0,
+        -0.0250000954,
+        -0.22
+      ],
+      "localPosition": [
+        5.676633E-07,
+        -0.0250001755,
+        -0.22
+      ],
+      "dockPositionDelta": 5.732858E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa2",
+      "position": [
+        -7.15432167,
+        4.1545,
+        2.73197651
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.90173745,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu/adder",
+      "dockLocalPosition": [
+        1.48,
+        -0.0250000954,
+        -0.22
+      ],
+      "localPosition": [
+        1.48000038,
+        -0.0250001755,
+        -0.22
+      ],
+      "dockPositionDelta": 3.66486972E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa3",
+      "position": [
+        -8.370901,
+        3.8017,
+        2.98786831
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.90154171,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu/adder",
+      "dockLocalPosition": [
+        -1.48,
+        -0.865000069,
+        -0.22
+      ],
+      "localPosition": [
+        -1.48000062,
+        -0.8650002,
+        -0.220000282
+      ],
+      "dockPositionDelta": 6.70552254E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa4",
+      "position": [
+        -7.762611,
+        3.8017,
+        2.85992241
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.90163922,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu/adder",
+      "dockLocalPosition": [
+        0.0,
+        -0.865000069,
+        -0.22
+      ],
+      "localPosition": [
+        5.676633E-07,
+        -0.8650002,
+        -0.22
+      ],
+      "dockPositionDelta": 5.800452E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa5",
+      "position": [
+        -7.15432167,
+        3.8017,
+        2.73197651
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.90173745,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu/adder",
+      "dockLocalPosition": [
+        1.48,
+        -0.865000069,
+        -0.22
+      ],
+      "localPosition": [
+        1.48000038,
+        -0.8650002,
+        -0.22
+      ],
+      "dockPositionDelta": 3.76972878E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa6",
+      "position": [
+        -8.370901,
+        3.44890022,
+        2.98786831
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.90154171,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu/adder",
+      "dockLocalPosition": [
+        -1.48,
+        -1.705,
+        -0.22
+      ],
+      "localPosition": [
+        -1.48000062,
+        -1.70499992,
+        -0.220000282
+      ],
+      "dockPositionDelta": 6.70552254E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa7",
+      "position": [
+        -7.762611,
+        3.44890022,
+        2.85992241
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.90163922,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu/adder",
+      "dockLocalPosition": [
+        0.0,
+        -1.705,
+        -0.22
+      ],
+      "localPosition": [
+        5.676633E-07,
+        -1.70499992,
+        -0.22
+      ],
+      "dockPositionDelta": 5.800452E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/bit_and",
+      "position": [
+        -6.29528332,
+        4.165,
+        2.64571071
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.901987,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu",
+      "dockLocalPosition": [
+        0.0,
+        -1.54500008,
+        -0.22
+      ],
+      "localPosition": [
+        -1.49011612E-08,
+        -1.54499984,
+        -0.220000088
+      ],
+      "dockPositionDelta": 2.550668E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/bit_or",
+      "position": [
+        -4.84697437,
+        4.165,
+        2.341078
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.902225,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu",
+      "dockLocalPosition": [
+        1.48,
+        -1.54500008,
+        -0.22
+      ],
+      "localPosition": [
+        1.48000014,
+        -1.54499984,
+        -0.219999969
+      ],
+      "dockPositionDelta": 2.682209E-07
+    },
+    {
+      "key": "module:teaching_cpu/alu/bit_xor",
+      "position": [
+        -7.74359226,
+        3.32500029,
+        2.95034385
+      ],
+      "rotation": [
+        0.0,
+        0.103471935,
+        0.0,
+        0.9946324
+      ],
+      "scale": [
+        0.42,
+        0.42,
+        0.42
+      ],
+      "positionDelta": 2.901753,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": false,
+      "initialDetached": false,
+      "logicalParent": "teaching_cpu/alu",
+      "dockLocalPosition": [
+        -1.48,
+        -2.38500023,
+        -0.22
+      ],
+      "localPosition": [
+        -1.48000014,
+        -2.38499975,
+        -0.219999984
+      ],
+      "dockPositionDelta": 4.917383E-07
+    },
+    {
+      "key": "module:teaching_cpu/control",
+      "position": [
+        4.65,
+        2.7,
+        2.3
+      ],
+      "rotation": [
+        0.0,
+        -0.104528464,
+        0.0,
+        0.9945219
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": false,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": true,
+      "initialDetached": true,
+      "logicalParent": "teaching_cpu",
+      "dockLocalPosition": [
+        0.0,
+        1.8,
+        -0.22
+      ],
+      "localPosition": [
+        4.65,
+        2.7,
+        2.3
+      ],
+      "dockPositionDelta": 5.36496973
+    },
+    {
+      "key": "module:teaching_cpu/output_unit",
+      "position": [
+        -4.65,
+        1.05,
+        2.3
+      ],
+      "rotation": [
+        0.0,
+        0.104528464,
+        0.0,
+        0.9945219
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": false,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": true,
+      "initialDetached": true,
+      "logicalParent": "teaching_cpu",
+      "dockLocalPosition": [
+        1.48,
+        1.8,
+        -0.22
+      ],
+      "localPosition": [
+        -4.65,
+        1.05,
+        2.3
+      ],
+      "dockPositionDelta": 6.670068
+    },
+    {
+      "key": "module:teaching_cpu/pc_unit",
+      "position": [
+        4.65,
+        1.05,
+        2.3
+      ],
+      "rotation": [
+        0.0,
+        -0.104528464,
+        0.0,
+        0.9945219
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": false,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": true,
+      "initialDetached": true,
+      "logicalParent": "teaching_cpu",
+      "dockLocalPosition": [
+        -1.48,
+        2.62,
+        -0.22
+      ],
+      "localPosition": [
+        4.65,
+        1.05,
+        2.3
+      ],
+      "dockPositionDelta": 6.811182
+    },
+    {
+      "key": "module:teaching_cpu/ram",
+      "position": [
+        -7.85,
+        1.35,
+        2.8
+      ],
+      "rotation": [
+        0.0,
+        0.104528464,
+        0.0,
+        0.9945219
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": false,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": true,
+      "initialDetached": true,
+      "logicalParent": "teaching_cpu",
+      "dockLocalPosition": [
+        0.0,
+        2.62,
+        -0.22
+      ],
+      "localPosition": [
+        -7.85,
+        1.35,
+        2.8
+      ],
+      "dockPositionDelta": 8.506221
+    },
+    {
+      "key": "module:teaching_cpu/registers",
+      "position": [
+        -7.85,
+        1.35,
+        2.8
+      ],
+      "rotation": [
+        0.0,
+        0.104528464,
+        0.0,
+        0.9945219
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": false,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": true,
+      "initialDetached": true,
+      "logicalParent": "teaching_cpu",
+      "dockLocalPosition": [
+        1.48,
+        2.62,
+        -0.22
+      ],
+      "localPosition": [
+        -7.85,
+        1.35,
+        2.8
+      ],
+      "dockPositionDelta": 9.888488
+    },
+    {
+      "key": "module:teaching_cpu/rom",
+      "position": [
+        7.85,
+        1.35,
+        2.8
+      ],
+      "rotation": [
+        0.0,
+        -0.104528464,
+        0.0,
+        0.9945219
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": false,
+      "expanded": false,
+      "initialExpanded": false,
+      "detached": true,
+      "initialDetached": true,
+      "logicalParent": "teaching_cpu",
+      "dockLocalPosition": [
+        -1.48,
+        3.44,
+        -0.22
+      ],
+      "localPosition": [
+        7.85,
+        1.35,
+        2.8
+      ],
+      "dockPositionDelta": 10.0268335
+    }
+  ],
+  "tools": [
+    {
+      "key": "tool:AboutPanel",
+      "position": [
+        -13.7035942,
+        3.25,
+        -13.5026531
+      ],
+      "rotation": [
+        0.0,
+        -0.7933456,
+        0.0,
+        0.6087715
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 8.290148,
+      "rotationDelta": 44.9985466,
+      "scaleDelta": 0.0,
+      "moved": true
+    },
+    {
+      "key": "tool:HierarchyPanel",
+      "position": [
+        -7.5,
+        1.95,
+        -1.4
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": false
+    },
+    {
+      "key": "tool:IsaManualPanel",
+      "position": [
+        -12.39,
+        3.6,
+        -0.25
+      ],
+      "rotation": [
+        0.0,
+        -0.46174863,
+        0.0,
+        0.8870109
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 5.81847048,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true
+    },
+    {
+      "key": "tool:LedOutputPanel",
+      "position": [
+        7.92,
+        6.982,
+        0.84
+      ],
+      "rotation": [
+        0.0,
+        -0.341969222,
+        0.0,
+        -0.9397112
+      ],
+      "scale": [
+        0.7,
+        0.7,
+        0.7
+      ],
+      "positionDelta": 15.694685,
+      "rotationDelta": 74.9937744,
+      "scaleDelta": 0.5196153,
+      "moved": true
+    },
+    {
+      "key": "tool:LifeOutputPanel",
+      "position": [
+        10.95509,
+        3.6,
+        -12.3388815
+      ],
+      "rotation": [
+        0.0,
+        0.843369246,
+        0.0,
+        0.537334561
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 17.7824516,
+      "rotationDelta": 74.99524,
+      "scaleDelta": 0.0,
+      "moved": true
+    },
+    {
+      "key": "tool:MovableWaveformPanel",
+      "position": [
+        0.0,
+        3.75,
+        1.6
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": false
+    },
+    {
+      "key": "tool:ProbeAndHierarchyRack",
+      "position": [
+        0.0,
+        0.92,
+        -1.17
+      ],
+      "rotation": [
+        0.537299633,
+        0.0,
+        0.0,
+        0.8433914
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": false
+    },
+    {
+      "key": "tool:ProgramBrowserPanel",
+      "position": [
+        12.195941,
+        3.75,
+        -5.58
+      ],
+      "rotation": [
+        0.0,
+        0.707054436,
+        0.0,
+        0.7071592
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 0.230035827,
+      "rotationDelta": 29.99148,
+      "scaleDelta": 0.0,
+      "moved": true
+    },
+    {
+      "key": "tool:ProgramPanel",
+      "position": [
+        -14.56,
+        3.7,
+        -7.02
+      ],
+      "rotation": [
+        0.0,
+        -0.7070666,
+        0.0,
+        0.707147
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 7.09774637,
+      "rotationDelta": 29.9934883,
+      "scaleDelta": 0.0,
+      "moved": true
+    },
+    {
+      "key": "tool:StateTablet",
+      "position": [
+        11.89,
+        3.2,
+        2.63
+      ],
+      "rotation": [
+        0.0,
+        0.5,
+        0.0,
+        0.8660254
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 3.03199625,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true
+    },
+    {
+      "key": "tool:TerminalPanel",
+      "position": [
+        4.642,
+        6.04,
+        2.24
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "positionDelta": 4.866761,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "moved": true
+    }
+  ],
+  "probes": [
+    {
+      "key": "probe:0",
+      "position": [
+        -1.45,
+        1.16,
+        -1.82
+      ],
+      "rackAnchor": [
+        -1.45,
+        0.995607,
+        -1.48110056
+      ],
+      "rackAnchorLocal": [
+        -1.45,
+        -0.25,
+        -0.2
+      ],
+      "rackAnchorExpectedLocal": [
+        -1.45,
+        -0.25,
+        -0.2
+      ]
+    },
+    {
+      "key": "probe:1",
+      "position": [
+        -0.480000019,
+        1.16,
+        -1.82
+      ],
+      "rackAnchor": [
+        -0.480000019,
+        0.995607,
+        -1.48110056
+      ],
+      "rackAnchorLocal": [
+        -0.480000019,
+        -0.25,
+        -0.2
+      ],
+      "rackAnchorExpectedLocal": [
+        -0.480000019,
+        -0.25,
+        -0.2
+      ]
+    },
+    {
+      "key": "probe:2",
+      "position": [
+        0.49,
+        1.16,
+        -1.82
+      ],
+      "rackAnchor": [
+        0.49,
+        0.995607,
+        -1.48110056
+      ],
+      "rackAnchorLocal": [
+        0.49,
+        -0.25,
+        -0.2
+      ],
+      "rackAnchorExpectedLocal": [
+        0.49,
+        -0.25,
+        -0.2
+      ]
+    },
+    {
+      "key": "probe:3",
+      "position": [
+        1.46,
+        1.16,
+        -1.82
+      ],
+      "rackAnchor": [
+        1.46,
+        0.995607,
+        -1.48110056
+      ],
+      "rackAnchorLocal": [
+        1.46,
+        -0.25,
+        -0.2
+      ],
+      "rackAnchorExpectedLocal": [
+        1.46,
+        -0.25,
+        -0.2
+      ]
+    }
+  ],
+  "environment": [
+    {
+      "name": "Floor",
+      "position": [
+        0.0,
+        -0.12,
+        2.0
+      ],
+      "euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        100.0,
+        0.2,
+        100.0
+      ]
+    },
+    {
+      "name": "Backdrop",
+      "position": [
+        0.0,
+        5.2,
+        6.0
+      ],
+      "euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        24.0,
+        8.4,
+        0.15
+      ]
+    },
+    {
+      "name": "MainWorkbench",
+      "position": [
+        0.0,
+        0.7,
+        0.7
+      ],
+      "euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        6.4,
+        0.18,
+        3.7
+      ]
+    },
+    {
+      "name": "Spawn",
+      "position": [
+        0.0,
+        0.04,
+        -3.3
+      ],
+      "euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "LabTitle",
+      "position": [
+        0.0,
+        9.0,
+        5.84
+      ],
+      "euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "name": "LabSubtitle",
+      "position": [
+        0.0,
+        8.5,
+        5.82
+      ],
+      "euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    }
+  ]
+}

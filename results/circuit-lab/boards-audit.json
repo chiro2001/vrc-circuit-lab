@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "toolCount": 11,
+  "moduleCount": 20,
+  "overlaps": [],
+  "belowFloor": [],
+  "insideWall": [],
+  "notVisibleFromSpawnArea": [
+    {
+      "key": "MovableWaveformPanel",
+      "visibleFrom": "0/20",
+      "firstBlockers": [
+        "MainWorkbench@5.39",
+        "MainWorkbench@3.30",
+        "MainWorkbench@7.36",
+        "Module_15_output_unit@8.97",
+        "MainWorkbench@3.54",
+        "Module_16_pc_unit@8.97"
+      ]
+    },
+    {
+      "key": "TerminalPanel",
+      "visibleFrom": "0/20",
+      "firstBlockers": [
+        "LedOutputPanel@7.23"
+      ]
+    }
+  ]
+}

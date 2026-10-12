@@ -384,6 +384,341 @@ public static class InspectCircuitLabBoards
 
     // Reloads material assets after the runtime-texture cleanup and saves the
     // authored scene so the snapshot captures a clean, deterministic state.
+    private static JObject Delta(string key, Transform current, Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        return new JObject
+        {
+            ["key"] = key,
+            ["position"] = new JArray(current.position.x, current.position.y, current.position.z),
+            ["rotation"] = new JArray(current.rotation.x, current.rotation.y, current.rotation.z, current.rotation.w),
+            ["scale"] = new JArray(current.localScale.x, current.localScale.y, current.localScale.z),
+            ["positionDelta"] = (current.position - position).magnitude,
+            ["rotationDelta"] = Quaternion.Angle(current.rotation, rotation),
+            ["scaleDelta"] = (current.localScale - scale).magnitude,
+            ["moved"] = (current.position - position).magnitude > .0005f
+                || Quaternion.Angle(current.rotation, rotation) > .01f
+                || (current.localScale - scale).magnitude > .0005f
+        };
+    }
+
+    // Reports every authored pose against its recorded layout default so a manual
+    // editing pass can be reviewed before it is adopted.
+    public static object Poses()
+    {
+        Scene scene = SceneManager.GetSceneByPath(ScenePath);
+        if (!scene.IsValid() || !scene.isLoaded) throw new InvalidOperationException("Open the CircuitLab scene first.");
+        var modules = new JArray();
+        foreach (CircuitLabModule module in Object.FindObjectsOfType<CircuitLabModule>(true)
+            .Where(item => item.gameObject.scene.path == ScenePath).OrderBy(item => item.modulePath))
+        {
+            JObject entry = Delta("module:" + module.modulePath, module.transform,
+                module.initialPosition, module.initialRotation, module.initialScale);
+            entry["expanded"] = module.expanded;
+            entry["initialExpanded"] = module.initialExpanded;
+            entry["detached"] = module.isDetached;
+            entry["initialDetached"] = module.initialDetached;
+            entry["logicalParent"] = module.logicalParent == null ? "" : module.logicalParent.modulePath;
+            entry["dockLocalPosition"] = new JArray(module.dockLocalPosition.x, module.dockLocalPosition.y, module.dockLocalPosition.z);
+            entry["localPosition"] = new JArray(module.transform.localPosition.x, module.transform.localPosition.y, module.transform.localPosition.z);
+            entry["dockPositionDelta"] = (module.transform.localPosition - module.dockLocalPosition).magnitude;
+            modules.Add(entry);
+        }
+        var tools = new JArray();
+        foreach (CircuitLabMovableTool tool in Object.FindObjectsOfType<CircuitLabMovableTool>(true)
+            .Where(item => item.gameObject.scene.path == ScenePath).OrderBy(item => item.name))
+        {
+            tools.Add(Delta("tool:" + tool.name, tool.transform, tool.initialPosition, tool.initialRotation, tool.initialScale));
+        }
+        var probes = new JArray();
+        foreach (CircuitLabProbe probe in Object.FindObjectsOfType<CircuitLabProbe>(true)
+            .Where(item => item.gameObject.scene.path == ScenePath).OrderBy(item => item.channel))
+        {
+            probes.Add(new JObject
+            {
+                ["key"] = "probe:" + probe.channel,
+                ["position"] = new JArray(probe.transform.position.x, probe.transform.position.y, probe.transform.position.z),
+                ["rackAnchor"] = probe.rackAnchor == null ? null : new JArray(probe.rackAnchor.position.x, probe.rackAnchor.position.y, probe.rackAnchor.position.z),
+                ["rackAnchorLocal"] = probe.rackAnchor == null ? null : new JArray(probe.rackAnchor.localPosition.x, probe.rackAnchor.localPosition.y, probe.rackAnchor.localPosition.z),
+                ["rackAnchorExpectedLocal"] = new JArray(-1.45f + probe.channel * .97f, -.25f, -.20f)
+            });
+        }
+        Transform world = World();
+        var environment = new JArray();
+        foreach (string name in new[] { "Floor", "Backdrop", "MainWorkbench", "Spawn", "LabTitle", "LabSubtitle" })
+        {
+            Transform item = world.Find(name);
+            if (item != null) environment.Add(new JObject
+            {
+                ["name"] = name,
+                ["position"] = new JArray(item.position.x, item.position.y, item.position.z),
+                ["euler"] = new JArray(item.eulerAngles.x, item.eulerAngles.y, item.eulerAngles.z),
+                ["scale"] = new JArray(item.localScale.x, item.localScale.y, item.localScale.z)
+            });
+        }
+        int movedModules = modules.Count(item => (bool)item["moved"]);
+        int movedTools = tools.Count(item => (bool)item["moved"]);
+        return Save("boards-poses", new
+        {
+            passed = true,
+            scene = scene.path,
+            movedModules,
+            movedTools,
+            modules,
+            tools,
+            probes,
+            environment
+        });
+    }
+
+    // Adopts the current transforms as the authored layout default. Docked modules
+    // also refresh their dock offsets so RETRIEVE and RESET LAYOUT agree.
+    public static object AdoptPoses()
+    {
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Stop Play Mode before adopting poses.");
+        Scene scene = SceneManager.GetSceneByPath(ScenePath);
+        if (!scene.IsValid() || !scene.isLoaded) throw new InvalidOperationException("Open the CircuitLab scene first.");
+        var touched = new List<Object>();
+        var modules = Object.FindObjectsOfType<CircuitLabModule>(true)
+            .Where(item => item.gameObject.scene.path == ScenePath).ToArray();
+        var tools = Object.FindObjectsOfType<CircuitLabMovableTool>(true)
+            .Where(item => item.gameObject.scene.path == ScenePath).ToArray();
+        JArray adopted = new JArray();
+        foreach (CircuitLabModule module in modules)
+        {
+            touched.Add(module);
+            if (!module.isDetached && module.logicalParent != null)
+            {
+                module.dockLocalPosition = module.transform.localPosition;
+                module.dockLocalEuler = module.transform.localEulerAngles;
+                module.dockLocalScale = module.transform.localScale;
+            }
+            module.CaptureInitialPose();
+            if (module.sharedState != null)
+            {
+                module.sharedState.expanded = module.expanded;
+                module.sharedState.detached = module.isDetached;
+                touched.Add(module.sharedState);
+            }
+            UdonSharpEditorUtility.CopyProxyToUdon(module);
+            EditorUtility.SetDirty(module);
+            EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(module));
+            adopted.Add(new JObject
+            {
+                ["key"] = "module:" + module.modulePath,
+                ["position"] = new JArray(module.initialPosition.x, module.initialPosition.y, module.initialPosition.z),
+                ["scale"] = module.initialScale.x,
+                ["expanded"] = module.initialExpanded,
+                ["detached"] = module.initialDetached,
+                ["dockUpdated"] = !module.isDetached && module.logicalParent != null
+            });
+        }
+        foreach (CircuitLabMovableTool tool in tools)
+        {
+            touched.Add(tool);
+            tool.initialPosition = tool.transform.position;
+            tool.initialRotation = tool.transform.rotation;
+            tool.initialScale = tool.transform.localScale;
+            UdonSharpEditorUtility.CopyProxyToUdon(tool);
+            EditorUtility.SetDirty(tool);
+            EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(tool));
+            adopted.Add(new JObject
+            {
+                ["key"] = "tool:" + tool.name,
+                ["position"] = new JArray(tool.initialPosition.x, tool.initialPosition.y, tool.initialPosition.z),
+                ["scale"] = tool.initialScale.x
+            });
+        }
+        Undo.RecordObjects(touched.ToArray(), "Adopt current layout as the default");
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        return Save("boards-adopt", new
+        {
+            passed = true,
+            saved = true,
+            dirty = SceneManager.GetSceneByPath(ScenePath).isDirty,
+            modules = modules.Length,
+            tools = tools.Length,
+            adopted
+        });
+    }
+
+    // PlayMode proof that RESET LAYOUT restores exactly the newly adopted poses.
+    public static async Task<object> VerifyReset()
+    {
+        if (!EditorApplication.isPlaying) throw new InvalidOperationException("Enter Play Mode first.");
+        var layout = Object.FindObjectsOfType<CircuitLabLayout>(true).First();
+        var coordinator = Object.FindObjectsOfType<CircuitLabNetworkCoordinator>(true).First();
+        if (!coordinator.HasControl())
+        {
+            coordinator.RequestControl();
+            DateTime limit = DateTime.UtcNow.AddSeconds(20);
+            while (!coordinator.HasControl() && DateTime.UtcNow < limit) await Task.Delay(100);
+            if (!coordinator.HasControl()) throw new InvalidOperationException("Could not take layout control for the reset check.");
+        }
+        var modules = Object.FindObjectsOfType<CircuitLabModule>(true)
+            .Where(item => item.gameObject.scene.path == ScenePath).ToArray();
+        var tools = Object.FindObjectsOfType<CircuitLabMovableTool>(true)
+            .Where(item => item.gameObject.scene.path == ScenePath).ToArray();
+        foreach (CircuitLabModule module in modules)
+        {
+            module.transform.position += new Vector3(.37f, .21f, -.44f);
+            module.transform.rotation = Quaternion.Euler(13f, 27f, -9f) * module.transform.rotation;
+        }
+        foreach (CircuitLabMovableTool tool in tools)
+        {
+            tool.transform.position += new Vector3(-.31f, .17f, .29f);
+            tool.transform.rotation = Quaternion.Euler(-8f, 19f, 11f) * tool.transform.rotation;
+        }
+        // Fold two modules so reset also has to restore expansion state.
+        CircuitLabModule[] foldable = modules.Where(item => item.childModules != null && item.childModules.Length > 0).Take(2).ToArray();
+        foreach (CircuitLabModule module in foldable)
+            if (module.expanded) module.Collapse();
+        layout.SendCustomEvent("ResetLayout");
+        await Task.Delay(400);
+        var failures = new JArray();
+        JArray moduleReport = new JArray();
+        foreach (CircuitLabModule module in modules)
+        {
+            // Read the authored default from the Udon program: ResetLayout restores
+            // those values, so they are the authoritative expectation.
+            UdonBehaviour vm = UdonSharpEditorUtility.GetBackingUdonBehaviour(module);
+            Vector3 expectedPosition = (Vector3)vm.GetProgramVariable("initialPosition");
+            Quaternion expectedRotation = (Quaternion)vm.GetProgramVariable("initialRotation");
+            Vector3 expectedScale = (Vector3)vm.GetProgramVariable("initialScale");
+            bool expectedExpanded = Convert.ToBoolean(vm.GetProgramVariable("initialExpanded"));
+            bool expectedDetached = Convert.ToBoolean(vm.GetProgramVariable("initialDetached"));
+            float positionDelta = (module.transform.position - expectedPosition).magnitude;
+            float rotationDelta = Quaternion.Angle(module.transform.rotation, expectedRotation);
+            float scaleDelta = (module.transform.localScale - expectedScale).magnitude;
+            bool expansionOk = module.expanded == expectedExpanded && module.isDetached == expectedDetached;
+            moduleReport.Add(new JObject
+            {
+                ["key"] = module.modulePath,
+                ["position"] = new JArray(expectedPosition.x, expectedPosition.y, expectedPosition.z),
+                ["positionDelta"] = positionDelta,
+                ["rotationDelta"] = rotationDelta,
+                ["scaleDelta"] = scaleDelta,
+                ["expansionRestored"] = expansionOk
+            });
+            if (positionDelta > .002f || rotationDelta > .05f || scaleDelta > .002f || !expansionOk)
+                failures.Add("module:" + module.modulePath);
+        }
+        JArray toolReport = new JArray();
+        foreach (CircuitLabMovableTool tool in tools)
+        {
+            UdonBehaviour vm = UdonSharpEditorUtility.GetBackingUdonBehaviour(tool);
+            Vector3 expectedPosition = (Vector3)vm.GetProgramVariable("initialPosition");
+            Quaternion expectedRotation = (Quaternion)vm.GetProgramVariable("initialRotation");
+            Vector3 expectedScale = (Vector3)vm.GetProgramVariable("initialScale");
+            float positionDelta = (tool.transform.position - expectedPosition).magnitude;
+            float rotationDelta = Quaternion.Angle(tool.transform.rotation, expectedRotation);
+            float scaleDelta = (tool.transform.localScale - expectedScale).magnitude;
+            toolReport.Add(new JObject
+            {
+                ["key"] = tool.name,
+                ["positionDelta"] = positionDelta,
+                ["rotationDelta"] = rotationDelta,
+                ["scaleDelta"] = scaleDelta
+            });
+            if (positionDelta > .002f || rotationDelta > .05f || scaleDelta > .002f)
+                failures.Add("tool:" + tool.name);
+        }
+        return Save("boards-reset-verify", new
+        {
+            passed = failures.Count == 0,
+            failures,
+            modulesReset = modules.Length,
+            toolsReset = tools.Length,
+            moduleReport,
+            toolReport
+        });
+    }
+
+    // Post-adoption geometry audit: panel vs. panel intersections, panels inside
+    // the backdrop or under the floor, and the visible sample count from spawn.
+    public static object AuditLayout()
+    {
+        Transform world = World();
+        var tools = Object.FindObjectsOfType<CircuitLabMovableTool>(true)
+            .Where(item => item.gameObject.scene.path == ScenePath)
+            .OrderBy(item => item.name).ToArray();
+        var modules = Object.FindObjectsOfType<CircuitLabModule>(true)
+            .Where(item => item.gameObject.scene.path == ScenePath).ToArray();
+        Transform backdrop = world.Find("Backdrop");
+        Bounds backdropBounds = WorldBounds(backdrop);
+
+        var overlaps = new JArray();
+        for (int i = 0; i < tools.Length; i++)
+            for (int j = i + 1; j < tools.Length; j++)
+            {
+                Vector3 halfA = PanelHalfExtents(tools[i].transform);
+                Vector3 halfB = PanelHalfExtents(tools[j].transform);
+                if (!PanelObbsOverlap(tools[i].transform, halfA, tools[j].transform, halfB)) continue;
+                float depth = Vector3.Distance(tools[i].transform.position, tools[j].transform.position)
+                    - halfA.magnitude - halfB.magnitude;
+                overlaps.Add(new JObject
+                {
+                    ["a"] = tools[i].name,
+                    ["b"] = tools[j].name,
+                    ["centerDistance"] = Vector3.Distance(tools[i].transform.position, tools[j].transform.position),
+                    ["penetrationEstimate"] = -depth,
+                    ["samePlane"] = Mathf.Abs(Vector3.Dot(tools[i].transform.forward, tools[j].transform.forward)) > .97f
+                });
+            }
+
+        var belowFloor = new JArray();
+        var insideWall = new JArray();
+        var blocked = new JArray();
+        var origins = new[]
+        {
+            new Vector3(0f, 1.7f, -3.3f),
+            new Vector3(0f, 1.7f, 0f),
+            new Vector3(4f, 1.7f, -2f),
+            new Vector3(-4f, 1.7f, -2f)
+        };
+        foreach (CircuitLabMovableTool tool in tools)
+        {
+            Bounds bounds = WorldBounds(tool.transform);
+            if (bounds.min.y < 0f)
+                belowFloor.Add(new JObject { ["key"] = tool.name, ["minY"] = bounds.min.y });
+            if (bounds.Intersects(backdropBounds))
+                insideWall.Add(new JObject
+                {
+                    ["key"] = tool.name,
+                    ["minZ"] = bounds.min.z,
+                    ["maxZ"] = bounds.max.z,
+                    ["backdropZ"] = new JArray(backdropBounds.min.z, backdropBounds.max.z)
+                });
+            var probes = SurroundingHits(tool.transform, origins);
+            int visible = probes.Count(item => (bool)item["firstIsSelf"]);
+            if (visible == 0)
+            {
+                JArray blockers = new JArray();
+                foreach (JObject probe in probes)
+                    foreach (JToken blocker in (JArray)probe["blockersBeforeSelf"])
+                        if (!blockers.Any(existing => (string)existing == (string)blocker)) blockers.Add(blocker);
+                blocked.Add(new JObject
+                {
+                    ["key"] = tool.name,
+                    ["visibleFrom"] = visible + "/" + probes.Count,
+                    ["firstBlockers"] = blockers
+                });
+            }
+        }
+
+        return Save("boards-audit", new
+        {
+            passed = overlaps.Count == 0 && belowFloor.Count == 0 && insideWall.Count == 0,
+            toolCount = tools.Length,
+            moduleCount = modules.Length,
+            overlaps,
+            belowFloor,
+            insideWall,
+            notVisibleFromSpawnArea = blocked
+        });
+    }
+
     public static object SaveScene()
     {
         if (EditorApplication.isPlaying) throw new InvalidOperationException("Stop Play Mode before saving.");

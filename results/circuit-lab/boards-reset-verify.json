@@ -1,0 +1,316 @@
+{
+  "passed": true,
+  "failures": [],
+  "modulesReset": 20,
+  "toolsReset": 11,
+  "moduleReport": [
+    {
+      "key": "teaching_cpu/alu/bit_xor",
+      "position": [
+        -7.74359226,
+        3.32500029,
+        2.95034385
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/adder/fa6",
+      "position": [
+        -8.370901,
+        3.44890022,
+        2.98786831
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu",
+      "position": [
+        -4.518,
+        2.319,
+        0.5
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu",
+      "position": [
+        -6.25,
+        5.71,
+        2.861
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/adder/fa5",
+      "position": [
+        -7.15432167,
+        3.8017,
+        2.73197651
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/adder/fa0",
+      "position": [
+        -8.370901,
+        4.1545,
+        2.98786831
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/adder/fa1",
+      "position": [
+        -7.762611,
+        4.1545,
+        2.85992241
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/rom",
+      "position": [
+        7.85,
+        1.35,
+        2.8
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/pc_unit",
+      "position": [
+        4.65,
+        1.05,
+        2.3
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/adder/fa4",
+      "position": [
+        -7.762611,
+        3.8017,
+        2.85992241
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/bit_and",
+      "position": [
+        -6.29528332,
+        4.165,
+        2.64571071
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/output_unit",
+      "position": [
+        -4.65,
+        1.05,
+        2.3
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/control",
+      "position": [
+        4.65,
+        2.7,
+        2.3
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/adder/fa3",
+      "position": [
+        -8.370901,
+        3.8017,
+        2.98786831
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/registers",
+      "position": [
+        -7.85,
+        1.35,
+        2.8
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/adder/fa7",
+      "position": [
+        -7.762611,
+        3.44890022,
+        2.85992241
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/adder",
+      "position": [
+        -7.74359226,
+        4.165,
+        2.95034385
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/ram",
+      "position": [
+        -7.85,
+        1.35,
+        2.8
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/adder/fa2",
+      "position": [
+        -7.15432167,
+        4.1545,
+        2.73197651
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    },
+    {
+      "key": "teaching_cpu/alu/bit_or",
+      "position": [
+        -4.84697437,
+        4.165,
+        2.341078
+      ],
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0,
+      "expansionRestored": true
+    }
+  ],
+  "toolReport": [
+    {
+      "key": "TerminalPanel",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    },
+    {
+      "key": "StateTablet",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    },
+    {
+      "key": "LifeOutputPanel",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    },
+    {
+      "key": "HierarchyPanel",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    },
+    {
+      "key": "ProgramPanel",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    },
+    {
+      "key": "AboutPanel",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    },
+    {
+      "key": "LedOutputPanel",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    },
+    {
+      "key": "ProbeAndHierarchyRack",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    },
+    {
+      "key": "IsaManualPanel",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    },
+    {
+      "key": "MovableWaveformPanel",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    },
+    {
+      "key": "ProgramBrowserPanel",
+      "positionDelta": 0.0,
+      "rotationDelta": 0.0,
+      "scaleDelta": 0.0
+    }
+  ]
+}

@@ -47,13 +47,13 @@ BIT VIEW 的 0/1 字形按显示比例和行高保持宽高比。解析 AA 使�
 
 ## 程序与纹理平板
 
-程序板初始在左侧 `(-12, 3.7, -0.4)`，状态平板在右侧 `(12, 3.2, -0.4)`，各向场内偏转 60 度；均可移动并参加全局布局复位。程序编辑板显示当前实际加载的程序、revision 与运行状态，以及共享 HEX/BIN 草稿。右栏显示实际 ROM 的 HEX、12 位 BIN 和反汇编，支持翻页及跳到当前 PC。预置程序选择已拆到独立浏览面板，原分析仪单个切换按钮和编辑板的前后选择按钮已隐藏。
+程序板、状态平板与其余仪器面板的初始位姿以场景内作者布局为准，均可移动并参加全局布局复位（RESET LAYOUT）。2026-10-12 的手工布局调整已通过 `BuildCircuitLab.AdoptPoses` 写回为默认值，并用 PlayMode 验证 20 个模块与 11 个工具全部精确复位。程序编辑板显示当前实际加载的程序、revision 与运行状态，以及共享 HEX/BIN 草稿。右栏显示实际 ROM 的 HEX、12 位 BIN 和反汇编，支持翻页及跳到当前 PC。预置程序选择已拆到独立浏览面板，原分析仪单个切换按钮和编辑板的前后选择按钮已隐藏。
 
 每行输入一个 12 位字，支持 HEX/BIN、`0x`/`0b` 前缀、空格/Tab/下划线分组，以及 `#`、`;`、`//` 注释。空白行忽略，未用 ROM 填 HALT；超过位宽/容量或非法字符会按行报错并保留当前程序。VR 可通过两排位键盘构造并追加指令。加载动作停在稳定边界，复位 CPU、应用 initialRam 并清空该实验的历史和终端。
 
 独立程序面板的可滚动列表包含全部 24 个预置。点击条目只更新浏览内容，展示原始汇编源码、注释、`.equ` 定义与对应 ROM 编码。ASM 源码一次呈现完整列表：使用 IBM Plex Mono 等宽字体，可通过 SCROLL UP / SCROLL DOWN 按钮或鼠标滚轮上下滚动（滚动位置只在本机，不占用共享状态）；HEX/BIN 仍按页查看。顶部的 CURRENT LOADED 与 BROWSING 分别表示实际运行程序和预览程序。只有 LOAD SELECTED TO ROM 才会原子切换程序并初始化实验。浏览选择、模式和 HEX/BIN 页码共享，保持一人全局操作。
 
-关于面板展示项目介绍、作者和完整公开 GitHub 地址 `https://github.com/chiro2001/vrc-circuit-lab`，用于在 world 中了解与访问项目。两个新面板均可抓取移动，并纳入 RESET LAYOUT。初始位置分别为：关于板左侧 `(-12.2, 3.25, -5.35)`，程序列表板右侧 `(12.2, 3.75, -5.35)`。
+关于面板展示项目介绍、作者和完整公开 GitHub 地址 `https://github.com/chiro2001/vrc-circuit-lab`，用于在 world 中了解与访问项目。关于板与程序列表板均可抓取移动，并纳入 RESET LAYOUT；当前默认位姿见场景，最近一次基线化结果记录在 [布局审计](results/circuit-lab/boards-audit.json)。
 
 [关于面板截图](results/circuit-lab/about-panel.png)和[程序列表截图](results/circuit-lab/program-browser-panel.png)来自实际 PlayMode。已验证 27 个既有模块/工具/地板位姿保持不变；选择程序只浏览，明确加载 HELLO 后实际 GPU 输出 `HELLO\n`。共享反序列化恢复编码第 43 页（索引42），观察者不能加载，两个新板的位置复位不改变 CPU。报告：[场景](results/circuit-lab/presentation-authoring.json)、[点击与加载](results/circuit-lab/presentation-browse-load.json)、[共享与复位](results/circuit-lab/presentation-shared-layout.json)。
 
@@ -63,7 +63,7 @@ BIT VIEW 的 0/1 字形按显示比例和行高保持宽高比。解析 AA 使�
 
 独立 ISA 手册有 39 页，按概览、编码、基本指令、扩展、标志和例子浏览。BANK 切换四个 RAM 页；SUB/SBC 的 C=1 表示没有借位。页码通过面板内独立的 Manual Udon 状态对象共享，物体位置由面板根对象的 VRCObjectSync 同步。首版不在程序编辑板堆叠整份 ISA。
 
-LED 板直接读取真实 OUT[7:0]，流水灯的每一位有独立灯格。生命游戏板读取真实 RAM 双缓冲，CPU 计算 8×8、B3/S23、封闭边界的八代；没有用 Udon 计算或预录动画。每代约 17,080 CPU 周期，256 Hz 下约一分钟。新板参加 RESET LAYOUT，初始 ISA、LED、Life 位置分别为 `(-11.5,3.6,5.5)`、`(-6.3,2.8,6)`、`(8.7,3.6,5.3)`；Life 板整体位于背景墙前方，不再被墙面挡住或穿模。
+LED 板直接读取真实 OUT[7:0]，流水灯的每一位有独立灯格。生命游戏板读取真实 RAM 双缓冲，CPU 计算 8×8、B3/S23、封闭边界的八代；没有用 Udon 计算或预录动画。每代约 17,080 CPU 周期，256 Hz 下约一分钟。ISA、LED、Life 三块教学板同样参加 RESET LAYOUT；它们的初始位姿随作者布局一起基线化，PlayMode 复位校验为 0 误差（[复位验证](results/circuit-lab/boards-reset-verify.json)）。布局审计确认所有面板互不穿插、不穿地、不插入背景墙（[布局审计](results/circuit-lab/boards-audit.json)）。
 
 模块的 GRAB 文字改为侧边竖直、半透明的青蓝把手，保留射线拾取命中体积。工具面板继续使用明确的面板把手。
 

@@ -1,0 +1,348 @@
+{
+  "passed": true,
+  "saved": true,
+  "dirty": false,
+  "modules": 20,
+  "tools": 11,
+  "adopted": [
+    {
+      "key": "module:teaching_cpu/alu/bit_xor",
+      "position": [
+        -7.74359226,
+        3.32500029,
+        2.95034385
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa6",
+      "position": [
+        -8.370901,
+        3.44890022,
+        2.98786831
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu",
+      "position": [
+        -4.518,
+        2.319,
+        0.5
+      ],
+      "scale": 0.65,
+      "expanded": true,
+      "detached": false,
+      "dockUpdated": false
+    },
+    {
+      "key": "module:teaching_cpu/alu",
+      "position": [
+        -6.25,
+        5.71,
+        2.861
+      ],
+      "scale": 1.0,
+      "expanded": true,
+      "detached": true,
+      "dockUpdated": false
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa5",
+      "position": [
+        -7.15432167,
+        3.8017,
+        2.73197651
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa0",
+      "position": [
+        -8.370901,
+        4.1545,
+        2.98786831
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa1",
+      "position": [
+        -7.762611,
+        4.1545,
+        2.85992241
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu/rom",
+      "position": [
+        7.85,
+        1.35,
+        2.8
+      ],
+      "scale": 1.0,
+      "expanded": false,
+      "detached": true,
+      "dockUpdated": false
+    },
+    {
+      "key": "module:teaching_cpu/pc_unit",
+      "position": [
+        4.65,
+        1.05,
+        2.3
+      ],
+      "scale": 1.0,
+      "expanded": false,
+      "detached": true,
+      "dockUpdated": false
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa4",
+      "position": [
+        -7.762611,
+        3.8017,
+        2.85992241
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu/alu/bit_and",
+      "position": [
+        -6.29528332,
+        4.165,
+        2.64571071
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu/output_unit",
+      "position": [
+        -4.65,
+        1.05,
+        2.3
+      ],
+      "scale": 1.0,
+      "expanded": false,
+      "detached": true,
+      "dockUpdated": false
+    },
+    {
+      "key": "module:teaching_cpu/control",
+      "position": [
+        4.65,
+        2.7,
+        2.3
+      ],
+      "scale": 1.0,
+      "expanded": false,
+      "detached": true,
+      "dockUpdated": false
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa3",
+      "position": [
+        -8.370901,
+        3.8017,
+        2.98786831
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu/registers",
+      "position": [
+        -7.85,
+        1.35,
+        2.8
+      ],
+      "scale": 1.0,
+      "expanded": false,
+      "detached": true,
+      "dockUpdated": false
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa7",
+      "position": [
+        -7.762611,
+        3.44890022,
+        2.85992241
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder",
+      "position": [
+        -7.74359226,
+        4.165,
+        2.95034385
+      ],
+      "scale": 0.42,
+      "expanded": true,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu/ram",
+      "position": [
+        -7.85,
+        1.35,
+        2.8
+      ],
+      "scale": 1.0,
+      "expanded": false,
+      "detached": true,
+      "dockUpdated": false
+    },
+    {
+      "key": "module:teaching_cpu/alu/adder/fa2",
+      "position": [
+        -7.15432167,
+        4.1545,
+        2.73197651
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "module:teaching_cpu/alu/bit_or",
+      "position": [
+        -4.84697437,
+        4.165,
+        2.341078
+      ],
+      "scale": 0.42,
+      "expanded": false,
+      "detached": false,
+      "dockUpdated": true
+    },
+    {
+      "key": "tool:TerminalPanel",
+      "position": [
+        4.642,
+        6.04,
+        2.24
+      ],
+      "scale": 1.0
+    },
+    {
+      "key": "tool:StateTablet",
+      "position": [
+        11.89,
+        3.2,
+        2.63
+      ],
+      "scale": 1.0
+    },
+    {
+      "key": "tool:LifeOutputPanel",
+      "position": [
+        10.95509,
+        3.6,
+        -12.3388815
+      ],
+      "scale": 1.0
+    },
+    {
+      "key": "tool:HierarchyPanel",
+      "position": [
+        -7.5,
+        1.95,
+        -1.4
+      ],
+      "scale": 1.0
+    },
+    {
+      "key": "tool:ProgramPanel",
+      "position": [
+        -14.56,
+        3.7,
+        -7.02
+      ],
+      "scale": 1.0
+    },
+    {
+      "key": "tool:AboutPanel",
+      "position": [
+        -13.7035942,
+        3.25,
+        -13.5026531
+      ],
+      "scale": 1.0
+    },
+    {
+      "key": "tool:LedOutputPanel",
+      "position": [
+        7.92,
+        6.982,
+        0.84
+      ],
+      "scale": 0.7
+    },
+    {
+      "key": "tool:ProbeAndHierarchyRack",
+      "position": [
+        0.0,
+        0.92,
+        -1.17
+      ],
+      "scale": 1.0
+    },
+    {
+      "key": "tool:IsaManualPanel",
+      "position": [
+        -12.39,
+        3.6,
+        -0.25
+      ],
+      "scale": 1.0
+    },
+    {
+      "key": "tool:MovableWaveformPanel",
+      "position": [
+        0.0,
+        3.75,
+        1.6
+      ],
+      "scale": 1.0
+    },
+    {
+      "key": "tool:ProgramBrowserPanel",
+      "position": [
+        12.195941,
+        3.75,
+        -5.58
+      ],
+      "scale": 1.0
+    }
+  ]
+}
