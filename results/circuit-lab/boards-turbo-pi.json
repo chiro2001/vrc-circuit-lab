@@ -1,0 +1,45 @@
+{
+  "passed": true,
+  "runs": [
+    {
+      "targetHz": 256.0,
+      "wallSeconds": 9.928364,
+      "cycles": 2087,
+      "achievedHz": 210.205841,
+      "output": "3.141592\n",
+      "halted": true,
+      "terminalGaps": 0,
+      "residentHz": 192.568817
+    },
+    {
+      "targetHz": 1024.0,
+      "wallSeconds": 3.80143356,
+      "cycles": 2138,
+      "achievedHz": 562.419434,
+      "output": "3.141592\n",
+      "halted": true,
+      "terminalGaps": 0,
+      "residentHz": 594.748352
+    },
+    {
+      "targetHz": 4096.0,
+      "wallSeconds": 3.2307663,
+      "cycles": 2831,
+      "achievedHz": 876.2627,
+      "output": "3.141592\n",
+      "halted": true,
+      "terminalGaps": 0,
+      "residentHz": 819.935852
+    },
+    {
+      "targetHz": 8192.0,
+      "wallSeconds": 2.4507103,
+      "cycles": 2867,
+      "achievedHz": 1169.86487,
+      "output": "3.141592\n",
+      "halted": true,
+      "terminalGaps": 0,
+      "residentHz": 989.772339
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "passed": true,
+  "ceiling": 8192.0,
+  "minimum": 0.25,
+  "controlAuthority": 1,
+  "diagnostics": {
+    "initialized": true,
+    "configurationValid": true,
+    "ready": true,
+    "submissionBlocked": true,
+    "program": "Running light",
+    "cyclesPerSecond": 256.0,
+    "latestBlitCostNote": "budget=7"
+  },
+  "ladder": [
+    {
+      "targetHz": 256.0,
+      "measuredHz": 221.702286,
+      "reportedActualHz": 204.402222,
+      "cycles": 667,
+      "elapsed": 3.0085392,
+      "lag": 127,
+      "terminalWrites": 76,
+      "terminalGaps": 0,
+      "terminalCapacity": 2048,
+      "sharedSpeed": 256.0
+    },
+    {
+      "targetHz": 512.0,
+      "measuredHz": 370.824524,
+      "reportedActualHz": 368.64682,
+      "cycles": 1121,
+      "elapsed": 3.022993,
+      "lag": 512,
+      "terminalWrites": 158,
+      "terminalGaps": 0,
+      "terminalCapacity": 2048,
+      "sharedSpeed": 512.0
+    },
+    {
+      "targetHz": 1024.0,
+      "measuredHz": 541.366943,
+      "reportedActualHz": 579.102,
+      "cycles": 1672,
+      "elapsed": 3.088478,
+      "lag": 1020,
+      "terminalWrites": 235,
+      "terminalGaps": 0,
+      "terminalCapacity": 2048,
+      "sharedSpeed": 1024.0
+    },
+    {
+      "targetHz": 2048.0,
+      "measuredHz": 790.4819,
+      "reportedActualHz": 817.2446,
+      "cycles": 2377,
+      "elapsed": 3.00702667,
+      "lag": 2048,
+      "terminalWrites": 374,
+      "terminalGaps": 0,
+      "terminalCapacity": 2048,
+      "sharedSpeed": 2048.0
+    },
+    {
+      "targetHz": 4096.0,
+      "measuredHz": 864.956543,
+      "reportedActualHz": 731.284851,
+      "cycles": 2602,
+      "elapsed": 3.00824356,
+      "lag": 4096,
+      "terminalWrites": 395,
+      "terminalGaps": 0,
+      "terminalCapacity": 2048,
+      "sharedSpeed": 4096.0
+    },
+    {
+      "targetHz": 8192.0,
+      "measuredHz": 1129.76746,
+      "reportedActualHz": 1176.68176,
+      "cycles": 3483,
+      "elapsed": 3.08293533,
+      "lag": 8192,
+      "terminalWrites": 478,
+      "terminalGaps": 0,
+      "terminalCapacity": 2048,
+      "sharedSpeed": 8192.0
+    }
+  ]
+}

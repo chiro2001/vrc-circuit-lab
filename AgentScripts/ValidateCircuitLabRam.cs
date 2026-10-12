@@ -433,8 +433,11 @@ public static class ValidateCircuitLabRam
         int revision = Int(sim, "programRevision"); Click("LoadSelectedPreset");
         await Until(() => Int(sim, "programRevision") > revision, "PI preset did not load.");
         await Quiescent();
-        for (int i = 0; i < 8; i++) Click("SpeedUp");
-        await Quiescent(); Check(Convert.ToSingle(sim.GetProgramVariable("cyclesPerSecond")) == 256f, "Speed ceiling is not 256 cycles/s.");
+        // 2 Hz doubled goes 4, 8, ... and reaches the 8192 ceiling after 12 clicks.
+        for (int i = 0; i < 16; i++) Click("SpeedUp");
+        await Quiescent(); Check(Convert.ToSingle(sim.GetProgramVariable("cyclesPerSecond")) == 8192f, "Speed ceiling is not 8192 cycles/s.");
+        for (int i = 0; i < 5; i++) Click("SpeedDown");
+        await Quiescent(); Check(Convert.ToSingle(sim.GetProgramVariable("cyclesPerSecond")) == 256f, "Speed did not step back to 256 cycles/s.");
         Click("Run");
         return new { started = true, preset = index, id = (string)programs[index]["id"], name = (string)programs[index]["name"], expectedText = (string)programs[index]["expectedText"], expectedCycles = programs[index]["expectedCycles"], targetHz = 256 };
     }

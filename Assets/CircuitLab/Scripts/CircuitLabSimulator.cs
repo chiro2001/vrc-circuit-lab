@@ -7,6 +7,28 @@ using VRC.SDKBase;
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class CircuitLabSimulator : UdonSharpBehaviour
 {
+    // Shared speed ladder: SLOWER / FASTER double and halve between these bounds.
+    public const float MinimumCyclesPerSecond = 0.25f;
+    public const float MaximumCyclesPerSecond = 8192f;
+    // Budget per rendered frame: the target rate times the frame time, with the
+    // frame time clamped so a hiccup cannot inflate the next submission into a
+    // multi-second burst, and a hard per-frame cap so a target above the machine's
+    // throughput degrades to the achievable rate instead of stalling the world.
+    // ACTUAL Hz in the HUD always reports what was really submitted.
+    private const float MinimumBudgetFrameSeconds = 0.01f;
+    private const float MaximumBudgetFrameSeconds = 0.075f;
+    // A frame never submits more than this burst cap. It grows with the target so
+    // the top of the ladder can use the whole machine, while low targets stay at a
+    // smooth frame rate.
+    private const float BurstCapDivisor = 16f;
+    private const int MinimumBurstCap = 16;
+    private const int MaximumBurstCap = 768;
+    private const float MaximumCatchUpSeconds = 1f;
+
+    private static int FrameBurstCap(float rate)
+    {
+        return Mathf.Clamp(Mathf.CeilToInt(rate / BurstCapDivisor) + 8, MinimumBurstCap, MaximumBurstCap);
+    }
     public const int RamPageSize = 256;
     public const int RamPageCount = 4;
     public const int RamByteCount = RamPageSize * RamPageCount;
@@ -373,7 +395,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         programSelect = clock.programSelect;
         activeProgramName = clock.activeProgramName;
         CatchUpSharedClock(clock.cycle, clock.selfTest);
-        running = clock.running; cyclesPerSecond = Mathf.Clamp(clock.speed, 0.25f, 256f);
+        running = clock.running; cyclesPerSecond = Mathf.Clamp(clock.speed, MinimumCyclesPerSecond, MaximumCyclesPerSecond);
         waveWindowSamples = clock.window; waveOffset = clock.offset; cursorA = clock.cursorA; cursorB = clock.cursorB;
         bitViewChannel = clock.bitView; numberFormat = clock.numberFormat; followLatest = clock.followLatest;
         analyticAA = clock.analyticAA; waveEdgeWidth = clock.edgeWidth;
@@ -390,8 +412,8 @@ public class CircuitLabSimulator : UdonSharpBehaviour
             catchupLag = Mathf.Max(0, targetCycle - cycleCount);
             return cycleCount >= targetCycle;
         }
-        float rate = Mathf.Clamp(cyclesPerSecond, 0.25f, 256f);
-        int budget = Mathf.Clamp(Mathf.CeilToInt(rate * Mathf.Max(_frameDelta, 0.01f)) + 2, 1, 256);
+        float rate = Mathf.Clamp(cyclesPerSecond, MinimumCyclesPerSecond, MaximumCyclesPerSecond);
+        int budget = Mathf.Clamp(Mathf.CeilToInt(rate * Mathf.Clamp(_frameDelta, MinimumBudgetFrameSeconds, MaximumBudgetFrameSeconds)) + 2, 1, FrameBurstCap(rate));
         for (int i = 0; i < budget && cycleCount < targetCycle; i++)
         {
             if (selfTest) ApplyFixtureVector(cycleCount);
@@ -795,7 +817,7 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         float frameNow = Time.realtimeSinceStartup;
         _frameDelta = _lastFrameAt > 0 ? Mathf.Max(0.01f, frameNow - _lastFrameAt) : 0.016f;
         _lastFrameAt = frameNow;
-        cyclesPerSecond = Mathf.Clamp(cyclesPerSecond, 0.25f, 256f);
+        cyclesPerSecond = Mathf.Clamp(cyclesPerSecond, MinimumCyclesPerSecond, MaximumCyclesPerSecond);
         PrepareComputeUniforms();
         if (coordinator != null && (!coordinator.HasControl() || coordinator.restorePending))
         {
@@ -829,9 +851,9 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         }
         else if (!readbackPending && running)
         {
-            float rate = Mathf.Clamp(cyclesPerSecond, 0.25f, 256f);
+            float rate = Mathf.Clamp(cyclesPerSecond, MinimumCyclesPerSecond, MaximumCyclesPerSecond);
             float interval = 1f / rate;
-            int budget = Mathf.Clamp(Mathf.CeilToInt(rate * Mathf.Max(_frameDelta, 0.01f)) + 2, 1, 256);
+            int budget = Mathf.Clamp(Mathf.CeilToInt(rate * Mathf.Clamp(_frameDelta, MinimumBudgetFrameSeconds, MaximumBudgetFrameSeconds)) + 2, 1, FrameBurstCap(rate));
             int submitted = 0;
             if (_nextCycleAt <= 0) _nextCycleAt = now;
             while (submitted < budget && now >= _nextCycleAt)
@@ -840,6 +862,12 @@ public class CircuitLabSimulator : UdonSharpBehaviour
                 _nextCycleAt += interval;
                 submitted++;
             }
+            // A target above this machine's throughput must not accumulate debt
+            // forever: the reported lag stays bounded while ACTUAL Hz shows the
+            // real rate, and a recovered frame can still catch up.
+            // The limit is a time budget, so the lag readout tops out at one
+            // second worth of cycles at the current target.
+            if (now - _nextCycleAt > MaximumCatchUpSeconds) _nextCycleAt = now - MaximumCatchUpSeconds;
             catchupLag = Mathf.Max(0, Mathf.Ceil((now - _nextCycleAt) * rate));
         }
         else if (!running) catchupLag = 0;
@@ -868,7 +896,10 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         }
         float elapsed = now - _rateWindowStart;
         if (elapsed < 0.5f) return;
-        actualCyclesPerSecond = Mathf.Max(0, cycleCount - _rateWindowCycle) / elapsed;
+        // Smooth the windowed rate: at high targets a single frame can carry most
+        // of a window, so the raw value jumps around and is hard to read.
+        float windowRate = Mathf.Max(0, cycleCount - _rateWindowCycle) / elapsed;
+        actualCyclesPerSecond = actualCyclesPerSecond <= 0 ? windowRate : Mathf.Lerp(actualCyclesPerSecond, windowRate, .4f);
         _rateWindowStart = now;
         _rateWindowCycle = cycleCount;
     }
@@ -1057,8 +1088,8 @@ public class CircuitLabSimulator : UdonSharpBehaviour
                 _telemetryRequested = true;
             }
             else if (command == 5) RestartState();
-            else if (command == 6) cyclesPerSecond = Mathf.Min(256f, cyclesPerSecond * 2f);
-            else if (command == 7) cyclesPerSecond = Mathf.Max(0.25f, cyclesPerSecond * 0.5f);
+            else if (command == 6) cyclesPerSecond = Mathf.Min(MaximumCyclesPerSecond, cyclesPerSecond * 2f);
+            else if (command == 7) cyclesPerSecond = Mathf.Max(MinimumCyclesPerSecond, cyclesPerSecond * 0.5f);
             else if (command == 8)
             {
                 int next = programCount <= 0 ? -1 : programSelect < 0 ? 0 : (programSelect + 1) % programCount;

@@ -637,6 +637,150 @@ public static class InspectCircuitLabBoards
 
     // Post-adoption geometry audit: panel vs. panel intersections, panels inside
     // the backdrop or under the floor, and the visible sample count from spawn.
+    // Drives the shared speed ladder on an endless program and reports the
+    // achieved cycle rate plus terminal capture health at each target.
+    public static async Task<object> MeasureSpeed()
+    {
+        if (!EditorApplication.isPlaying) throw new InvalidOperationException("Enter Play Mode first.");
+        var simulator = Object.FindObjectsOfType<CircuitLabSimulator>(true).First();
+        UdonBehaviour sim = UdonSharpEditorUtility.GetBackingUdonBehaviour(simulator);
+        UdonBehaviour terminal = UdonSharpEditorUtility.GetBackingUdonBehaviour(simulator.terminal);
+        UdonBehaviour coordinator = UdonSharpEditorUtility.GetBackingUdonBehaviour(simulator.coordinator);
+        if (!simulator.coordinator.HasControl())
+        {
+            simulator.coordinator.RequestControl();
+            DateTime limit = DateTime.UtcNow.AddSeconds(20);
+            while (!simulator.coordinator.HasControl() && DateTime.UtcNow < limit) await Task.Delay(100);
+            if (!simulator.coordinator.HasControl()) throw new InvalidOperationException("Could not take control for the speed measurement.");
+        }
+        DateTime startup = DateTime.UtcNow.AddSeconds(60);
+        while ((!Convert.ToBoolean(sim.GetProgramVariable("_initialized"))
+            || Convert.ToBoolean(sim.GetProgramVariable("readbackPending"))) && DateTime.UtcNow < startup)
+            await Task.Delay(200);
+        // An endless program keeps the CPU submitting cycles for the whole window.
+        var programs = (JArray)JObject.Parse(File.ReadAllText(NetlistPath))["programs"];
+        int index = Enumerable.Range(0, programs.Count)
+            .First(i => (string)programs[i]["id"] == "blinker");
+        UdonBehaviour browser = UdonSharpEditorUtility.GetBackingUdonBehaviour(Object.FindObjectsOfType<CircuitLabProgramBrowser>(true).First());
+        browser.SetProgramVariable("selectedProgram", index);
+        browser.SendCustomEvent("RenderBrowser");
+        browser.SendCustomEvent("LoadSelectedPreset");
+        await Task.Delay(600);
+        sim.SendCustomEvent("Run");
+        // Wait until the CPU actually advances, so the first window is not a
+        // snapshot handshake or readback stall.
+        int firstCycle = Convert.ToInt32(sim.GetProgramVariable("cycleCount"));
+        DateTime running = DateTime.UtcNow.AddSeconds(30);
+        while (Convert.ToInt32(sim.GetProgramVariable("cycleCount")) <= firstCycle && DateTime.UtcNow < running)
+            await Task.Delay(200);
+        await Task.Delay(400);
+
+        JArray ladder = new JArray();
+        foreach (float target in new[] { 256f, 512f, 1024f, 2048f, 4096f, 8192f })
+        {
+            sim.SetProgramVariable("cyclesPerSecond", target);
+            int terminalEvents = Convert.ToInt32(terminal.GetProgramVariable("eventCount"));
+            int terminalGaps = Convert.ToInt32(terminal.GetProgramVariable("missedCycles"));
+            await Task.Delay(600);
+            int startCycle = Convert.ToInt32(sim.GetProgramVariable("cycleCount"));
+            float startTime = Time.realtimeSinceStartup;
+            await Task.Delay(3000);
+            int cycles = Convert.ToInt32(sim.GetProgramVariable("cycleCount")) - startCycle;
+            float elapsed = Time.realtimeSinceStartup - startTime;
+            float measured = cycles / elapsed;
+            ladder.Add(new JObject
+            {
+                ["targetHz"] = target,
+                ["measuredHz"] = measured,
+                ["reportedActualHz"] = Convert.ToSingle(sim.GetProgramVariable("actualCyclesPerSecond")),
+                ["cycles"] = cycles,
+                ["elapsed"] = elapsed,
+                ["lag"] = Convert.ToInt32(sim.GetProgramVariable("catchupLag")),
+                ["terminalWrites"] = Convert.ToInt32(terminal.GetProgramVariable("eventCount")) - terminalEvents,
+                ["terminalGaps"] = Convert.ToInt32(terminal.GetProgramVariable("missedCycles")) - terminalGaps,
+                ["terminalCapacity"] = Convert.ToInt32(terminal.GetProgramVariable("eventCapacity")),
+                ["sharedSpeed"] = Convert.ToSingle(UdonSharpEditorUtility.GetBackingUdonBehaviour(simulator.coordinator.clock).GetProgramVariable("speed"))
+            });
+        }
+        sim.SetProgramVariable("cyclesPerSecond", 256f);
+        sim.SendCustomEvent("Pause");
+        await Task.Delay(200);
+        return Save("boards-speed", new
+        {
+            passed = ladder.Count == 6,
+            ceiling = 8192f,
+            minimum = .25f,
+            controlAuthority = Convert.ToInt32(coordinator.GetProgramVariable("controlAuthorityId")),
+            diagnostics = new JObject
+            {
+                ["initialized"] = Convert.ToBoolean(sim.GetProgramVariable("_initialized")),
+                ["configurationValid"] = Convert.ToBoolean(sim.GetProgramVariable("_configurationValid")),
+                ["ready"] = Convert.ToBoolean(coordinator.GetProgramVariable("ready")),
+                ["submissionBlocked"] = simulator.coordinator.SubmissionBlocked(),
+                ["program"] = Convert.ToString(sim.GetProgramVariable("activeProgramName")),
+                ["cyclesPerSecond"] = Convert.ToSingle(sim.GetProgramVariable("cyclesPerSecond")),
+                ["latestBlitCostNote"] = "budget=" + Mathf.Clamp(Mathf.CeilToInt(Convert.ToSingle(sim.GetProgramVariable("cyclesPerSecond")) / 60f) + 2, 1, 256)
+            },
+            ladder
+        });
+    }
+
+    // End-to-end: run the 355/113 π preset at several ladder targets and report
+    // wall time, achieved rate and terminal capture health for each.
+    public static async Task<object> TurboPi()
+    {
+        if (!EditorApplication.isPlaying) throw new InvalidOperationException("Enter Play Mode first.");
+        var simulator = Object.FindObjectsOfType<CircuitLabSimulator>(true).First();
+        UdonBehaviour sim = UdonSharpEditorUtility.GetBackingUdonBehaviour(simulator);
+        UdonBehaviour terminal = UdonSharpEditorUtility.GetBackingUdonBehaviour(simulator.terminal);
+        if (!simulator.coordinator.HasControl())
+        {
+            simulator.coordinator.RequestControl();
+            DateTime limit = DateTime.UtcNow.AddSeconds(20);
+            while (!simulator.coordinator.HasControl() && DateTime.UtcNow < limit) await Task.Delay(100);
+        }
+        var programs = (JArray)JObject.Parse(File.ReadAllText(NetlistPath))["programs"];
+        int index = Enumerable.Range(0, programs.Count).First(i => (string)programs[i]["id"] == "pi-355-113");
+        string expected = (string)programs[index]["expectedText"];
+        UdonBehaviour browser = UdonSharpEditorUtility.GetBackingUdonBehaviour(Object.FindObjectsOfType<CircuitLabProgramBrowser>(true).First());
+        JArray runs = new JArray();
+        foreach (float target in new[] { 256f, 1024f, 4096f, 8192f })
+        {
+            sim.SetProgramVariable("running", false);
+            await Task.Delay(300);
+            browser.SetProgramVariable("selectedProgram", index);
+            browser.SendCustomEvent("RenderBrowser");
+            browser.SendCustomEvent("LoadSelectedPreset");
+            await Task.Delay(800);
+            sim.SetProgramVariable("cyclesPerSecond", target);
+            int terminalGaps = Convert.ToInt32(terminal.GetProgramVariable("missedCycles"));
+            float started = Time.realtimeSinceStartup;
+            int startCycle = Convert.ToInt32(sim.GetProgramVariable("cycleCount"));
+            sim.SendCustomEvent("Run");
+            DateTime limit = DateTime.UtcNow.AddSeconds(120);
+            while ((Convert.ToInt32(sim.GetProgramVariable("observedHalt")) != 1
+                || Convert.ToString(terminal.GetProgramVariable("output")) != expected) && DateTime.UtcNow < limit)
+                await Task.Delay(100);
+            float elapsed = Time.realtimeSinceStartup - started;
+            int cycles = Convert.ToInt32(sim.GetProgramVariable("cycleCount")) - startCycle;
+            runs.Add(new JObject
+            {
+                ["targetHz"] = target,
+                ["wallSeconds"] = elapsed,
+                ["cycles"] = cycles,
+                ["achievedHz"] = elapsed > 0 ? cycles / elapsed : 0f,
+                ["output"] = Convert.ToString(terminal.GetProgramVariable("output")),
+                ["halted"] = Convert.ToInt32(sim.GetProgramVariable("observedHalt")) == 1,
+                ["terminalGaps"] = Convert.ToInt32(terminal.GetProgramVariable("missedCycles")) - terminalGaps,
+                ["residentHz"] = Convert.ToSingle(sim.GetProgramVariable("actualCyclesPerSecond"))
+            });
+        }
+        sim.SendCustomEvent("Pause");
+        sim.SetProgramVariable("cyclesPerSecond", 2f);
+        await Task.Delay(200);
+        return Save("boards-turbo-pi", new { passed = runs.All(row => (bool)row["halted"]), runs });
+    }
+
     public static object AuditLayout()
     {
         Transform world = World();

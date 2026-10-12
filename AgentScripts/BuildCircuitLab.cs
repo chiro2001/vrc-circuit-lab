@@ -32,6 +32,8 @@ public static class BuildCircuitLab
     private static CircuitLabLayout _layout;
     private const int InteractionLayer = 17;
     private const float PickupDistance = 10f;
+    // 2048 cycles of terminal capture: covers a readback window at 8192 cycles/s.
+    private const int TerminalEventCapacity = 2048;
     private sealed class Pose { public Vector3 position, scale; public Quaternion rotation; public bool detached, expanded; }
     private static readonly List<CircuitLabSignalTarget> Targets = new List<CircuitLabSignalTarget>();
     private static readonly List<UdonSharpBehaviour> Behaviours = new List<UdonSharpBehaviour>();
@@ -999,7 +1001,12 @@ public static class BuildCircuitLab
         terminal.outputText = WorldText(panel.transform, "TerminalOutput", "", new Vector3(0, .02f, -.14f), new Vector2(3.2f, 2.15f), 13, new Color(.72f, 1f, .75f)); terminal.outputText.alignment = TextAnchor.UpperLeft; terminal.outputText.horizontalOverflow = HorizontalWrapMode.Wrap;
         terminal.statusText = WorldText(panel.transform, "TerminalStatus", "READY", new Vector3(0, -1.15f, -.14f), new Vector2(3.3f, .20f), 11, new Color(.6f, .8f, .88f));
         terminal.captureMaterial = Material("TerminalCapture", "VrcCpuWorld/CircuitLabHistory", Color.white);
-        terminal.eventA = RenderTexture("TerminalEventsA", 256, 2, RenderTextureFormat.ARGB32); terminal.eventB = RenderTexture("TerminalEventsB", 256, 2, RenderTextureFormat.ARGB32); terminal.eventCapacity = 256;
+        // The capture ring must cover one readback window even at the maximum
+        // simulation rate, otherwise high-speed runs report a capture gap.
+        terminal.eventA = RenderTexture("TerminalEventsA", TerminalEventCapacity, 2, RenderTextureFormat.ARGB32);
+        terminal.eventB = RenderTexture("TerminalEventsB", TerminalEventCapacity, 2, RenderTextureFormat.ARGB32);
+        terminal.eventCapacity = TerminalEventCapacity;
+        terminal.readbackInterval = .05f;
         terminal.outputWriteSignal = (int)data["ports"]["terminal_write"][0]; terminal.outputSignals = data["ports"]["terminal_data"].ToObject<int[]>(); terminal.sequenceSignals = data["ports"]["terminal_sequence"].ToObject<int[]>();
         Button(panel.transform, "CLEAR_TERMINAL", "CLEAR TERMINAL", simulator, "ClearTerminal", new Vector3(0, -1.44f, -.14f), new Vector2(3.15f, .23f), 12);
     }
@@ -1442,6 +1449,40 @@ public static class BuildCircuitLab
         var state = EnsureIsaState(world.transform.Find("IsaManualPanel").gameObject);
         EditorSceneManager.MarkSceneDirty(world.scene);
         return new { repaired = true, stateObject = state.name, sharedPage = state.page };
+    }
+
+    // Widens the terminal capture ring on an existing scene so high simulation
+    // rates do not lose OUT events between readbacks. Does not touch layout.
+    public static object UpgradeTerminalEventBuffer()
+    {
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Stop Play Mode before resizing the terminal buffer.");
+        var world = SceneManager.GetActiveScene().GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
+        var terminal = world.GetComponentInChildren<CircuitLabTerminal>(true);
+        if (terminal == null) throw new InvalidOperationException("CircuitLabTerminal is missing.");
+        Undo.RecordObject(terminal, "Widen the terminal capture ring");
+        RenderTexture a = AssetDatabase.LoadAssetAtPath<RenderTexture>(Root + "/Textures/TerminalEventsA.renderTexture");
+        RenderTexture b = AssetDatabase.LoadAssetAtPath<RenderTexture>(Root + "/Textures/TerminalEventsB.renderTexture");
+        foreach (RenderTexture texture in new[] { a, b })
+        {
+            if (texture == null) throw new InvalidOperationException("Terminal event texture is missing.");
+            if (texture.width != TerminalEventCapacity || texture.height != 2)
+            {
+                texture.Release();
+                texture.width = TerminalEventCapacity;
+                texture.height = 2;
+            }
+            texture.filterMode = FilterMode.Point; texture.wrapMode = TextureWrapMode.Clamp;
+            EditorUtility.SetDirty(texture);
+        }
+        terminal.eventA = a; terminal.eventB = b; terminal.eventCapacity = TerminalEventCapacity;
+        terminal.readbackInterval = .05f;
+        UdonSharpEditorUtility.CopyProxyToUdon(terminal);
+        EditorUtility.SetDirty(terminal);
+        EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(terminal));
+        EditorSceneManager.MarkSceneDirty(world.scene);
+        EditorSceneManager.SaveScene(world.scene);
+        AssetDatabase.SaveAssets();
+        return new { upgraded = true, eventCapacity = terminal.eventCapacity, readbackInterval = terminal.readbackInterval, widthA = a.width, widthB = b.width };
     }
 
     public static object RepairTeachingOutputSpacing()
