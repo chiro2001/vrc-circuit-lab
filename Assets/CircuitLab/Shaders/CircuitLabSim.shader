@@ -22,6 +22,11 @@ Shader "VrcCpuWorld/CircuitLabSim"
             sampler2D _MainTex, _Gates, _ProgramTex, _RamTex;
             sampler2D _RestoreState;
             int _NodeCount, _TextureWidth, _Mode, _InputMask;
+            // Measurement probes, both disabled (0) in every shipped configuration.
+            // _ProbeMode 1 skips the whole node evaluation for blit-cost baselines.
+            // _TrackChanges stores the last pass index that changed a node in .g,
+            // which is how the settle depth actually needed per phase is measured.
+            int _TrackChanges, _PassIndex, _ProbeMode;
             float4 _RomAddressA, _RomAddressB, _RomAddressC;
             float4 _RamReadAddressA, _RamReadAddressB, _RamReadAddressC;
 
@@ -76,6 +81,7 @@ Shader "VrcCpuWorld/CircuitLabSim"
 
             float4 frag(v2f_img input) : SV_Target
             {
+                if (_ProbeMode == 1) return float4(0, 0, 0, 1);
                 uint id = (uint)(input.uv.x * _TextureWidth);
                 if (id >= (uint)_NodeCount) return float4(0, 0, 0, 1);
                 float4 instruction = tex2Dlod(_Gates, float4((id + 0.5) / _TextureWidth, 0.5, 0, 0));
@@ -109,7 +115,19 @@ Shader "VrcCpuWorld/CircuitLabSim"
                     else if (op == 15u) value = RomBit((uint)round(instruction.y));
                     else if (op == 16u) value = RamBit((uint)round(instruction.y));
                 }
-                return float4(value, 0, 0, 1);
+                float4 result = float4(value, 0, 0, 1);
+                if (_TrackChanges != 0)
+                {
+                    float4 previousSelf = tex2Dlod(_MainTex, float4((id + 0.5) / _TextureWidth, 0.5, 0, 0));
+                    uint previousValue = previousSelf.r > 0.5 ? 1u : 0u;
+                    // Pass 0 re-seeds the carry so a fresh settle cannot inherit a
+                    // stale depth from the previous phase.
+                    float carried = _PassIndex == 0 ? 0.0 : previousSelf.g;
+                    // The state texture is ARGB32 (8 bits per channel), so the pass
+                    // index is carried as (index + 1) / 255 to survive the quantization.
+                    result.g = previousValue == value ? carried : (_PassIndex + 1) / 255.0;
+                }
+                return result;
             }
             ENDCG
         }

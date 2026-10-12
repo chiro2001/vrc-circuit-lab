@@ -28,7 +28,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _RamTex:
-        m_Texture: {fileID: 8400000, guid: 43abdcb1ac8d2184588373c97436797d, type: 2}
+        m_Texture: {fileID: 8400000, guid: 5420aeddf6125b9448e7c8472ada8585, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _StateTex:

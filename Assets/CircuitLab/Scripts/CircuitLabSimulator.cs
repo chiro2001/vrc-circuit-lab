@@ -75,6 +75,10 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     // from the netlist's clock cone of influence, so it is a proven bound rather
     // than a guess; the full depth is used whenever any other input changed.
     public int clockSettlePasses = 2;
+    // Measurement probe: when set, each settle pass publishes its index to the
+    // simulation shader's .g channel so the depth a phase actually needed can be
+    // read back and histogrammed. Shipped configurations leave this off.
+    public bool trackSettlePasses;
     public int[] inputMasks;
     public byte[] expectedStates;
     public int vectorCount;
@@ -688,7 +692,11 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     private void Settle(int passes)
     {
         if (currentRam != null) simulationMaterial.SetTexture("_RamTex", currentRam);
-        for (int i = 0; i < passes; i++) StatePass(1);
+        for (int i = 0; i < passes; i++)
+        {
+            if (trackSettlePasses) simulationMaterial.SetInt("_PassIndex", i + 1);
+            StatePass(1);
+        }
     }
 
     private void RestartState()
@@ -800,6 +808,8 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         Settle(otherInputsChanged ? settlePasses + 1 : clockSettlePasses);
         RecordStableHalfCycle();
         simulationMaterial.SetInt("_InputMask", mask | 1);
+        // Pass 0 is the register commit, the origin every settle depth is measured from.
+        if (trackSettlePasses) simulationMaterial.SetInt("_PassIndex", 0);
         StatePass(2);
         RamPass(_writeState, (mask & 2) != 0);
         Settle();

@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "iterations": 1500,
+  "textureWidth": 2048,
+  "nodeCount": 1172,
+  "note": "Graphics.Blit measured directly; includes driver blit cost but not the Udon interop of a real submit",
+  "rows": [
+    {
+      "variant": "empty blit (shader returns constant)",
+      "microsecondsPerBlit": 27.309333333333335
+    },
+    {
+      "variant": "sim shader, mode 0 (no gate evaluation)",
+      "microsecondsPerBlit": 28.061533333333337
+    },
+    {
+      "variant": "sim shader, mode 1 (real settle evaluation)",
+      "microsecondsPerBlit": 27.92046666666667
+    },
+    {
+      "variant": "sim shader, mode 1 + change tracking",
+      "microsecondsPerBlit": 28.829666666666668
+    },
+    {
+      "variant": "sim shader, mode 2 (register commit)",
+      "microsecondsPerBlit": 26.148733333333336
+    }
+  ]
+}

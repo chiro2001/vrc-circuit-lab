@@ -1,0 +1,82 @@
+{
+  "passed": true,
+  "targetHz": 8192.0,
+  "readbacksMuted": true,
+  "fit": {
+    "microsecondsPerBlit": 3.323262635154085,
+    "fixedFrameMilliseconds": 74.2401268449466,
+    "rSquared": 0.41204240228446953
+  },
+  "rows": [
+    {
+      "settlePasses": 1,
+      "blitsPerCycle": 7,
+      "cycles": 49645,
+      "activeSeconds": 6.0309410095214844,
+      "blockedSeconds": 0.0,
+      "fps": 20.8922615,
+      "cyclesPerFrame": 394.007935,
+      "blitsPerFrame": 2758.05566,
+      "frameMilliseconds": 47.8646126,
+      "cyclesPerSecond": 8231.717060674584,
+      "microsecondsPerCycle": 121.48133768801459,
+      "microsecondsPerBlit": 17.354476812573512
+    },
+    {
+      "settlePasses": 4,
+      "blitsPerCycle": 10,
+      "cycles": 24440,
+      "activeSeconds": 6.084381103515625,
+      "blockedSeconds": 0.0,
+      "fps": 7.724697,
+      "cyclesPerFrame": 520.0,
+      "blitsPerFrame": 5200.0,
+      "frameMilliseconds": 129.45491,
+      "cyclesPerSecond": 4016.8424009269061,
+      "microsecondsPerCycle": 248.95176364630217,
+      "microsecondsPerBlit": 24.895176364630217
+    },
+    {
+      "settlePasses": 11,
+      "blitsPerCycle": 17,
+      "cycles": 39520,
+      "activeSeconds": 6.07427978515625,
+      "blockedSeconds": 0.0,
+      "fps": 12.5117712,
+      "cyclesPerFrame": 520.0,
+      "blitsPerFrame": 8840.0,
+      "frameMilliseconds": 79.924736,
+      "cyclesPerSecond": 6506.1211201655933,
+      "microsecondsPerCycle": 153.70141156771888,
+      "microsecondsPerBlit": 9.0412595039834631
+    },
+    {
+      "settlePasses": 22,
+      "blitsPerCycle": 28,
+      "cycles": 19240,
+      "activeSeconds": 6.0026931762695313,
+      "blockedSeconds": 0.0,
+      "fps": 6.1639,
+      "cyclesPerFrame": 520.0,
+      "blitsPerFrame": 14560.0,
+      "frameMilliseconds": 162.234955,
+      "cyclesPerSecond": 3205.2279593535718,
+      "microsecondsPerCycle": 311.99028982689873,
+      "microsecondsPerBlit": 11.142510350960668
+    },
+    {
+      "settlePasses": 43,
+      "blitsPerCycle": 49,
+      "cycles": 22360,
+      "activeSeconds": 6.0461959838867188,
+      "blockedSeconds": 0.0,
+      "fps": 7.11191,
+      "cyclesPerFrame": 520.0,
+      "blitsPerFrame": 25480.0,
+      "frameMilliseconds": 140.6092,
+      "cyclesPerSecond": 3698.1930555327722,
+      "microsecondsPerCycle": 270.40232486076559,
+      "microsecondsPerBlit": 5.5184147930768486
+    }
+  ]
+}
