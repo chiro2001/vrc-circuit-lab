@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "controlAuthorityId": 1,
+  "ready": true,
+  "canUseControls": true,
+  "hasControl": false,
+  "buttonInteractable": true,
+  "selectedBefore": 0,
+  "selectedAfter": 1,
+  "selectionChanged": true,
+  "browsingSource": "BROWSING  /  Loop counter  /  PRESET 1",
+  "browsingOverlay": "ON  BROWSING  /  Loop counter  /  PRESET 1",
+  "sourceFirstLine": "001 |         LDI 0",
+  "sourceOverlayFirstLine": "ON  001 |         LDI 0"
+}

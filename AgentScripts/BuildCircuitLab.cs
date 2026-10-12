@@ -1513,7 +1513,7 @@ public static class BuildCircuitLab
                 if (localization.sourceTexts[i] != null && dynamicTexts.Contains(localization.sourceTexts[i])) indices.Add(i);
         Undo.RecordObject(localization, "Adopt the runtime text subset");
         localization.dynamicIndices = indices.ToArray();
-        localization.fullScanInterval = 2f;
+        localization.slowScanSize = 320;
         UdonSharpEditorUtility.CopyProxyToUdon(localization);
         EditorUtility.SetDirty(localization);
         EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(localization));

@@ -1,0 +1,86 @@
+{
+  "passed": true,
+  "sourceCount": 5513,
+  "dynamicCount": 462,
+  "slowScanSize": 320,
+  "lastLanguage": 0,
+  "languageIndex": 0,
+  "componentEnabled": true,
+  "privateNextTextSync": 1.03068531,
+  "slowCursor": 1280,
+  "lastSourceTextLength": -1,
+  "indicesInRange": 462,
+  "indicesOutOfRange": 0,
+  "hudSourceChangedOver1s": true,
+  "hudOverlayChangedOver1s": true,
+  "before": {
+    "hud": {
+      "index": 5010,
+      "name": "SimulationHud",
+      "componentEnabled": false,
+      "activeInHierarchy": true,
+      "inDynamicSubset": true,
+      "sourceText": "PAUSED  /  STEP TO EXECUTE ONE CLOCK",
+      "overlay": "ON  PAUSED  /  STEP TO EXECUTE ONE CLOCK"
+    },
+    "status": {
+      "index": 5011,
+      "name": "TestStatus",
+      "componentEnabled": false,
+      "activeInHierarchy": true,
+      "inDynamicSubset": true,
+      "sourceText": "SELF TEST READY",
+      "overlay": "ON  SELF TEST READY"
+    },
+    "wave": {
+      "index": 5009,
+      "name": "WaveHud",
+      "componentEnabled": false,
+      "activeInHierarchy": true,
+      "inDynamicSubset": true,
+      "sourceText": "LIVE  /  FOLLOWING LATEST  /  FREEZE LOCKS THE VIEW",
+      "overlay": "ON  LIVE  /  FOLLOWING LATEST  /  FREEZE LOCKS THE VIEW"
+    }
+  },
+  "after": {
+    "hud": {
+      "index": 5010,
+      "name": "SimulationHud",
+      "componentEnabled": false,
+      "activeInHierarchy": true,
+      "inDynamicSubset": true,
+      "sourceText": "PAUSED | TARGET 2 Hz | ACTUAL 0 Hz\nCYCLE 0  LAG 0 cycles  PHASE 0\nPC 0  ACC 0  X 0  OUT 0  Z0 C0 HALT0  DEPTH 43/43",
+      "overlay": "ON  PAUSED | TARGET 2 Hz | ACTUAL 0 Hz\nCYCLE 0  LAG 0 cycles  PHASE 0\nPC 0  ACC 0  X 0  OUT 0  Z0 C0 HALT0  DEPTH 43/43"
+    },
+    "status": {
+      "index": 5011,
+      "name": "TestStatus",
+      "componentEnabled": false,
+      "activeInHierarchy": true,
+      "inDynamicSubset": true,
+      "sourceText": "SELF TEST READY | 0/128 | mismatches 0",
+      "overlay": "ON  SELF TEST READY | 0/128 | mismatches 0"
+    },
+    "wave": {
+      "index": 5009,
+      "name": "WaveHud",
+      "componentEnabled": false,
+      "activeInHierarchy": true,
+      "inDynamicSubset": true,
+      "sourceText": "LIVE | WINDOW 128 | HEX | 4 CHANNELS\nA 0  B 0  DELTA 0 half-cycles | values: upper A / lower B",
+      "overlay": "ON  LIVE | WINDOW 128 | HEX | 4 CHANNELS\nA 0  B 0  DELTA 0 half-cycles | values: upper A / lower B"
+    }
+  },
+  "samples": [
+    {
+      "when": "before",
+      "source": "PAUSED  /  STEP TO EXECUTE ONE CLOCK",
+      "overlay": "ON  PAUSED  /  STEP TO EXECUTE ONE CLOCK"
+    },
+    {
+      "when": "after",
+      "source": "PAUSED | TARGET 2 Hz | ACTUAL 0 Hz\nCYCLE 0  LAG 0 cycles  PHASE 0\nPC 0  ACC 0  X 0  OUT 0  Z0 C0 HALT0  DEPTH 43/43",
+      "overlay": "ON  PAUSED | TARGET 2 Hz | ACTUAL 0 Hz\nCYCLE 0  LAG 0 cycles  PHASE 0\nPC 0  ACC 0  X 0  OUT 0  Z0 C0 HALT0  DEPTH 43/43"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "cyclesAdvanced": 1124,
+  "hudChanged": true,
+  "hudOverlayChanged": true,
+  "tabletStatusChanged": true,
+  "tabletPageChanged": false,
+  "hudSamples": [
+    "RUNNING | TARGET 512 Hz | ACTUAL 281.1 Hz\nCYCLE 839  LAG 379 cycles  PHASE 1\nPC 55  ACC 161  X 0  OUT 52  Z0 C0 HALT0  DEPTH 39/43",
+    "RUNNING | TARGET 512 Hz | ACTUAL 425.6 Hz\nCYCLE 2036  LAG 510 cycles  PHASE 1\nPC 64  ACC 2  X 0  OUT 57  Z0 C1 HALT0  DEPTH 39/43"
+  ],
+  "hudOverlaySamples": [
+    "ON  RUNNING | TARGET 512 Hz | ACTUAL 281.1 Hz\nCYCLE 839  LAG 379 cycles  PHASE 1\nPC 55  ACC 161  X 0  OUT 52  Z0 C0 HALT0  DEPTH 39/43",
+    "ON  RUNNING | TARGET 512 Hz | ACTUAL 425.6 Hz\nCYCLE 1937  LAG 496 cycles  PHASE 1\nPC 64  ACC 2  X 0  OUT 57  Z0 C1 HALT0  DEPTH 39/43"
+  ],
+  "tabletSamples": [
+    "CYCLE 912  /  RAM SAMPLE 773  /  WAITING FOR STABLE SAMPLE\nBANK 0 / 3  ·  A READ  0x000 -> 0x71\nB NEXT EDGE WRITE INTENT  0x000 <- 0xA1  WE 0",
+    "CYCLE 2036  /  RAM SAMPLE 1937  /  WAITING FOR STABLE SAMPLE\nBANK 0 / 3  ·  A READ  0x005 -> 0x03\nB NEXT EDGE WRITE INTENT  0x005 <- 0x02  WE 1"
+  ],
+  "pageSamples": [
+    "SIGNALS  /  PAGE 1 OF 19",
+    "SIGNALS  /  PAGE 1 OF 19"
+  ]
+}
