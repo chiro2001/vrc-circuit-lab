@@ -24,7 +24,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _InitialRAM:
-        m_Texture: {fileID: 2800000, guid: 9657c6379353a6f4dac549ca0f38e590, type: 2}
+        m_Texture: {fileID: 2800000, guid: de1d0f6957548c943aa95993a93eaaf8, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
@@ -32,7 +32,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _StateTex:
-        m_Texture: {fileID: 8400000, guid: 5927dbb01ebf03142a7a532c7dab89e5, type: 2}
+        m_Texture: {fileID: 8400000, guid: f0b04ed66f82e4544a9c8c2d6165dbf2, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []

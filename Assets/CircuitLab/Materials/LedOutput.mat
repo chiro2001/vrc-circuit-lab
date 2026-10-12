@@ -32,7 +32,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _StateTex:
-        m_Texture: {fileID: 8400000, guid: 5927dbb01ebf03142a7a532c7dab89e5, type: 2}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
@@ -42,6 +42,6 @@ Material:
     - _Enabled: 1
     - _Mode: 0
     - _Selector: 224
-    - _StateWidth: 2048
+    - _StateWidth: 1
     m_Colors: []
   m_BuildTextureStacks: []
