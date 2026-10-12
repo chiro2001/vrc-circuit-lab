@@ -113,7 +113,7 @@ public static class ValidateCircuitLabTeaching
         int rev=Int(sv,"programRevision"); Vm(Object.FindObjectOfType<CircuitLabProgramBrowser>()).SetProgramVariable("selectedProgram",index);
         Vm(Object.FindObjectOfType<CircuitLabProgramBrowser>()).SendCustomEvent("LoadSelectedPreset");
         await Until(()=>Int(sv,"programRevision")>rev && Int(sv,"queuedCommandCount")==0,"Preset load failed.");
-        sv.SetProgramVariable("cyclesPerSecond",256f); sv.SendCustomEvent("Run");
+        sv.SetProgramVariable("cyclesPerSecond",1024f); sv.SendCustomEvent("Run");
         return new{started=id,index,expectedCycles=programs[index]["expectedCycles"],expectedText=programs[index]["expectedText"]};
     }
     public static object PresetStatus()

@@ -13,6 +13,12 @@ public class CircuitLabLocalization : UdonSharpBehaviour
     public int languageOverride = -1;
 
     public Text[] sourceTexts;
+    // Subset of sourceTexts that Udon code actually writes at runtime (terminal
+    // output, HUD, tablet and program labels). Scanning 5.5k legacy texts five
+    // times a second dominated the frame budget, so only this subset is polled
+    // frequently and everything else is refreshed on a slow full sweep.
+    public int[] dynamicIndices = new int[0];
+    public float fullScanInterval = 2f;
     public TextMeshProUGUI[] englishDisplays;
     public TextMeshProUGUI[] chineseDisplays;
     public TextMeshProUGUI[] japaneseDisplays;
@@ -43,6 +49,7 @@ public class CircuitLabLocalization : UdonSharpBehaviour
     private bool[] _lastActive;
     private int _lastLanguage = -1;
     private float _nextTextSync;
+    private float _nextFullScan;
 
     private void Start()
     {
@@ -57,7 +64,55 @@ public class CircuitLabLocalization : UdonSharpBehaviour
     {
         if (Time.time < _nextTextSync) return;
         _nextTextSync = Time.time + .20f;
-        ApplyLocale(false);
+        bool fullScan = dynamicIndices == null || dynamicIndices.Length == 0 || Time.time >= _nextFullScan;
+        if (fullScan) _nextFullScan = Time.time + Mathf.Max(.5f, fullScanInterval);
+        ApplyLocale(false, fullScan);
+    }
+
+    private void ScanSources(bool fullScan)
+    {
+        int[] indices = fullScan ? null : dynamicIndices;
+        int count = fullScan ? (sourceTexts == null ? 0 : sourceTexts.Length) : indices.Length;
+        for (int slot = 0; slot < count; slot++)
+            SyncSource(fullScan ? slot : indices[slot]);
+    }
+
+    private void SyncSource(int index) { SyncSource(index, false); }
+
+    private void SyncSource(int index, bool force)
+    {
+        int i = index;
+        if (englishDisplays == null || chineseDisplays == null || japaneseDisplays == null) return;
+        if (i < 0 || i >= sourceTexts.Length || i >= englishDisplays.Length
+            || i >= chineseDisplays.Length || i >= japaneseDisplays.Length) return;
+        Text source = sourceTexts[i];
+        TextMeshProUGUI englishTarget = englishDisplays[i];
+        TextMeshProUGUI chineseTarget = chineseDisplays[i];
+        TextMeshProUGUI japaneseTarget = japaneseDisplays[i];
+        if (source == null || englishTarget == null || chineseTarget == null || japaneseTarget == null) return;
+        if (!source.gameObject.activeInHierarchy) { _lastActive[i] = false; return; }
+        bool justActivated = !_lastActive[i];
+        _lastActive[i] = true;
+        string value = source.text == null ? "" : source.text;
+        bool textChanged = force || justActivated || _lastSourceText[i] != value;
+        bool colorChanged = force || justActivated || _lastSourceColor[i] != source.color;
+        if (!textChanged && !colorChanged) return;
+        bool keep = keepText != null && i < keepText.Length && keepText[i];
+        if (textChanged)
+        {
+            englishTarget.text = keep ? value : Localize(value, 0);
+            chineseTarget.text = keep ? value : Localize(value, 1);
+            japaneseTarget.text = keep ? value : Localize(value, 2);
+            _lastSourceText[i] = value;
+        }
+        if (colorChanged)
+        {
+            Color displayColor = Color.Lerp(source.color, Color.white, .10f);
+            englishTarget.color = displayColor;
+            chineseTarget.color = displayColor;
+            japaneseTarget.color = displayColor;
+            _lastSourceColor[i] = source.color;
+        }
     }
 
     public override void OnLanguageChanged(string language)
@@ -103,6 +158,11 @@ public class CircuitLabLocalization : UdonSharpBehaviour
 
     private void ApplyLocale(bool force)
     {
+        ApplyLocale(force, true);
+    }
+
+    private void ApplyLocale(bool force, bool fullScan)
+    {
         bool languageChanged = _lastLanguage != languageIndex;
         if (languageChanged || force)
         {
@@ -129,39 +189,15 @@ public class CircuitLabLocalization : UdonSharpBehaviour
             _lastSourceColor = new Color[sourceTexts.Length];
             _lastActive = new bool[sourceTexts.Length];
         }
-        int count = Mathf.Min(sourceTexts.Length, Mathf.Min(englishDisplays.Length, Mathf.Min(chineseDisplays.Length, japaneseDisplays.Length)));
-        for (int i = 0; i < count; i++)
+        // A forced pass or a language switch must refresh every text; the routine
+        // poll only walks the runtime-driven subset.
+        bool scanAll = fullScan || force || languageChanged;
+        if (scanAll)
         {
-            Text source = sourceTexts[i];
-            TextMeshProUGUI englishTarget = englishDisplays[i];
-            TextMeshProUGUI chineseTarget = chineseDisplays[i];
-            TextMeshProUGUI japaneseTarget = japaneseDisplays[i];
-            if (source == null || englishTarget == null || chineseTarget == null || japaneseTarget == null) continue;
-            bool active = source.gameObject.activeInHierarchy;
-            if (!active) { _lastActive[i] = false; continue; }
-            bool justActivated = !_lastActive[i];
-            _lastActive[i] = true;
-            string value = source.text == null ? "" : source.text;
-            bool textChanged = force || languageChanged || justActivated || _lastSourceText[i] != value;
-            bool colorChanged = force || languageChanged || justActivated || _lastSourceColor[i] != source.color;
-            if (!textChanged && !colorChanged) continue;
-            bool keep = keepText != null && i < keepText.Length && keepText[i];
-            if (textChanged)
-            {
-                englishTarget.text = keep ? value : Localize(value, 0);
-                chineseTarget.text = keep ? value : Localize(value, 1);
-                japaneseTarget.text = keep ? value : Localize(value, 2);
-                _lastSourceText[i] = value;
-            }
-            if (colorChanged)
-            {
-                Color displayColor = Color.Lerp(source.color, Color.white, .10f);
-                englishTarget.color = displayColor;
-                chineseTarget.color = displayColor;
-                japaneseTarget.color = displayColor;
-                _lastSourceColor[i] = source.color;
-            }
+            int count = Mathf.Min(sourceTexts.Length, Mathf.Min(englishDisplays.Length, Mathf.Min(chineseDisplays.Length, japaneseDisplays.Length)));
+            for (int i = 0; i < count; i++) SyncSource(i, force || languageChanged);
         }
+        else ScanSources(false);
     }
 
     private void SetDisplayLanguage()

@@ -71,6 +71,10 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     public int nodeCount;
     public int textureWidth;
     public int settlePasses;
+    // Passes needed when only the clock changes (clock-low half phase). Computed
+    // from the netlist's clock cone of influence, so it is a proven bound rather
+    // than a guess; the full depth is used whenever any other input changed.
+    public int clockSettlePasses = 2;
     public int[] inputMasks;
     public byte[] expectedStates;
     public int vectorCount;
@@ -244,6 +248,12 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     private byte[] _sharedRam;
     private string _sharedProgramName;
     private int _sharedProgramRevision;
+    // Mask the state was last settled for, and the state texture the display and
+    // wire materials are currently bound to.
+    private int _lastSettledInputMask = -1;
+    private RenderTexture _lastPublishedState;
+    private bool _ramUniformsReady;
+    private int _ramResetFlag = -1;
     public int sharedRestoreRevision;
 
     public void CopySnapshotMetadata()
@@ -330,7 +340,12 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         BuildRestoreStateTexture(_sharedDffBits);
         simulationMaterial.SetInt("_InputMask", currentInputMask);
         _readState = stateA; _writeState = stateB;
-        StatePass(3); Settle(); PublishState(); UpdateProbeUniforms();
+        _lastPublishedState = null;
+        _lastSettledInputMask = -1;
+        StatePass(3); Settle();
+        // The restore sequence is even too, so the live state lands back in StateA.
+        _lastPublishedState = _readState;
+        PublishState(); UpdateProbeUniforms();
         _restorePhase = historyFrozen ? 1 : 2; _restoreIndex = 0; sharedRestoreProgress = 0;
         ClearSharedHistoryTarget();
     }
@@ -532,6 +547,8 @@ public class CircuitLabSimulator : UdonSharpBehaviour
 
     private void EnsureStateArrays()
     {
+        // Node counts, texture width and the RAM write signal can all change here.
+        _ramUniformsReady = false;
         if (programWords == null || programWords.Length != 512) programWords = new int[512];
         if (initialRam == null || initialRam.Length != RamByteCount) initialRam = new byte[RamByteCount];
         if (programCount <= 0 && presetProgramWords != null) programCount = presetProgramWords.Length / 512;
@@ -627,6 +644,9 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         if (currentRam != null) historyMaterial.SetTexture("_RamTex", currentRam);
         UpdateMemoryUniforms();
         UpdateProbeUniforms();
+        // Display and wire materials declare _StateTex as a shader property, so an
+        // editor asset refresh keeps that binding; rebinding them every frame both
+        // cost time and dirtied the shared material assets during Play Mode.
         if (_readState != null) PublishState();
     }
 
@@ -663,10 +683,12 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         simulationMaterial.SetTexture("_RestoreState", restoreStateTexture);
     }
 
-    private void Settle()
+    private void Settle() { Settle(settlePasses); }
+
+    private void Settle(int passes)
     {
         if (currentRam != null) simulationMaterial.SetTexture("_RamTex", currentRam);
-        for (int i = 0; i < settlePasses; i++) StatePass(1);
+        for (int i = 0; i < passes; i++) StatePass(1);
     }
 
     private void RestartState()
@@ -696,6 +718,13 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         currentInputMask = 0;
         simulationMaterial.SetInt("_InputMask", currentInputMask);
         Settle();
+        _lastSettledInputMask = currentInputMask;
+        // Every state pass count in this file is even per cycle, so a finished cycle
+        // always leaves the live state in StateA — the texture the authored display
+        // and wire materials already point at. Recording that here means the display
+        // materials are never written at runtime, which keeps Play Mode from dirtying
+        // the shared material assets (and skips 50 interop calls per rebind).
+        _lastPublishedState = _readState;
         PublishState();
         cycleCount = 0;
         sampleCount = 0;
@@ -758,13 +787,23 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     private void SubmitCycle(int mask)
     {
         // Intermediate propagation passes are never recorded: this is a binary, zero-delay clock model.
-        simulationMaterial.SetInt("_InputMask", mask & ~1);
-        Settle();
+        int lowMask = mask & ~1;
+        bool otherInputsChanged = (_lastSettledInputMask & ~1) != lowMask;
+        simulationMaterial.SetInt("_InputMask", lowMask);
+        // Lowering the clock only perturbs the clock node's cone of influence; the
+        // rest of the circuit still holds the fixed point from the previous high
+        // phase. Reset or any other changed input needs the full depth.
+        // The extra pass keeps low + edge + high even, so every finished cycle
+        // leaves the live state in StateA — the texture the authored display and
+        // wire materials point at. That invariant is what lets the runtime skip
+        // rebinding ~50 materials per cycle (and keeps Play Mode from dirtying them).
+        Settle(otherInputsChanged ? settlePasses + 1 : clockSettlePasses);
         RecordStableHalfCycle();
         simulationMaterial.SetInt("_InputMask", mask | 1);
         StatePass(2);
         RamPass(_writeState, (mask & 2) != 0);
         Settle();
+        _lastSettledInputMask = mask | 1;
         RecordStableHalfCycle();
         cycleCount++;
         lastSubmittedInputMask = mask | 1;
@@ -778,11 +817,22 @@ public class CircuitLabSimulator : UdonSharpBehaviour
     private void RamPass(RenderTexture stableOldState, bool resetActive)
     {
         if (ramMaterial == null || _readRam == null || _writeRam == null) return;
-        ramMaterial.SetInt("_Mode", 0);
-        ramMaterial.SetInt("_Reset", resetActive ? 1 : 0);
-        ramMaterial.SetInt("_TextureWidth", textureWidth);
-        ramMaterial.SetInt("_NodeCount", nodeCount);
-        ramMaterial.SetInt("_RamWriteEnableSignal", ramWriteEnableSignal);
+        // The RAM material's configuration only changes when the netlist does; only
+        // the reset flag and the state texture vary per cycle.
+        if (!_ramUniformsReady)
+        {
+            ramMaterial.SetInt("_Mode", 0);
+            ramMaterial.SetInt("_TextureWidth", textureWidth);
+            ramMaterial.SetInt("_NodeCount", nodeCount);
+            ramMaterial.SetInt("_RamWriteEnableSignal", ramWriteEnableSignal);
+            _ramUniformsReady = true;
+        }
+        int resetFlag = resetActive ? 1 : 0;
+        if (resetFlag != _ramResetFlag)
+        {
+            ramMaterial.SetInt("_Reset", resetFlag);
+            _ramResetFlag = resetFlag;
+        }
         ramMaterial.SetTexture("_StateTex", stableOldState);
         VRCGraphics.Blit(_readRam, _writeRam, ramMaterial);
         RenderTexture previous = _readRam;
@@ -791,12 +841,16 @@ public class CircuitLabSimulator : UdonSharpBehaviour
         currentRam = _readRam;
         simulationMaterial.SetTexture("_RamTex", currentRam);
         historyMaterial.SetTexture("_RamTex", currentRam);
-        ramMaterial.SetInt("_Reset", 0);
     }
 
     private void PublishState()
     {
         // All gate and wire displays observe the final stable texture before cameras render.
+        // Rebinding 50 materials per simulated cycle used to cost more than the
+        // settle itself; the state parity is even per cycle, so this only runs when
+        // the state texture actually changed (once per frame, plus after reloads).
+        if (_readState == _lastPublishedState) return;
+        _lastPublishedState = _readState;
         RestoreDisplayBinding(displayMaterial);
         if (displayMaterials == null) return;
         for (int i = 0; i < displayMaterials.Length; i++)

@@ -30,7 +30,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _SignalOverride: 116
-    - _TextureWidth: 1024
+    - _TextureWidth: 2048
     m_Colors:
     - _OneColor: {r: 1, g: 0.72, b: 0.16999996, a: 1}
     - _ZeroColor: {r: 0.09999997, g: 0.45999992, b: 0.76, a: 1}

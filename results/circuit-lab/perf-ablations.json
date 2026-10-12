@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "target": 8192.0,
+  "settlePasses": 43,
+  "displayMaterials": 49,
+  "historyCapacity": 2048,
+  "localizationSources": 5513,
+  "results": [
+    {
+      "variant": "baseline",
+      "cyclesPerSecond": 1146.98974089619,
+      "cycles": 3632
+    },
+    {
+      "variant": "no display rebinding",
+      "cyclesPerSecond": 1421.3771375116933,
+      "cycles": 4637
+    },
+    {
+      "variant": "no localization scan",
+      "cyclesPerSecond": 1606.9864600162994,
+      "cycles": 5145
+    },
+    {
+      "variant": "neither",
+      "cyclesPerSecond": 2148.8061430954331,
+      "cycles": 6644
+    },
+    {
+      "variant": "settlePasses=1",
+      "cyclesPerSecond": 2684.1091557343329,
+      "cycles": 5376
+    },
+    {
+      "variant": "settlePasses=4",
+      "cyclesPerSecond": 2335.1231949096268,
+      "cycles": 4883
+    },
+    {
+      "variant": "settlePasses=11",
+      "cyclesPerSecond": 2033.4218269941107,
+      "cycles": 4494
+    },
+    {
+      "variant": "settlePasses=22",
+      "cyclesPerSecond": 1659.4654551327515,
+      "cycles": 3606
+    },
+    {
+      "variant": "settlePasses=43",
+      "cyclesPerSecond": 1061.0594569073489,
+      "cycles": 2469
+    }
+  ]
+}

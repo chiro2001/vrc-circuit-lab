@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "targetHz": 8192.0,
+  "seconds": 3.01525879,
+  "frames": 40,
+  "fps": 13.26586,
+  "cyclesPerSecond": 3559.89355,
+  "maxCyclesPerFrame": 520,
+  "minCyclesPerFrame": 0,
+  "averageCyclesPerFrame": 268.35,
+  "framesWithReadbackPending": 20,
+  "framesSubmissionBlocked": 40,
+  "framesThatSubmitted": 25,
+  "frameDelta": 0.129974365,
+  "telemetryInterval": 0.5,
+  "snapshotCaptureStage": 0,
+  "serializationPending": false
+}

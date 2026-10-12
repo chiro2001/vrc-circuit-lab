@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "displayMaterials": 49,
+  "uniqueMaterials": 54,
+  "settlePasses": 43,
+  "textureWidth": 2048,
+  "nodeCount": 1172,
+  "historyCapacity": 2048,
+  "statePassesPerCycle": 87,
+  "blitsPerCycle": 90,
+  "note": "2 settles + 1 edge + 2 history + 1 RAM; PublishState then rebinds every display material",
+  "settledStates": 0,
+  "localization": [
+    {
+      "sources": 5513,
+      "scanIntervalSeconds": 0.2,
+      "scansPerSecond": 5.0
+    }
+  ]
+}

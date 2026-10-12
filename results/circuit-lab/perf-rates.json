@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "samples": [
+    {
+      "targetHz": 256.0,
+      "cycles": 1302,
+      "elapsedSeconds": 5.007202,
+      "cyclesPerSecond": 260.025452,
+      "reportedHz": 265.413452,
+      "lag": 10
+    },
+    {
+      "targetHz": 1024.0,
+      "cycles": 4623,
+      "elapsedSeconds": 5.013092,
+      "cyclesPerSecond": 922.185364,
+      "reportedHz": 962.829834,
+      "lag": 555
+    },
+    {
+      "targetHz": 8192.0,
+      "cycles": 17368,
+      "elapsedSeconds": 5.03683472,
+      "cyclesPerSecond": 3448.19727,
+      "reportedHz": 3491.7644,
+      "lag": 8192
+    }
+  ]
+}

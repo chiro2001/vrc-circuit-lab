@@ -395,6 +395,7 @@ public static class BuildCircuitLab
         simulator.fixturePrograms = data["fixturePrograms"] == null ? new int[0] : data["fixturePrograms"].ToObject<int[]>();
         simulator.fixtureRamReset = data["fixtureRamReset"] == null ? new bool[0] : data["fixtureRamReset"].ToObject<bool[]>();
         simulator.nodeCount = count; simulator.textureWidth = width; simulator.settlePasses = (int)data["settlePasses"];
+        simulator.clockSettlePasses = (int?)data["clockSettlePasses"] ?? 2;
         simulator.inputMasks = data["inputMasks"] == null ? new int[0] : data["inputMasks"].ToObject<int[]>();
         simulator.expectedStates = data["expectedStates"] == null ? new byte[0] : data["expectedStates"].ToObject<byte[]>();
         simulator.vectorCount = (int?)data["vectorCount"] ?? 0;
@@ -448,7 +449,7 @@ public static class BuildCircuitLab
         if (!upgrade) { rootModule.transform.position = new Vector3(-3.85f, 1.8f, .5f); rootModule.transform.rotation = Quaternion.identity; rootModule.transform.localScale = Vector3.one * .65f; } rootModule.EnsureAboveFloor();
         foreach (var module in allModules) { module.CaptureInitialPose(); module.sharedState.expanded = module.expanded; module.sharedState.detached = module.isDetached; }
         GateReference(world.transform, nodes);
-        var wireMaterials = BuildExternalWires(ordered, nodes, width);
+        var wireMaterials = BuildExternalWires(ordered, nodes, width, stateA);
         simulator.displayMaterials = (new[] { _display }).Concat(wireMaterials).Distinct().ToArray();
         var probes = BuildPanel(world.transform, simulator, wave, allModules);
         BuildTerminal(world.transform, simulator, data);
@@ -818,7 +819,7 @@ public static class BuildCircuitLab
         return ordered.ToArray();
     }
 
-    private static List<Material> BuildExternalWires(ModuleView[] views, Dictionary<int, JObject> nodes, int textureWidth)
+    private static List<Material> BuildExternalWires(ModuleView[] views, Dictionary<int, JObject> nodes, int textureWidth, RenderTexture stateTexture)
     {
         var materials = new Dictionary<int, Material>();
         var ports = views.SelectMany(view => view.ports.Select((target, index) => new { view, target, direction = view.portDirections[index] })).ToArray();
@@ -841,6 +842,9 @@ public static class BuildCircuitLab
             {
                 var material = Material("WireSignal_" + signal, "VrcCpuWorld/CircuitLabDisplay", Color.white);
                 material.SetFloat("_TextureWidth", textureWidth); material.SetFloat("_SignalOverride", signal);
+                // Authored binding: a finished cycle always leaves the live state in
+                // StateA, so the runtime never writes these shared assets.
+                material.SetTexture("_StateTex", stateTexture);
                 materials[signal] = material;
             }
             var go = Child(_workspace, "BoundaryWire_" + wireIndex + "_" + signal);
@@ -1453,6 +1457,107 @@ public static class BuildCircuitLab
 
     // Widens the terminal capture ring on an existing scene so high simulation
     // rates do not lose OUT events between readbacks. Does not touch layout.
+    // Adopts the annotated half-phase settle depths and the runtime text subset on
+    // an existing scene: both come from data the scene cannot derive itself.
+    public static object UpgradeSimulationTuning()
+    {
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Stop Play Mode before updating simulation tuning.");
+        var world = SceneManager.GetActiveScene().GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
+        var simulator = world.GetComponentInChildren<CircuitLabSimulator>(true);
+        var localization = world.GetComponentInChildren<CircuitLabLocalization>(true);
+        if (simulator == null || localization == null) throw new InvalidOperationException("Simulator or localization component is missing.");
+        var data = JObject.Parse(AssetDatabase.LoadAssetAtPath<TextAsset>(Root + "/Data/gpu-netlist.json").text);
+        Undo.RecordObject(simulator, "Adopt half-phase settle depths");
+        simulator.settlePasses = (int)data["settlePasses"];
+        simulator.clockSettlePasses = (int?)data["clockSettlePasses"] ?? 2;
+        UdonSharpEditorUtility.CopyProxyToUdon(simulator);
+        EditorUtility.SetDirty(simulator);
+        EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(simulator));
+
+        // Texts that Udon writes at runtime: every Text field referenced by a
+        // CircuitLab behaviour. Everything else only needs the slow full sweep.
+        var dynamicTexts = new HashSet<Text>();
+        foreach (UdonSharpBehaviour behaviour in world.GetComponentsInChildren<UdonSharpBehaviour>(true))
+        {
+            // The localization component owns the source list itself; its own
+            // fields are bookkeeping, not texts that change at runtime.
+            if (behaviour == null || behaviour is CircuitLabLocalization) continue;
+            foreach (var field in behaviour.GetType().GetFields())
+            {
+                if (field.FieldType == typeof(Text))
+                {
+                    var text = field.GetValue(behaviour) as Text;
+                    if (text != null) dynamicTexts.Add(text);
+                }
+                else if (field.FieldType == typeof(Text[]))
+                {
+                    var texts = field.GetValue(behaviour) as Text[];
+                    if (texts == null) continue;
+                    foreach (Text text in texts) if (text != null) dynamicTexts.Add(text);
+                }
+            }
+        }
+        var indices = new List<int>();
+        if (localization.sourceTexts != null)
+            for (int i = 0; i < localization.sourceTexts.Length; i++)
+                if (localization.sourceTexts[i] != null && dynamicTexts.Contains(localization.sourceTexts[i])) indices.Add(i);
+        Undo.RecordObject(localization, "Adopt the runtime text subset");
+        localization.dynamicIndices = indices.ToArray();
+        localization.fullScanInterval = 2f;
+        UdonSharpEditorUtility.CopyProxyToUdon(localization);
+        EditorUtility.SetDirty(localization);
+        EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(localization));
+        EditorSceneManager.MarkSceneDirty(world.scene);
+        EditorSceneManager.SaveScene(world.scene);
+        AssetDatabase.SaveAssets();
+        return new
+        {
+            updated = true,
+            settlePasses = simulator.settlePasses,
+            clockSettlePasses = simulator.clockSettlePasses,
+            localizedTexts = localization.sourceTexts == null ? 0 : localization.sourceTexts.Length,
+            dynamicTexts = indices.Count,
+            scanReduction = localization.sourceTexts == null || localization.sourceTexts.Length == 0
+                ? 0f : 1f - (float)indices.Count / localization.sourceTexts.Length
+        };
+    }
+
+    // Binds every gate/wire material to StateA, the texture a finished cycle always
+    // leaves the live state in. With that authored binding the simulator never has
+    // to touch those shared materials at runtime, which both saves ~50 interop calls
+    // per rebind and stops Play Mode from dirtying the material assets.
+    public static object BindWireStateTextures()
+    {
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Stop Play Mode before rebinding the wire materials.");
+        var world = SceneManager.GetActiveScene().GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
+        var simulator = world.GetComponentInChildren<CircuitLabSimulator>(true);
+        if (simulator == null || simulator.stateA == null) throw new InvalidOperationException("Simulator or StateA texture is missing.");
+        var materials = new List<Material>();
+        if (simulator.displayMaterial != null) materials.Add(simulator.displayMaterial);
+        if (simulator.displayMaterials != null) materials.AddRange(simulator.displayMaterials);
+        // Every wire signal material in the project, including rows a line renderer
+        // shares, so no stale asset keeps a scratch-buffer binding.
+        foreach (string guid in AssetDatabase.FindAssets("t:Material", new[] { Root + "/Materials" }))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            if (!path.EndsWith(".mat") || !System.IO.Path.GetFileName(path).StartsWith("WireSignal_")) continue;
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null) materials.Add(material);
+        }
+        int bound = 0;
+        foreach (Material material in materials.Distinct())
+        {
+            if (material == null) continue;
+            Undo.RecordObject(material, "Bind wire state texture");
+            material.SetTexture("_StateTex", simulator.stateA);
+            material.SetFloat("_TextureWidth", simulator.textureWidth);
+            EditorUtility.SetDirty(material);
+            bound++;
+        }
+        AssetDatabase.SaveAssets();
+        return new { bound, stateTexture = simulator.stateA.name, textureWidth = simulator.textureWidth };
+    }
+
     public static object UpgradeTerminalEventBuffer()
     {
         if (EditorApplication.isPlaying) throw new InvalidOperationException("Stop Play Mode before resizing the terminal buffer.");
