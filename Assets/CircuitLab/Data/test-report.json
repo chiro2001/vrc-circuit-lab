@@ -1,21 +1,21 @@
 {
   "name": "teaching_cpu",
   "schema": 3,
-  "nodeCount": 1172,
+  "nodeCount": 1178,
   "textureWidth": 2048,
-  "maxDepth": 42,
-  "settlePasses": 43,
+  "maxDepth": 40,
+  "settlePasses": 41,
   "registerCount": 79,
   "vectorCount": 128,
   "moduleCount": 20,
   "memoryPortCount": 7,
   "cellCounts": {
-    "$_AND_": 461,
+    "$_AND_": 467,
     "$_DFF_P_": 79,
-    "$_MUX_": 109,
-    "$_NOT_": 112,
-    "$_OR_": 310,
-    "$_XOR_": 77
+    "$_MUX_": 104,
+    "$_NOT_": 109,
+    "$_OR_": 316,
+    "$_XOR_": 79
   },
   "programCount": 24,
   "programRuns": [
@@ -25534,5 +25534,35 @@
     "alu",
     "rom",
     "ram"
-  ]
+  ],
+  "reusedProgramRunIds": [
+    "pi-spigot-64",
+    "pi-spigot-100"
+  ],
+  "freshProgramRunIds": [
+    "pi-355-113",
+    "counter",
+    "logic",
+    "hello",
+    "halt",
+    "blinker",
+    "alternating-55-aa",
+    "ff-plus-one",
+    "countdown",
+    "ascii-digits",
+    "step-count",
+    "long-call",
+    "cpu-fixture",
+    "gray-code",
+    "lfsr",
+    "fibonacci-16",
+    "array-sort",
+    "prime-sieve",
+    "gcd",
+    "crc8",
+    "ram-cross-page",
+    "life-8x8"
+  ],
+  "xCountUnitVectors": 2048,
+  "adderUnitVectors": 131072
 }

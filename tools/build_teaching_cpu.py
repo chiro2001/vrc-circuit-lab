@@ -852,6 +852,8 @@ def main() -> None:
                "vectorCount": exported["vectorCount"], "moduleCount": len(exported["modules"]),
                "memoryPortCount": len(exported["memoryPorts"]), "cellCounts": exported["cellCounts"],
                "programCount": len(programs), "programRuns": run_summaries,
+               "reusedProgramRunIds": [p.id for p in programs] if options.reuse_existing_runs else [],
+               "adderUnitVectors": 131072, "xCountUnitVectors": 2048,
                "piSpigotRuns": pi_spigot_runs, "traceProgramCount": traced_program_count,
                "streamedProgramIds": [item["id"] for item in run_summaries if not item["traceVerified"]],
                "ramAndRomBlackboxesPreserved": True, "rtlPassed": True,

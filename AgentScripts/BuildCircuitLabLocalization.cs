@@ -31,6 +31,36 @@ public static class BuildCircuitLabLocalization
     private const int InteractionLayer = 17;
     private const string SupplementaryMathGlyphs = "\u21A6\u21B3\u2308\u2309\u230A\u230B";
 
+    // Finish a register-only netlist upgrade without rebuilding fonts or touching
+    // the other panels. Reuse the existing code-label SDF faces and style.
+    public static object RefreshRegisterLabels()
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (EditorApplication.isPlaying || scene.path != ScenePath || scene.isDirty)
+            throw new InvalidOperationException("Use a saved CircuitLab scene in Edit Mode.");
+        var locale = UnityEngine.Object.FindObjectOfType<CircuitLabLocalization>();
+        var board = UnityEngine.Object.FindObjectsOfType<CircuitLabModule>(true).Single(m => m.modulePath == "teaching_cpu/registers");
+        int sample = Array.FindIndex(locale.sourceTexts, t => t != null && t.name.StartsWith("GateLabel_")
+            && !t.transform.IsChildOf(board.interior.transform));
+        if (sample < 0) throw new InvalidOperationException("Existing SDF gate label missing.");
+        var en = locale.englishDisplays[sample].font;
+        var zh = locale.chineseDisplays[sample].font;
+        var ja = locale.japaneseDisplays[sample].font;
+        int labels = 0;
+        for (int i = 0; i < locale.sourceTexts.Length; i++)
+        {
+            var source = locale.sourceTexts[i];
+            if (source == null || !source.transform.IsChildOf(board.interior.transform)) continue;
+            locale.englishDisplays[i] = EnsureTextDisplay(source, "LocalizedTMP_EN", en, locale.languageIndex == 0);
+            locale.chineseDisplays[i] = EnsureTextDisplay(source, "LocalizedTMP_ZH", zh, locale.languageIndex == 1);
+            locale.japaneseDisplays[i] = EnsureTextDisplay(source, "LocalizedTMP_JA", ja, locale.languageIndex == 2);
+            labels++;
+        }
+        CopyProxy(locale); EditorUtility.SetDirty(locale);
+        EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
+        return new { refreshed = true, labels, reusedExistingFonts = true };
+    }
+
     private const string SuperscriptGlyphs = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 
     private sealed class Phrase

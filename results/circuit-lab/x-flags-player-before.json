@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "output": "N0",
+  "x": 0,
+  "terminalEvents": 2,
+  "source": "player debug.hex through shared HEX loader and GPU"
+}

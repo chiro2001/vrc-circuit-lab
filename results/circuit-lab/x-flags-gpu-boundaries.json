@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "cases": 20,
+  "fullSettle": true,
+  "inxWrap": "255 -> 0, Z=1",
+  "dexZero": "1 -> 0, Z=1",
+  "dexWrap": "0 -> 255, Z=0",
+  "carryPreserved": true
+}

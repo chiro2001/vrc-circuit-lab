@@ -1,0 +1,204 @@
+{
+  "passed": true,
+  "xCountUnitVectors": 2048,
+  "adderUnitVectors": 131072,
+  "freshRuns": [
+    {
+      "id": "pi-355-113",
+      "cycles": 2021,
+      "halted": true,
+      "terminalBytes": 9,
+      "outputText": "3.141592\n",
+      "traceVerified": true
+    },
+    {
+      "id": "counter",
+      "cycles": 128,
+      "halted": false,
+      "terminalBytes": 21,
+      "outputText": "\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\t\n\u000b\f\r\u000e\u000f\u0010\u0011\u0012\u0013\u0014",
+      "traceVerified": true
+    },
+    {
+      "id": "logic",
+      "cycles": 13,
+      "halted": true,
+      "terminalBytes": 1,
+      "outputText": "\u0000",
+      "traceVerified": true
+    },
+    {
+      "id": "hello",
+      "cycles": 25,
+      "halted": true,
+      "terminalBytes": 6,
+      "outputText": "HELLO\n",
+      "traceVerified": true
+    },
+    {
+      "id": "halt",
+      "cycles": 3,
+      "halted": true,
+      "terminalBytes": 0,
+      "outputText": "",
+      "traceVerified": true
+    },
+    {
+      "id": "blinker",
+      "cycles": 128,
+      "halted": false,
+      "terminalBytes": 16,
+      "outputText": "\u0001\u0002\u0004\b\u0010 @\u0001\u0002\u0004\b\u0010 @",
+      "traceVerified": true
+    },
+    {
+      "id": "alternating-55-aa",
+      "cycles": 128,
+      "halted": false,
+      "terminalBytes": 25,
+      "outputText": "UªUªUªUªUªUªUªUªUªUªUªUªU",
+      "traceVerified": true
+    },
+    {
+      "id": "ff-plus-one",
+      "cycles": 9,
+      "halted": true,
+      "terminalBytes": 1,
+      "outputText": "\u0000",
+      "traceVerified": true
+    },
+    {
+      "id": "countdown",
+      "cycles": 89,
+      "halted": true,
+      "terminalBytes": 6,
+      "outputText": "54321\n",
+      "traceVerified": true
+    },
+    {
+      "id": "ascii-digits",
+      "cycles": 47,
+      "halted": true,
+      "terminalBytes": 11,
+      "outputText": "0123456789\n",
+      "traceVerified": true
+    },
+    {
+      "id": "step-count",
+      "cycles": 128,
+      "halted": false,
+      "terminalBytes": 21,
+      "outputText": "\u0000\u0003\u0006\t\f\u000f\u0012\u0015\u0018\u001b\u001e!$'*-0369<",
+      "traceVerified": true
+    },
+    {
+      "id": "long-call",
+      "cycles": 32,
+      "halted": true,
+      "terminalBytes": 3,
+      "outputText": "Hx\n",
+      "traceVerified": true
+    },
+    {
+      "id": "cpu-fixture",
+      "cycles": 120,
+      "halted": true,
+      "terminalBytes": 11,
+      "outputText": "ÿªêª\u0001ÿ\u0001@BC\n",
+      "traceVerified": true
+    },
+    {
+      "id": "gray-code",
+      "cycles": 2175,
+      "halted": true,
+      "terminalBytes": 16,
+      "outputText": "\u0000\u0001\u0003\u0002\u0006\u0007\u0005\u0004\f\r\u000f\u000e\n\u000b\t\b",
+      "traceVerified": true
+    },
+    {
+      "id": "lfsr",
+      "cycles": 463,
+      "halted": true,
+      "terminalBytes": 16,
+      "outputText": "¥êuAL&\u0013±àp8\u001c\u000e\u0007",
+      "traceVerified": true
+    },
+    {
+      "id": "fibonacci-16",
+      "cycles": 679,
+      "halted": true,
+      "terminalBytes": 32,
+      "outputText": "\u0000\u0000\u0001\u0000\u0001\u0000\u0002\u0000\u0003\u0000\u0005\u0000\b\u0000\r\u0000\u0015\u0000\"\u00007\u0000Y\u0000\u0000é\u0000y\u0001b\u0002",
+      "traceVerified": true
+    },
+    {
+      "id": "array-sort",
+      "cycles": 1239,
+      "halted": true,
+      "terminalBytes": 0,
+      "outputText": "",
+      "traceVerified": true
+    },
+    {
+      "id": "prime-sieve",
+      "cycles": 5579,
+      "halted": true,
+      "terminalBytes": 0,
+      "outputText": "",
+      "traceVerified": true
+    },
+    {
+      "id": "gcd",
+      "cycles": 115,
+      "halted": true,
+      "terminalBytes": 1,
+      "outputText": "\u0015",
+      "traceVerified": true
+    },
+    {
+      "id": "crc8",
+      "cycles": 167,
+      "halted": true,
+      "terminalBytes": 1,
+      "outputText": "r",
+      "traceVerified": true
+    },
+    {
+      "id": "ram-cross-page",
+      "cycles": 119,
+      "halted": true,
+      "terminalBytes": 5,
+      "outputText": "PASS\n",
+      "traceVerified": true
+    },
+    {
+      "id": "life-8x8",
+      "cycles": 136643,
+      "halted": true,
+      "terminalBytes": 0,
+      "outputText": "",
+      "traceVerified": false
+    },
+    {
+      "id": "player-debug",
+      "cycles": 21,
+      "halted": true,
+      "terminalBytes": 2,
+      "outputText": "Y0",
+      "traceVerified": true
+    },
+    {
+      "id": "player-donut",
+      "cycles": 65536,
+      "halted": false,
+      "terminalBytes": 0,
+      "outputText": "",
+      "traceVerified": false
+    }
+  ],
+  "revalidatedSavedRuns": [
+    "pi-spigot-64",
+    "pi-spigot-100"
+  ],
+  "note": "Long PI saved artifacts were revalidated against the current reference; all other programs were freshly simulated on the repaired RTL/netlist."
+}

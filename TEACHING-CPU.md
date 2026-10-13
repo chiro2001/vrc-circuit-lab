@@ -8,6 +8,8 @@ ACC、X、SP、OUT 均为 8 位，PC 为 9 位，程序为 512×12 位，数据 
 
 RESET 清零 CPU 寄存器、标志和执行状态（Z 置一），保留全部 RAM；复位拍写使能被关闭，不能提交此前待执行的 STORE。冷启动、RESTART 和加载程序才应用该程序的 initialRam。BANK 选择当前 RAM 页；RESET 将 BANK 复位为零。CALL/RET 固定在第 0 页保存和恢复九位返回地址；X 支持间接访存。
 
+INX/DEX 按 8 位回绕，并从实际写回 X 的 8 位结果更新 Z，保留 C。例如 INX 将 `FF` 加到 `00` 时必须置 Z=1，随后 JZ 应跳转。寄存器单元测试覆盖两个方向、全部 256 个输入和初始 Z/C 的所有组合（2048 组）；Unity 的 `ValidateCircuitLabXFlags` 验证玩家原始 HEX 输出 `Y0` 及 GPU 边界状态，结果见 [回归记录](results/circuit-lab/x-flags-hdl.json)。
+
 指令第一字仍为 opcode[11:8] + operand[7:0]，每字三位 HEX。跳转第二字低九位给出长地址。
 
 | Opcode | 指令 | 说明 |
@@ -73,6 +75,8 @@ python tools/unity_remote.py --check-result run_script --file AgentScripts/Build
 ```
 
 默认产物为 `~/tmp/vrc-cpu-map/circuit-lab/hdl/`。本轮集成产物使用 `~/tmp/vrc-cpu-map/cpu-hdl-stage/`，部署时显式传入 `--data`。UpgradeScene保留环境、原模块和工具摆放，标记修改但不自动保存。
+
+仅修改寄存器内部逻辑、程序与层级不变时，可先备份原 `gpu-netlist.json`，部署后调用 `BuildCircuitLab.UpgradeRegisterNetlist(原文件路径)`，再调用 `BuildCircuitLabLocalization.RefreshRegisterLabels`。该入口检查其它模块的门拓扑，更新信号 ID、GPU/恢复纹理和状态平板，只重建寄存器板内部，并复用现有三语 SDF 字体；不重建其它模块和工具。
 
 RTL、综合网表和指令参考模型比较真实端口、终端事件与完整 RAM。长 π 运行关闭逐拍 CSV，流式比较终端、最终寄存器与 RAM，避免生成数十 GB 文件。短 GPU fixture 检查所有节点及独立 RTL 波形；Unity 入口为 `ValidateCircuitLabRam`、`ValidateCircuitLabRamReplica` 和 `ValidateCircuitLabTeaching`。GPU 状态报告由 `tools/verify_gpu_teaching_state.py` 对照独立指令模型，验证代码不向 world 提供计算结果。
 

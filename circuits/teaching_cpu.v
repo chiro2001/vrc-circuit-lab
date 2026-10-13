@@ -222,6 +222,9 @@ module teaching_registers(input wire clk, reset,
     input wire x_load, input wire [7:0] x_data,
     input wire x_count, x_count_down, sp_push, sp_pop,
     output reg [7:0] acc, x, sp, output reg zero, carry);
+    // Test exactly the eight-bit value written to X. An unsized zero in an
+    // arithmetic comparison would widen FF+1 to 256 before testing for zero.
+    wire [7:0] x_count_result = x_count_down ? x - 8'd1 : x + 8'd1;
     always @(posedge clk) begin
         if (reset) begin
             acc <= 0;
@@ -237,8 +240,8 @@ module teaching_registers(input wire clk, reset,
             end
             if (x_load) x <= x_data;
             if (x_count) begin
-                x <= x_count_down ? x - 8'd1 : x + 8'd1;
-                zero <= x_count_down ? (x - 8'd1) == 0 : (x + 8'd1) == 0;
+                x <= x_count_result;
+                zero <= x_count_result == 8'd0;
             end
             if (sp_push) sp <= sp + 8'd2;
             if (sp_pop) sp <= sp - 8'd2;

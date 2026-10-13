@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "sourceCommit": "778cc07baf2feb508063bb50e52fe38c7ec4c97b",
+  "meshesCompared": 57,
+  "uvVerticesCompared": 308404,
+  "meshesCorrected": 9,
+  "wireMaterialsCompared": 48,
+  "wireMaterialsCorrected": 2,
+  "geometryPreserved": true,
+  "source": "Git baseline UVs remapped once through the validated old/new module and port mapping"
+}

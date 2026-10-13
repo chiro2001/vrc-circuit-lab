@@ -128,6 +128,166 @@ public static class BuildCircuitLab
     public static object BuildScene() { return BuildSceneInternal(false); }
     public static object UpgradeScene() { return BuildSceneInternal(true); }
 
+    // A register-only RTL fix should retain the world's authored objects, poses,
+    // localization and probe bindings. Validate unchanged module topology before
+    // remapping IDs, then rebuild only the affected board's gate interior.
+    public static object UpgradeRegisterNetlist(string previousDataPath)
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (EditorApplication.isPlaying || scene.path != ScenePath || scene.isDirty)
+            throw new InvalidOperationException("Use a saved CircuitLab scene in Edit Mode.");
+        var old = JObject.Parse(System.IO.File.ReadAllText(previousDataPath));
+        var data = JObject.Parse(AssetDatabase.LoadAssetAtPath<TextAsset>(Root + "/Data/gpu-netlist.json").text);
+        if ((int)old["textureWidth"] != (int)data["textureWidth"] || !JToken.DeepEquals(old["programs"], data["programs"]))
+            throw new InvalidOperationException("This incremental upgrade requires unchanged texture dimensions and programs.");
+        var oldNodes = old["nodes"].Cast<JObject>().ToDictionary(n => (int)n["id"]);
+        var nodes = data["nodes"].Cast<JObject>().ToDictionary(n => (int)n["id"]);
+        var oldModules = old["modules"].Cast<JObject>().ToArray();
+        var modules = data["modules"].Cast<JObject>().ToArray();
+        if (oldModules.Length != modules.Length) throw new InvalidOperationException("Module hierarchy changed.");
+        var map = new Dictionary<int, int>();
+        Action<int, int> bind = (a, b) => {
+            if (map.ContainsKey(a) && map[a] != b) throw new InvalidOperationException("Inconsistent signal alias: " + a);
+            map[a] = b;
+        };
+        int registerModule = -1;
+        for (int i = 0; i < modules.Length; i++)
+        {
+            var a = oldModules[i]; var b = modules[i];
+            if ((string)a["path"] != (string)b["path"] || (int)a["parentId"] != (int)b["parentId"])
+                throw new InvalidOperationException("Module hierarchy changed at " + i);
+            bool registers = (string)a["path"] == "teaching_cpu/registers";
+            if (registers) registerModule = i;
+            else
+            {
+                var before = a["nodes"].ToObject<int[]>(); var after = b["nodes"].ToObject<int[]>();
+                if (before.Length != after.Length) throw new InvalidOperationException("Unrelated module changed: " + a["path"]);
+                for (int n = 0; n < before.Length; n++) bind(before[n], after[n]);
+            }
+            var ap = a["ports"].Cast<JObject>().ToArray(); var bp = b["ports"].Cast<JObject>().ToArray();
+            if (ap.Length != bp.Length) throw new InvalidOperationException("Port count changed.");
+            for (int p = 0; p < ap.Length; p++)
+            {
+                var before = ap[p]["signals"].ToObject<int[]>(); var after = bp[p]["signals"].ToObject<int[]>();
+                if ((string)ap[p]["name"] != (string)bp[p]["name"] || before.Length != after.Length)
+                    throw new InvalidOperationException("Port contract changed.");
+                for (int n = 0; n < before.Length; n++) bind(before[n], after[n]);
+            }
+        }
+        if (registerModule < 0) throw new InvalidOperationException("Register module missing.");
+        foreach (var a in oldNodes.Values.Where(n => (int)n["moduleId"] != registerModule))
+        {
+            var b = nodes[map[(int)a["id"]]];
+            int op = (int)a["op"];
+            if (op != (int)b["op"] || !Inputs(a).Select(n => map[n]).SequenceEqual(Inputs(b)))
+                throw new InvalidOperationException("Unrelated gate topology changed: " + a["name"]);
+        }
+        int oldCount = (int)old["nodeCount"], count = (int)data["nodeCount"], width = (int)data["textureWidth"];
+        Func<int, int> remap = n => n < 0 ? n : n >= oldCount ? count + n - oldCount : map[n];
+        var world = scene.GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
+        var sim = world.GetComponentInChildren<CircuitLabSimulator>(true);
+        if (sim.nodeCount != oldCount) throw new InvalidOperationException("The scene does not match the previous netlist.");
+        var board = world.GetComponentsInChildren<CircuitLabModule>(true).Single(m => m.moduleId == registerModule);
+        var probes = world.GetComponentsInChildren<CircuitLabProbe>(true);
+        if (probes.Any(p => new[] { p.initialTarget, p.boundTarget, p.candidate }
+            .Any(t => t != null && t.transform.IsChildOf(board.interior.transform))))
+            throw new InvalidOperationException("Bind probes to module ports before replacing register gates.");
+        // Preflight every retained mesh/target so missing mappings fail before edits.
+        var targets = world.GetComponentsInChildren<CircuitLabSignalTarget>(true)
+            .Where(t => !t.transform.IsChildOf(board.interior.transform)).ToArray();
+        var meshes = world.GetComponentsInChildren<MeshFilter>(true)
+            .Where(m => !m.transform.IsChildOf(board.interior.transform) && m.sharedMesh != null
+                && AssetDatabase.GetAssetPath(m.sharedMesh).StartsWith(Root + "/Meshes/Module_")).Select(m => m.sharedMesh).Distinct().ToArray();
+        foreach (var t in targets) foreach (int n in t.signalIds) remap(n);
+        foreach (var mesh in meshes) foreach (var uv in mesh.uv)
+        {
+            if (uv.x < 0 || uv.x >= oldCount || uv.x != Mathf.Round(uv.x))
+                throw new InvalidOperationException("Mesh does not match the previous netlist: " + mesh.name);
+            remap((int)uv.x);
+        }
+        var wires = world.GetComponentsInChildren<CircuitLabWire>(true);
+        foreach (var wire in wires)
+            if (wire.line.sharedMaterial.GetFloat("_SignalOverride") != wire.destination.GetComponent<CircuitLabSignalTarget>().signalIds[0])
+                throw new InvalidOperationException("Wire does not match its port; restore an unfinished upgrade first: " + wire.name);
+        Undo.RecordObjects(targets.Cast<Object>().Concat(meshes).Concat(new Object[] { sim }).ToArray(), "Upgrade register netlist");
+        foreach (var t in targets) t.signalIds = t.signalIds.Select(remap).ToArray();
+        foreach (var mesh in meshes) { mesh.uv = mesh.uv.Select(uv => new Vector2(remap(Mathf.RoundToInt(uv.x)), uv.y)).ToArray(); EditorUtility.SetDirty(mesh); }
+        foreach (var behaviour in new UdonSharpBehaviour[] { sim, sim.terminal })
+            foreach (var field in behaviour.GetType().GetFields())
+            {
+                if (field.Name == "dffSignals") continue;
+                if (field.FieldType == typeof(int[]) && field.Name.EndsWith("Signals"))
+                { var ids = (int[])field.GetValue(behaviour); if (ids != null) field.SetValue(behaviour, ids.Select(remap).ToArray()); }
+                else if (field.FieldType == typeof(int) && field.Name.EndsWith("Signal")) field.SetValue(behaviour, remap((int)field.GetValue(behaviour)));
+            }
+        foreach (var wire in wires)
+        {
+            var material = wire.line.sharedMaterial;
+            material.SetFloat("_SignalOverride", wire.destination.GetComponent<CircuitLabSignalTarget>().signalIds[0]);
+            EditorUtility.SetDirty(material);
+        }
+        sim.nodeCount = count; sim.settlePasses = (int)data["settlePasses"];
+        sim.clockSettlePasses = (int?)data["clockSettlePasses"] ?? 2;
+        sim.settleDepthCurrent = sim.settlePasses; sim.settleDepthLearned = 0;
+        sim.inputMasks = data["inputMasks"].ToObject<int[]>(); sim.expectedStates = data["expectedStates"].ToObject<byte[]>();
+        sim.vectorCount = (int)data["vectorCount"];
+        sim.dffSignals = data["dffSignals"].ToObject<int[]>();
+        sim.fixturePrograms = data["fixturePrograms"].ToObject<int[]>(); sim.fixtureRamReset = data["fixtureRamReset"].ToObject<bool[]>();
+        var pixels = new Color[width]; foreach (var n in nodes.Values) pixels[(int)n["id"]] = new Color((int)n["op"], (int)n["a"], (int)n["b"], (int)n["c"]);
+        sim.gateTexture.SetPixels(pixels); sim.gateTexture.Apply(false, false); EditorUtility.SetDirty(sim.gateTexture);
+        var indices = Enumerable.Repeat(new Color(-1, 0, 0, 0), width).ToArray();
+        for (int i = 0; i < sim.dffSignals.Length; i++) indices[sim.dffSignals[i]] = new Color(i, 0, 0, 0);
+        sim.restoreIndexTexture.SetPixels(indices); sim.restoreIndexTexture.Apply(false, false); EditorUtility.SetDirty(sim.restoreIndexTexture);
+        var tablet = world.GetComponentInChildren<CircuitLabStateTablet>(true);
+        ConfigureTabletSignals(tablet, sim, data, nodes);
+        // Rebuild only the gate interior, keeping the board, ports and handles.
+        Targets.Clear(); Behaviours.Clear();
+        _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        _display = sim.displayMaterial; _highlight = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/ProbeHighlight.mat");
+        var view = new ModuleView { data = modules[registerModule], behaviour = board, width = board.expandedWidth, height = board.expandedHeight };
+        view.ports.AddRange(board.portTransforms.Select(p => p.GetComponent<CircuitLabSignalTarget>()));
+        var directions = view.data["ports"].Cast<JObject>().ToDictionary(p => (string)p["name"], p => (string)p["direction"]);
+        view.portDirections.AddRange(view.ports.Select(p => directions[p.name.Substring("Port_".Length)]));
+        var driven = view.data["nodes"].ToObject<int[]>();
+        var columns = driven.GroupBy(n => (int)nodes[n]["level"]).OrderBy(g => g.Key).Select(g => g.OrderBy(n => n).ToArray()).ToArray();
+        view.gateScale = Mathf.Min(1f, (view.width - .65f) / Mathf.Max(1.6f, columns.Length * .88f + .75f),
+            (view.height - 1.25f) / Mathf.Max(1.1f, columns.Max(c => c.Length) * .64f + .3f));
+        foreach (Transform child in board.interior.transform.Cast<Transform>().ToArray()) Undo.DestroyObjectImmediate(child.gameObject);
+        RenderModuleInterior(view, nodes, columns, driven);
+        var allTargets = targets.Concat(Targets).ToArray();
+        for (int i = 0; i < allTargets.Length; i++) { allTargets[i].targetIndex = i; allTargets[i].probes = probes; }
+        foreach (var probe in probes)
+        {
+            probe.signalTargets = allTargets;
+            if (probe.initialTarget != null) { probe.boundTargetIndex = probe.initialTarget.targetIndex; probe.sharedState.boundTargetIndex = probe.boundTargetIndex; }
+        }
+        tablet.signalTargets = allTargets; tablet.ApplySharedRamTargets();
+        var header = board.header.Find("ModuleName").GetComponent<Text>(); header.text = "REGISTERS  /  " + driven.Length + " GATES";
+        var locale = world.GetComponentInChildren<CircuitLabLocalization>(true);
+        // Track the new ASCII gate labels, retaining displays/dynamic indices
+        // elsewhere. RefreshRegisterLabels restores these labels' SDF overlays.
+        var kept = Enumerable.Range(0, locale.sourceTexts.Length).Where(i => locale.sourceTexts[i] != null).ToArray();
+        var labels = board.interior.GetComponentsInChildren<Text>(true);
+        var indexMap = kept.Select((oldIndex, newIndex) => new { oldIndex, newIndex }).ToDictionary(i => i.oldIndex, i => i.newIndex);
+        locale.dynamicIndices = locale.dynamicIndices.Where(i => indexMap.ContainsKey(i)).Select(i => indexMap[i]).ToArray();
+        locale.sourceTexts = kept.Select(i => locale.sourceTexts[i]).Concat(labels).ToArray();
+        locale.englishDisplays = kept.Select(i => locale.englishDisplays[i]).Concat(labels.Select(t => (TMPro.TextMeshProUGUI)null)).ToArray();
+        locale.chineseDisplays = kept.Select(i => locale.chineseDisplays[i]).Concat(labels.Select(t => (TMPro.TextMeshProUGUI)null)).ToArray();
+        locale.japaneseDisplays = kept.Select(i => locale.japaneseDisplays[i]).Concat(labels.Select(t => (TMPro.TextMeshProUGUI)null)).ToArray();
+        locale.keepText = kept.Select(i => locale.keepText[i]).Concat(labels.Select(t => true)).ToArray();
+        foreach (var text in world.GetComponentsInChildren<Text>(true).Where(t => !t.transform.IsChildOf(board.interior.transform)))
+            text.text = System.Text.RegularExpressions.Regex.Replace(text.text, @"#(\d+)", match => {
+                int id = int.Parse(match.Groups[1].Value);
+                return map.ContainsKey(id) ? "#" + map[id] : match.Value;
+            });
+        foreach (var behaviour in allTargets.Cast<UdonSharpBehaviour>().Concat(probes).Concat(probes.Select(p => p.sharedState))
+            .Concat(new UdonSharpBehaviour[] { sim, sim.terminal, tablet, tablet.sharedState, locale }).Concat(Behaviours).Distinct())
+        { UdonSharpEditorUtility.CopyProxyToUdon(behaviour); EditorUtility.SetDirty(behaviour); EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(behaviour)); }
+        EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
+        return new { updated = true, oldNodes = oldCount, newNodes = count, rebuiltInterior = board.modulePath, retainedModules = modules.Length,
+            signalTargets = allTargets.Length, meshesRemapped = meshes.Length, sim.settlePasses, sim.clockSettlePasses };
+    }
+
     private static RectTransform SetProgramRect(Transform canvas, string name, Vector2 position, Vector2 size)
     {
         var child = canvas.Find(name);
@@ -638,6 +798,14 @@ public static class BuildCircuitLab
             }
         }
         module.portTransforms = portTransforms.ToArray(); module.expandedPortPositions = unfolded.ToArray(); module.foldedPortPositions = folded.ToArray();
+        RenderModuleInterior(view, nodes, columns, driven);
+        return view;
+    }
+
+    private static void RenderModuleInterior(ModuleView view, Dictionary<int, JObject> nodes, int[][] columns, int[] driven)
+    {
+        var module = view.behaviour;
+        int id = module.moduleId;
         for (int column = 0; column < columns.Length; column++)
         {
             int[] ids = columns[column];
@@ -750,7 +918,7 @@ public static class BuildCircuitLab
             {
                 if (!view.gatePositions.ContainsKey(signal)) continue;
                 Vector3 source = view.gatePositions[signal] + new Vector3(.32f * view.gateScale, 0, -.01f);
-                Vector3 end = unfolded[portIndex];
+                Vector3 end = module.expandedPortPositions[portIndex];
                 float layer = -.135f - (signal % 3) * .009f;
                 float lane = (source.x + end.x) * .5f;
                 outputTraces.Path(new[] { source, new Vector3(source.x, source.y, layer), new Vector3(lane, source.y, layer), new Vector3(lane, end.y, layer), new Vector3(end.x, end.y, layer), end }, signal, Mathf.Max(.006f, .011f * view.gateScale), .65f);
@@ -759,9 +927,8 @@ public static class BuildCircuitLab
         MeshObject(module.interior.transform, "OutputPortTraces", "Module_" + id + "_Outputs", outputTraces, _display);
         if (view.dockArea > 0)
             WorldText(module.interior.transform, "DockHint", "DOCKED CHILDREN: GRAB / EXTRACT TO EXAMINE AT FULL SIZE", new Vector3(0, -view.height * .5f + view.dockArea + .36f, -.14f), new Vector2(view.width - .25f, .13f), 9, new Color(.5f, .66f, .74f));
-        else if ((int)data["parentId"] < 0)
+        else if ((int)view.data["parentId"] < 0)
             WorldText(module.interior.transform, "PinsHint", "PIN: SELECT PROBE A-D, THEN CLICK  /  VR: TOUCH NEEDLE + USE", new Vector3(0, -view.height * .5f + .64f, -.14f), new Vector2(view.width - .25f, .13f), 9, new Color(.5f, .66f, .74f));
-        return view;
     }
 
     private static void Backing(Transform parent, float width, float height)
@@ -1866,11 +2033,8 @@ public static class BuildCircuitLab
         return Convert.ToInt32(text, 16);
     }
 
-    private static CircuitLabStateTablet BuildStateTablet(Transform world, CircuitLabSimulator simulator, JObject data, Dictionary<int, JObject> nodes, Material tabletMaterial)
+    private static void ConfigureTabletSignals(CircuitLabStateTablet tablet, CircuitLabSimulator simulator, JObject data, Dictionary<int, JObject> nodes)
     {
-        var panel = MovablePanel(world, "StateTablet", new Vector3(12f, 3.2f, -.4f), new Vector3(0, 60f, 0), 6.8f, 5.8f);
-        var canvas = PanelCanvas(panel.transform, "StateTabletCanvas", 6.8f, 5.8f);
-        var tablet = Behaviour<CircuitLabStateTablet>(panel); tablet.simulator = simulator; tablet.coordinator = _coordinator;
         tablet.nodeCount = simulator.nodeCount; tablet.signalIds = Enumerable.Range(0, simulator.nodeCount).ToArray();
         tablet.signalNames = new string[simulator.nodeCount]; tablet.signalModules = new string[simulator.nodeCount];
         tablet.signalTypes = new string[simulator.nodeCount]; tablet.signalInputs = new string[simulator.nodeCount]; tablet.signalOpcodes = new int[simulator.nodeCount];
@@ -1903,6 +2067,14 @@ public static class BuildCircuitLab
             }
             tablet.signalInputs[id] = inputText.Length == 0 ? "(none)" : inputText;
         }
+    }
+
+    private static CircuitLabStateTablet BuildStateTablet(Transform world, CircuitLabSimulator simulator, JObject data, Dictionary<int, JObject> nodes, Material tabletMaterial)
+    {
+        var panel = MovablePanel(world, "StateTablet", new Vector3(12f, 3.2f, -.4f), new Vector3(0, 60f, 0), 6.8f, 5.8f);
+        var canvas = PanelCanvas(panel.transform, "StateTabletCanvas", 6.8f, 5.8f);
+        var tablet = Behaviour<CircuitLabStateTablet>(panel); tablet.simulator = simulator; tablet.coordinator = _coordinator;
+        ConfigureTabletSignals(tablet, simulator, data, nodes);
         tablet.displayMaterial = tabletMaterial;
         var displayObject = new GameObject("TextureView", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
         displayObject.layer = InteractionLayer; displayObject.transform.SetParent(canvas.transform, false);

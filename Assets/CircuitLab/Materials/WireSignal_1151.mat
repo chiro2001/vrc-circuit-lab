@@ -29,7 +29,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _SignalOverride: 1151
+    - _SignalOverride: 1157
     - _TextureWidth: 2048
     m_Colors:
     - _OneColor: {r: 1, g: 0.72, b: 0.16999996, a: 1}

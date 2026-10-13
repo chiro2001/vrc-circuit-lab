@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "nodeCount": 1178,
+  "vectorCount": 128,
+  "gatePixelsCompared": 1178,
+  "dffIndicesCompared": 79,
+  "probeTargets": 3615,
+  "localTexts": 5535,
+  "saved": true
+}
