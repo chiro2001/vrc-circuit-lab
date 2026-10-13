@@ -34,6 +34,8 @@ public static class BuildCircuitLab
     private const float PickupDistance = 10f;
     // 2048 cycles of terminal capture: covers a readback window at 8192 cycles/s.
     private const int TerminalEventCapacity = 2048;
+    private static readonly Vector3 SourceViewerDefaultPosition = new Vector3(-.27f, 3.69999981f, -17.58f);
+    private static readonly Quaternion SourceViewerDefaultRotation = new Quaternion(0f, -.999998f, 0f, .00200877059f);
     private sealed class Pose { public Vector3 position, scale; public Quaternion rotation; public bool detached, expanded; }
     private static readonly List<CircuitLabSignalTarget> Targets = new List<CircuitLabSignalTarget>();
     private static readonly List<UdonSharpBehaviour> Behaviours = new List<UdonSharpBehaviour>();
@@ -1467,6 +1469,24 @@ public static class BuildCircuitLab
         return new { added = true, moduleInstances = viewer.moduleIds.Length, definitions = viewer.definitionNames.Length, localBrowsing = true };
     }
 
+    public static object SaveSourceViewerDefaultPose()
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (EditorApplication.isPlaying || scene.path != ScenePath || scene.isDirty)
+            throw new InvalidOperationException("Use a saved CircuitLab scene in Edit Mode.");
+        var panel = scene.GetRootGameObjects().Single(g => g.name == "CircuitLabWorld").transform.Find("SourceViewerPanel");
+        if (Vector3.Distance(panel.position, SourceViewerDefaultPosition) > .0001f || Quaternion.Angle(panel.rotation, SourceViewerDefaultRotation) > .01f)
+            throw new InvalidOperationException("Source viewer placement changed; update the builder defaults from the authored pose first.");
+        var tool = panel.GetComponent<CircuitLabMovableTool>();
+        Undo.RecordObject(tool, "Save source viewer default pose");
+        tool.initialPosition = panel.position; tool.initialRotation = panel.rotation; tool.initialScale = panel.localScale;
+        UdonSharpEditorUtility.CopyProxyToUdon(tool);
+        EditorUtility.SetDirty(tool); EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(tool));
+        EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
+        return new { saved = !scene.isDirty, panel = panel.name, position = new[] { tool.initialPosition.x, tool.initialPosition.y, tool.initialPosition.z },
+            rotation = new[] { tool.initialRotation.x, tool.initialRotation.y, tool.initialRotation.z, tool.initialRotation.w } };
+    }
+
     private static CircuitLabSourceViewer BuildSourceViewer(Transform world)
     {
         if (world.Find("SourceViewerPanel") != null) throw new InvalidOperationException("Source viewer already exists.");
@@ -1475,7 +1495,8 @@ public static class BuildCircuitLab
         var modules = world.GetComponentsInChildren<CircuitLabModule>(true);
         if (instances.Length != modules.Length || instances.Any(i => !modules.Any(m => m.moduleId == (int)i["id"] && m.modulePath == (string)i["path"])))
             throw new InvalidOperationException("Source package does not match the authored modules.");
-        var panel = MovablePanel(world, "SourceViewerPanel", new Vector3(-6.8f, 3.7f, -6.6f), new Vector3(0, -20, 0), 9.6f, 6.8f);
+        var panel = MovablePanel(world, "SourceViewerPanel", SourceViewerDefaultPosition, Vector3.zero, 9.6f, 6.8f);
+        panel.transform.rotation = SourceViewerDefaultRotation;
         var viewer = Behaviour<CircuitLabSourceViewer>(panel); viewer.localization = world.GetComponent<CircuitLabLocalization>();
         viewer.moduleIds = instances.Select(i => (int)i["id"]).ToArray(); viewer.modulePaths = instances.Select(i => (string)i["path"]).ToArray();
         viewer.moduleDefinitions = instances.Select(i => (int)i["definitionIndex"]).ToArray();
