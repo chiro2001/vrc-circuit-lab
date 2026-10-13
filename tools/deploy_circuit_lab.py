@@ -77,7 +77,7 @@ def main():
                     raise ValueError(f"Only text sources may be deployed: {path}")
             (source / "Data").mkdir(exist_ok=True)
             (source / "Data/gpu-netlist.json").write_text(json.dumps(data, separators=(",", ":")) + "\n")
-            for reference_name in ("waveform-reference.json", "test-report.json"):
+            for reference_name in ("waveform-reference.json", "test-report.json", "verilog-source.json"):
                 reference = options.data.parent / reference_name
                 if reference.is_file():
                     shutil.copy2(reference, source / "Data" / reference_name)

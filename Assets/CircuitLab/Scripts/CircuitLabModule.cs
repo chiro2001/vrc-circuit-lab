@@ -8,6 +8,7 @@ using VRC.SDK3.Components;
 public class CircuitLabModule : UdonSharpBehaviour
 {
     public string modulePath;
+    public CircuitLabSourceViewer sourceViewer;
     public int moduleId;
     public int logicalDepth;
     public CircuitLabModule logicalParent;
@@ -53,6 +54,8 @@ public class CircuitLabModule : UdonSharpBehaviour
     public bool initialPoseCaptured;
 
     // The body has no Interact event: native Pickup exclusively owns its collider.
+    public void ShowSource() { if (sourceViewer != null) sourceViewer.ShowModuleById(moduleId); }
+
     public bool CanManipulate()
     {
         return pickup == null || !pickup.IsHeld || !Utilities.IsValid(Networking.LocalPlayer) || Networking.IsOwner(gameObject);

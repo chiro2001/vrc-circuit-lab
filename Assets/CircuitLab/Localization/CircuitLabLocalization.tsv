@@ -177,3 +177,9 @@ PRESET LOAD REJECTED	预设加载被拒绝	プリセットのロードが拒否�
 CAPACITY	容量	容量
 12-BIT WORD	12 位字	12ビット語
 WORDS	个字	語
+VERILOG SOURCE	Verilog 源码	Verilogソース
+LOCAL VIEW	本地查看	ローカル表示
+MODULE SOURCE	模块源码	モジュールソース
+FULL FILE	完整文件	ファイル全体
+MODULES	模块	モジュール
+ARROW: DIRECTORY / NAME: 3D / <>: SOURCE / +: EXTRACT	箭头：目录 / 名称：3D / <>：源码 / +：取出	矢印：階層 / 名前：3D / <>：ソース / +：取り出す

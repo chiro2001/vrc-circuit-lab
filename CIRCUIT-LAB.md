@@ -164,3 +164,15 @@ python tools/run_circuit_lab_checks.py --suite presentation
 临时目录为 Linux `~/tmp/vrc-cpu-map/` 与 Windows `~/tmp/vrc-cpu-world/`。场景、材质、网格、纹理和 Udon 资产均经 Pipeline 制作；部署只复制文本源和数据。预览相机默认关闭，测试可临时开启，退出 Play Mode 恢复。
 
 本次控制按钮修复通过 `RepairCircuitLabControls.Verify` 验证：95 个初始控制按钮可用；首次 STEP 自动申请并完成一个周期；目录展开、探头 B 选择和 FREEZE 均经 Unity `pointerClick -> Button.onClick -> Udon Press` 执行；无控制权时仍锁定，REQUEST 始终可用。测试检查四类 UI 碰撞面的射线命中，结果位于 `results/circuit-lab/control-clicks.json`。尚未模拟真实操作系统鼠标输入或真实多人交接。
+
+## 新增甜甜圈与模块源码窗口
+
+程序目录现有 25 个示例，新增玩家提供的 ASCII 甜甜圈。原始 482 字 HEX 与还原汇编逐字一致，CPU 实时计算并循环绘制 30×11 字符图像。完整首帧经参考模型、RTL、门级和真实 Udon/GPU 验证；GPU 暂停点的寄存器及 1024 字节 RAM 与独立指令模型一致，终端无丢失事件。见 [HDL](results/circuit-lab/donut-hdl.json) 与 [GPU](results/circuit-lab/donut-gpu.json)。
+
+![CPU 绘制的玩家甜甜圈](results/circuit-lab/donut-terminal.webp)
+
+每个模块的 SOURCE 按钮及层级行的 <> 打开对应 Verilog 定义。可移动窗口列出 20 个实例，映射到 13 个实际 RTL 定义，显示实例路径、定义名、文件名及原始行号，并支持整文件、滚动和三语 UI；源码以等宽 SDF 原样显示。浏览与滚动是玩家本地状态，查看不会改变控制权或 CPU。TMP 文本布局由编辑器测量并保存，因为 Udon 不开放 preferredHeight；完整文件验证确认滚动内容不被裁切。
+
+![模块对应的 Verilog 源码查看窗口](results/circuit-lab/verilog-source-viewer.webp)
+
+场景结构与真实 Udon 操作验证见 [绑定](results/circuit-lab/source-authoring.json) 和 [浏览](results/circuit-lab/source-browsing.json)。

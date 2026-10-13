@@ -8,7 +8,7 @@
 
 仿真在各玩家本地 GPU 执行，共享控制、检查点、波形及物体状态。空闲实验台的首次控制点击会取得全局控制权；已有操作者时，其他玩家使用分析仪顶部的 `REQUEST CONTROL` 申请，由操作者通过 `GRANT REQUEST` 交接。
 
-程序编辑板展示当前运行名称和 ROM 的 HEX/BIN/反汇编；独立列表面板提供 24 个预置的源码/注释与编码预览，ASM 源码用 IBM Plex Mono 全量显示并可上下滚动（HEX/BIN 分页），点击加载按钮才切换 ROM。独立 ISA 手册有 39 页；LED 读取实际 OUT，8×8 生命游戏由 CPU 更新双缓冲 RAM。关于面板展示项目介绍和公开 GitHub 地址，右下角内嵌每位玩家本地的中/日/英和 AUTO 语言选择。状态平板可查看实际电路、门数据、ROM 和独立 32×32 RAM 纹理，并绑定 RAM 探头。速度范围 0.25–8192 周期/秒，FASTER 每次翻倍；RTX 5080 编辑器实测数千周期/秒（实际取决于客户端，见 [性能报告](results/circuit-lab/perf-rates.json)）。RESET 保留 RAM，RESTART 和加载程序恢复初始化 RAM。
+程序编辑板展示当前运行名称和 ROM 的 HEX/BIN/反汇编；独立列表面板提供 25 个预置的源码/注释与编码预览，ASM 源码用 IBM Plex Mono 全量显示并可上下滚动（HEX/BIN 分页），点击加载按钮才切换 ROM。新增玩家投稿的旋转 ASCII 甜甜圈（30×11 字符，首帧约 17 万周期）。模块上的 SOURCE 与层级行的 <> 可打开本地 Verilog 窗口，查看对应定义、原文件行号和整份 RTL；独立 ISA 手册有 39 页；LED 读取实际 OUT，8×8 生命游戏由 CPU 更新双缓冲 RAM。关于面板展示项目介绍和公开 GitHub 地址，右下角内嵌每位玩家本地的中/日/英和 AUTO 语言选择。状态平板可查看实际电路、门数据、ROM 和独立 32×32 RAM 纹理，并绑定 RAM 探头。速度范围 0.25–8192 周期/秒，FASTER 每次翻倍；RTX 5080 编辑器实测数千周期/秒（实际取决于客户端，见 [性能报告](results/circuit-lab/perf-rates.json)）。RESET 保留 RAM，RESTART 和加载程序恢复初始化 RAM。
 
 ## 打开工程
 

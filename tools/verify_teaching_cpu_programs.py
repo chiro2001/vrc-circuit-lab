@@ -131,5 +131,12 @@ def verify_program(program, output: list[int], final_ram: list[int]) -> None:
             raise AssertionError(f"{program.id}: visible Life frame differs from closed-edge oracle")
         if output:
             raise AssertionError(f"{program.id}: Life program unexpectedly wrote terminal bytes")
+    elif oracle == "donut-frame":
+        expected = b"\x0c" + metadata["firstFrame"].encode("ascii")
+        if bytes(output) != expected:
+            raise AssertionError(f"{program.id}: first frame differs from the submitted-program golden frame")
+        lines = metadata["firstFrame"].splitlines()
+        if len(lines) != 11 or any(len(line) != 30 for line in lines):
+            raise AssertionError(f"{program.id}: expected a 30x11 ASCII frame")
     elif oracle is not None:
         raise AssertionError(f"No independent oracle implementation for {oracle!r}")

@@ -13,6 +13,7 @@ import subprocess
 
 from teaching_cpu_assembler import CpuReference, ISA, Program, load_programs
 from verify_teaching_cpu_programs import verify_program
+from build_verilog_sources import export_sources
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -681,7 +682,8 @@ def main() -> None:
             max_cycles = 11_000_000
         elif program.id == "pi-spigot-100":
             max_cycles = 26_000_000
-        collect_rows = program.id not in {"life-8x8", "pi-spigot-64", "pi-spigot-100"}
+        max_cycles = int((program.metadata or {}).get("validationCycles", max_cycles))
+        collect_rows = program.id not in {"life-8x8", "pi-spigot-64", "pi-spigot-100"} and not (program.metadata or {}).get("streamValidation", False)
         rows, final_cpu, reset_indices, reset_attempt_cycle, cycles_including_reset, output_bytes = reference_run(
             program, inject_reset_on_store=inject, max_cycles=max_cycles, collect_rows=collect_rows)
         halted = bool(final_cpu.halt)
@@ -817,6 +819,7 @@ def main() -> None:
     if exported["registerCount"] > len(exported["dffSignals"]):
         raise AssertionError("DFF snapshot export truncated register state")
     (output / "gpu-netlist.json").write_text(json.dumps(exported, separators=(",", ":")) + "\n")
+    (output / "verilog-source.json").write_text(json.dumps(export_sources(exported), ensure_ascii=False, indent=2) + "\n")
     (output / "program-catalog.json").write_text(json.dumps(exported["programs"], indent=2, ensure_ascii=False) + "\n")
     (output / "isa.json").write_text(json.dumps(ISA, indent=2, ensure_ascii=False) + "\n")
     waveform_samples = build_waveform_reference(

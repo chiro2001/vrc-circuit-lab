@@ -23,7 +23,7 @@ public static class BuildCircuitLab
 {
     private const string Root = "Assets/CircuitLab";
     private const string ScenePath = Root + "/Scenes/CircuitLab.unity";
-    private static readonly string[] ProgramNames = { "CircuitLabSimulator", "CircuitLabModule", "CircuitLabProbe", "CircuitLabSignalTarget", "CircuitLabButton", "CircuitLabWire", "CircuitLabLayout", "CircuitLabMovableTool", "CircuitLabPlayerSetup", "CircuitLabHierarchyTree", "CircuitLabHierarchyRow", "CircuitLabNetworkCoordinator", "CircuitLabNetworkClock", "CircuitLabControlRequest", "CircuitLabTerminal", "CircuitLabObjectState", "CircuitLabProgramPanel", "CircuitLabProgramDraft", "CircuitLabStateTablet", "CircuitLabTabletCell", "CircuitLabTabletSharedState", "CircuitLabProgramBrowser", "CircuitLabProgramRow", "CircuitLabIsaManual", "CircuitLabOutputDisplay", "CircuitLabLocalization" };
+    private static readonly string[] ProgramNames = { "CircuitLabSimulator", "CircuitLabModule", "CircuitLabProbe", "CircuitLabSignalTarget", "CircuitLabButton", "CircuitLabWire", "CircuitLabLayout", "CircuitLabMovableTool", "CircuitLabPlayerSetup", "CircuitLabHierarchyTree", "CircuitLabHierarchyRow", "CircuitLabNetworkCoordinator", "CircuitLabNetworkClock", "CircuitLabControlRequest", "CircuitLabTerminal", "CircuitLabObjectState", "CircuitLabProgramPanel", "CircuitLabProgramDraft", "CircuitLabStateTablet", "CircuitLabTabletCell", "CircuitLabTabletSharedState", "CircuitLabProgramBrowser", "CircuitLabProgramRow", "CircuitLabIsaManual", "CircuitLabOutputDisplay", "CircuitLabLocalization", "CircuitLabSourceViewer", "CircuitLabSourceRow" };
     private static Font _font;
     private static Material _board, _edge, _textDark, _highlight, _handle;
     private static Material _display;
@@ -449,7 +449,7 @@ public static class BuildCircuitLab
         var preservedWorkspaceChildren = new List<Transform>();
         if (upgrade)
         {
-            foreach (string name in new[] { "MovableWaveformPanel", "ProbeAndHierarchyRack", "HierarchyPanel", "ANSISymbolGuide", "TerminalPanel", "ProgramPanel", "StateTablet", "AboutPanel", "ProgramBrowserPanel" })
+            foreach (string name in new[] { "MovableWaveformPanel", "ProbeAndHierarchyRack", "HierarchyPanel", "ANSISymbolGuide", "TerminalPanel", "ProgramPanel", "StateTablet", "AboutPanel", "ProgramBrowserPanel", "SourceViewerPanel" })
             {
                 var owned = previous.transform.Find(name);
                 if (owned == null) continue;
@@ -616,6 +616,7 @@ public static class BuildCircuitLab
         var programPanel = BuildProgramPanel(world.transform, simulator, data, programData, programNames, programDescriptions, defaultProgramIndex);
         var stateTablet = BuildStateTablet(world.transform, simulator, data, nodes, tabletMaterial);
         var programBrowser = BuildPresentationPanels(world.transform, simulator, programData, programNames, programDescriptions, programPanel, programPanel.sharedDraft, defaultProgramIndex);
+        BuildSourceViewer(world.transform);
         var waveformPanel = world.transform.Find("MovableWaveformPanel");
         programPanel.analyzerProgramTitle = WorldText(waveformPanel, "WaveProgramName", "PROGRAM", new Vector3(0, 2.53f, -.14f), new Vector2(5.2f, .16f), 12, new Color(.76f, .91f, .78f));
         for (int i = 0; i < Targets.Count; i++) { Targets[i].targetIndex = i; Targets[i].probes = probes; }
@@ -1380,6 +1381,159 @@ public static class BuildCircuitLab
         program.inputMode = 0; program.selectedPreset = defaultPreset; program.programPage = 0; program.virtualWord = 0;
         draftState.selectedPreset = defaultPreset;
         return program;
+    }
+
+    // Append presets while retaining every existing program, panel and selection.
+    public static object UpgradeProgramCatalog()
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (EditorApplication.isPlaying || scene.path != ScenePath || scene.isDirty)
+            throw new InvalidOperationException("Use a saved CircuitLab scene in Edit Mode.");
+        var world = scene.GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
+        var sim = world.GetComponentInChildren<CircuitLabSimulator>(true);
+        var panel = world.GetComponentInChildren<CircuitLabProgramPanel>(true);
+        var browser = world.GetComponentInChildren<CircuitLabProgramBrowser>(true);
+        var data = JObject.Parse(AssetDatabase.LoadAssetAtPath<TextAsset>(Root + "/Data/gpu-netlist.json").text);
+        var programs = data["programs"].Cast<JObject>().ToArray();
+        int oldCount = sim.programCount;
+        if ((int)data["nodeCount"] != sim.nodeCount || programs.Length < oldCount)
+            throw new InvalidOperationException("This upgrade only appends programs to the current CPU.");
+        var words = programs.SelectMany(p => p["words"].ToObject<int[]>()).ToArray();
+        var ram = programs.SelectMany(p => p["initialRam"].ToObject<byte[]>()).ToArray();
+        if (!sim.presetProgramWords.SequenceEqual(words.Take(oldCount * 512)) || !sim.presetInitialRam.SequenceEqual(ram.Take(oldCount * 1024)))
+            throw new InvalidOperationException("Existing program images changed.");
+        _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        _coordinator = sim.coordinator; Behaviours.Clear();
+        string[] names = ProgramTranslations(programs, "nameTranslations", 0, "name");
+        string[] descriptions = ProgramTranslations(programs, "descriptionTranslations", 0, "description");
+        sim.programCount = programs.Length; sim.presetProgramWords = words; sim.presetInitialRam = ram;
+        sim.programNames = names; sim.programDescriptions = descriptions;
+        browser.programNames = names; browser.programDescriptions = descriptions;
+        browser.programSources = programs.Select(p => (string)p["source"] ?? "").ToArray();
+        browser.programExpectedTexts = programs.Select(p => (string)p["expectedText"] ?? "").ToArray();
+        browser.programExpectedCycles = programs.Select(p => (int?)p["expectedCycles"] ?? 0).ToArray();
+        panel.expectedCycles = browser.programExpectedCycles;
+        foreach (var locale in new[] { new { suffix = "En", index = 0 }, new { suffix = "Zh", index = 1 }, new { suffix = "Ja", index = 2 } })
+        {
+            string[] localizedNames = ProgramTranslations(programs, "nameTranslations", locale.index, "name");
+            string[] localizedDescriptions = ProgramTranslations(programs, "descriptionTranslations", locale.index, "description");
+            string[] expected = ProgramTranslations(programs, "expectedTextTranslations", locale.index, "expectedText");
+            typeof(CircuitLabProgramBrowser).GetField("programNames" + locale.suffix).SetValue(browser, localizedNames);
+            typeof(CircuitLabProgramBrowser).GetField("programDescriptions" + locale.suffix).SetValue(browser, localizedDescriptions);
+            typeof(CircuitLabProgramBrowser).GetField("programExpectedTexts" + locale.suffix).SetValue(browser, expected);
+            typeof(CircuitLabProgramBrowser).GetField("programSourceComments" + locale.suffix).SetValue(browser,
+                ProgramTranslations(programs, "sourceCommentTranslations", locale.index, "sourceComment"));
+            typeof(CircuitLabProgramPanel).GetField("programNames" + locale.suffix).SetValue(panel, localizedNames);
+            typeof(CircuitLabProgramPanel).GetField("programDescriptions" + locale.suffix).SetValue(panel, localizedDescriptions);
+            typeof(CircuitLabProgramPanel).GetField("expectedTexts" + locale.suffix).SetValue(panel, expected);
+        }
+        var content = browser.programListScrollRect.content;
+        content.sizeDelta = new Vector2(content.sizeDelta.x, programs.Length * 42f);
+        for (int index = oldCount; index < programs.Length; index++)
+        {
+            var button = UiButton(content, "ProgramRow_" + index, names[index], null, "", Vector2.zero, Vector2.zero, 13);
+            var rect = button.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0, 1); rect.anchorMax = Vector2.one; rect.pivot = new Vector2(.5f, 1);
+            rect.anchoredPosition = new Vector2(0, -index * 42f); rect.sizeDelta = new Vector2(0, 41f);
+            var label = rect.Find("Label").GetComponent<Text>(); label.alignment = TextAnchor.MiddleLeft;
+            label.resizeTextForBestFit = false; label.horizontalOverflow = HorizontalWrapMode.Wrap; label.verticalOverflow = VerticalWrapMode.Truncate;
+            label.rectTransform.anchorMin = Vector2.zero; label.rectTransform.anchorMax = Vector2.one;
+            label.rectTransform.offsetMin = new Vector2(7, 0); label.rectTransform.offsetMax = new Vector2(-7, 0);
+            var row = Behaviour<CircuitLabProgramRow>(button.gameObject); row.browser = browser; row.programIndex = index; row.label = label; row.uiButton = button.uiButton;
+            button.target = row; button.eventName = "Select"; button.requireControl = true;
+        }
+        foreach (var behaviour in new UdonSharpBehaviour[] { sim, panel, browser }.Concat(Behaviours).Distinct())
+        { UdonSharpEditorUtility.CopyProxyToUdon(behaviour); EditorUtility.SetDirty(behaviour); EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(behaviour)); }
+        EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
+        return new { updated = true, oldCount, programCount = sim.programCount, activeProgramPreserved = sim.activeProgramName };
+    }
+
+    public static object AddSourceViewer()
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (EditorApplication.isPlaying || scene.path != ScenePath || scene.isDirty)
+            throw new InvalidOperationException("Use a saved CircuitLab scene in Edit Mode.");
+        var world = scene.GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
+        _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        _board = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/ModuleBoard.mat");
+        _edge = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/ModuleRim.mat");
+        _handle = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Materials/PickupHandles.mat");
+        _coordinator = world.GetComponentInChildren<CircuitLabNetworkCoordinator>(true);
+        _layout = world.GetComponentInChildren<CircuitLabLayout>(true); Behaviours.Clear();
+        var viewer = BuildSourceViewer(world.transform);
+        foreach (var behaviour in Behaviours.Concat(new UdonSharpBehaviour[] { _layout }).Distinct())
+        { UdonSharpEditorUtility.CopyProxyToUdon(behaviour); EditorUtility.SetDirty(behaviour); EditorUtility.SetDirty(UdonSharpEditorUtility.GetBackingUdonBehaviour(behaviour)); }
+        EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
+        return new { added = true, moduleInstances = viewer.moduleIds.Length, definitions = viewer.definitionNames.Length, localBrowsing = true };
+    }
+
+    private static CircuitLabSourceViewer BuildSourceViewer(Transform world)
+    {
+        if (world.Find("SourceViewerPanel") != null) throw new InvalidOperationException("Source viewer already exists.");
+        var data = JObject.Parse(AssetDatabase.LoadAssetAtPath<TextAsset>(Root + "/Data/verilog-source.json").text);
+        var definitions = data["definitions"].Cast<JObject>().ToArray(); var instances = data["modules"].Cast<JObject>().ToArray();
+        var modules = world.GetComponentsInChildren<CircuitLabModule>(true);
+        if (instances.Length != modules.Length || instances.Any(i => !modules.Any(m => m.moduleId == (int)i["id"] && m.modulePath == (string)i["path"])))
+            throw new InvalidOperationException("Source package does not match the authored modules.");
+        var panel = MovablePanel(world, "SourceViewerPanel", new Vector3(-6.8f, 3.7f, -6.6f), new Vector3(0, -20, 0), 9.6f, 6.8f);
+        var viewer = Behaviour<CircuitLabSourceViewer>(panel); viewer.localization = world.GetComponent<CircuitLabLocalization>();
+        viewer.moduleIds = instances.Select(i => (int)i["id"]).ToArray(); viewer.modulePaths = instances.Select(i => (string)i["path"]).ToArray();
+        viewer.moduleDefinitions = instances.Select(i => (int)i["definitionIndex"]).ToArray();
+        viewer.definitionNames = definitions.Select(d => (string)d["name"]).ToArray(); viewer.definitionTexts = definitions.Select(d => (string)d["text"]).ToArray();
+        viewer.definitionFiles = definitions.Select(d => (int)d["fileIndex"]).ToArray();
+        viewer.definitionStartLines = definitions.Select(d => (int)d["startLine"]).ToArray(); viewer.definitionEndLines = definitions.Select(d => (int)d["endLine"]).ToArray();
+        viewer.externalMemory = definitions.Select(d => (bool)d["externalMemory"]).ToArray();
+        viewer.filePaths = data["files"].Select(f => (string)f["path"]).ToArray(); viewer.fileTexts = data["files"].Select(f => (string)f["text"]).ToArray();
+        var canvas = PanelCanvas(panel.transform, "VerilogCanvas", 9.6f, 6.8f);
+        PanelText(canvas.transform, "VerilogHeader", "VERILOG SOURCE", new Vector2(-190, 309), new Vector2(510, 30), 20, Color.white, TextAnchor.MiddleLeft);
+        PanelText(canvas.transform, "VerilogLocalHint", "LOCAL VIEW", new Vector2(343, 309), new Vector2(218, 24), 12, new Color(.55f, .88f, .75f));
+        viewer.instanceText = PanelText(canvas.transform, "VerilogInstance", "", new Vector2(0, 266), new Vector2(920, 25), 14, new Color(.76f, .93f, .82f), TextAnchor.MiddleLeft);
+        viewer.contextText = PanelText(canvas.transform, "VerilogContext", "", new Vector2(152, 228), new Vector2(652, 31), 11, new Color(.73f, .83f, .89f));
+        PanelText(canvas.transform, "VerilogModuleHeading", "MODULES", new Vector2(-329, 228), new Vector2(270, 25), 14, Color.white);
+        PanelButton(canvas.transform, "VERILOG_MODULE_SOURCE", "MODULE SOURCE", viewer, "ShowModuleSource", new Vector2(-17, 188), new Vector2(208, 26), 11);
+        PanelButton(canvas.transform, "VERILOG_FULL_FILE", "FULL FILE", viewer, "ShowFullFile", new Vector2(215, 188), new Vector2(208, 26), 11);
+        PanelScrollText(canvas.transform, "VerilogScrollRegion", new Vector2(152, -29), new Vector2(652, 400), 14,
+            new Color(.79f, .91f, .87f), out viewer.sourceScrollRect, out viewer.sourceContentRect, out viewer.sourceText, out viewer.sourceTextRect);
+        viewer.sourceText.name = "VerilogListing";
+        viewer.sourceText.font = AssetDatabase.LoadAssetAtPath<Font>(Root + "/Localization/FontSources/IBMPlexMono-Regular.ttf");
+        viewer.moduleScrollRect = PanelScrollRegion(canvas.transform, "VerilogModuleList", new Vector2(-329, -24), new Vector2(270, 429), out RectTransform moduleContent);
+        moduleContent.sizeDelta = new Vector2(moduleContent.sizeDelta.x, instances.Length * 35f);
+        viewer.rowImages = new Image[instances.Length];
+        for (int i = 0; i < instances.Length; i++)
+        {
+            var button = UiButton(moduleContent, "VerilogModuleRow_" + viewer.moduleIds[i], viewer.modulePaths[i].Replace("teaching_cpu/", ""), null, "", Vector2.zero, Vector2.zero, 11);
+            var rect = button.GetComponent<RectTransform>(); rect.anchorMin = new Vector2(0, 1); rect.anchorMax = Vector2.one; rect.pivot = new Vector2(.5f, 1);
+            rect.anchoredPosition = new Vector2(0, -i * 35f); rect.sizeDelta = new Vector2(0, 34);
+            var label = button.transform.Find("Label").GetComponent<Text>(); label.alignment = TextAnchor.MiddleLeft; label.resizeTextForBestFit = false;
+            label.rectTransform.anchorMin = Vector2.zero; label.rectTransform.anchorMax = Vector2.one; label.rectTransform.offsetMin = new Vector2(7, 0); label.rectTransform.offsetMax = new Vector2(-7, 0);
+            var row = Behaviour<CircuitLabSourceRow>(button.gameObject); row.viewer = viewer; row.moduleIndex = i;
+            button.target = row; button.eventName = "Select"; button.requireControl = false; viewer.rowImages[i] = button.GetComponent<Image>();
+        }
+        PanelButton(canvas.transform, "VERILOG_LIST_UP", "SCROLL UP", viewer, "ScrollModulesUp", new Vector2(-398, -262), new Vector2(130, 26), 10);
+        PanelButton(canvas.transform, "VERILOG_LIST_DOWN", "SCROLL DOWN", viewer, "ScrollModulesDown", new Vector2(-259, -262), new Vector2(130, 26), 10);
+        PanelButton(canvas.transform, "VERILOG_SOURCE_UP", "SCROLL UP", viewer, "ScrollSourceUp", new Vector2(-17, -252), new Vector2(220, 27), 11);
+        PanelButton(canvas.transform, "VERILOG_SOURCE_DOWN", "SCROLL DOWN", viewer, "ScrollSourceDown", new Vector2(231, -252), new Vector2(220, 27), 11);
+        viewer.statusText = PanelText(canvas.transform, "VerilogStatus", "", new Vector2(152, -289), new Vector2(652, 21), 11, new Color(.61f, .8f, .84f));
+        viewer.memoryNoteText = PanelText(canvas.transform, "VerilogMemoryNote", "", new Vector2(0, -314), new Vector2(890, 21), 9, new Color(.79f, .78f, .56f));
+        foreach (var module in modules)
+        {
+            module.sourceViewer = viewer; Behaviours.Add(module);
+            var button = Button(module.footer, "VIEW_VERILOG", "SOURCE", module, "ShowSource", new Vector3(0, .23f, 0), new Vector2(.72f, .18f), 9);
+            button.requireControl = false;
+        }
+        foreach (var row in world.GetComponentsInChildren<CircuitLabHierarchyRow>(true))
+        {
+            var name = row.transform.Find("HIERARCHY_" + row.module.moduleId).GetComponent<RectTransform>();
+            name.anchoredPosition = new Vector2(-20 + row.module.logicalDepth * 4f, 0); name.sizeDelta = new Vector2(184 - row.module.logicalDepth * 8f, 22);
+            var button = UiButton(row.transform, "SOURCE_ROW_" + row.module.moduleId, "<>", row, "ShowSource", new Vector2(108, 0), new Vector2(28, 22), 10);
+            button.requireControl = false;
+        }
+        world.Find("HierarchyPanel/HierarchyHint").GetComponent<Text>().text = "ARROW: DIRECTORY / NAME: 3D / <>: SOURCE / +: EXTRACT";
+        viewer.RenderSource();
+        var tool = panel.GetComponent<CircuitLabMovableTool>();
+        tool.initialPosition = tool.transform.position; tool.initialRotation = tool.transform.rotation; tool.initialScale = tool.transform.localScale;
+        _layout.tools = (_layout.tools ?? new CircuitLabMovableTool[0]).Concat(new[] { tool }).Distinct().ToArray();
+        return viewer;
     }
 
     // Pipeline entry for adding the presentation boards to an already-built scene.

@@ -81,3 +81,9 @@ python tools/unity_remote.py --check-result run_script --file AgentScripts/Build
 RTL、综合网表和指令参考模型比较真实端口、终端事件与完整 RAM。长 π 运行关闭逐拍 CSV，流式比较终端、最终寄存器与 RAM，避免生成数十 GB 文件。短 GPU fixture 检查所有节点及独立 RTL 波形；Unity 入口为 `ValidateCircuitLabRam`、`ValidateCircuitLabRamReplica` 和 `ValidateCircuitLabTeaching`。GPU 状态报告由 `tools/verify_gpu_teaching_state.py` 对照独立指令模型，验证代码不向 world 提供计算结果。
 
 独立 ISA 手册包含 39 页，中/日/英说明由每位玩家本地选择，页码共享。字体使用预制 TMP SDF 三语显示组，AUTO 读取 VRChat 当前语言；语言覆盖仅本次游玩、不同步。PC/VR 原生键盘、真实客户端语言热切换及多人网络传输仍需客户端验收。实际报告与截图位于 [results/circuit-lab](results/circuit-lab)。
+
+## 玩家甜甜圈与 Verilog 查看
+
+`player-donut` 示例保留玩家提交的 482 个 HEX 字，汇编由原始编码逐条还原并核对。CPU 循环计算 30×11 ASCII 图像，通过真实 OUT 写终端并以 form feed 清屏；首帧完整绘制需要 171771 个周期。原始输入和可读汇编位于 `circuits/programs/player_donut.hex` / `player_donut.asm`，参考模型、RTL、综合门级首帧结果见 `results/circuit-lab/donut-hdl.json`。
+
+`tools/build_verilog_sources.py` 从实际 RTL 提取定义和行号，再根据导出的模块类型绑定 20 个实例、13 个定义。窗口通过模块 SOURCE、层级行 <> 和窗口模块列表打开，支持模块/整文件切换与滚动；每个玩家独立浏览，代码内容保持原样。ROM/RAM 显示实际 Verilog 存储接口，并说明 GPU 存储实现。新增 Udon 为 `CircuitLabSourceViewer` 和 `CircuitLabSourceRow`；增量场景入口是 `BuildCircuitLab.UpgradeProgramCatalog`、`AddSourceViewer` 与 `BuildCircuitLabLocalization.AppendLocalizedTexts`。

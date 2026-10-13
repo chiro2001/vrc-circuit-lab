@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "programs": 25,
+  "donutWords": 482,
+  "modules": 20,
+  "definitions": 13,
+  "linkedSourceButtons": 40,
+  "localSourceBrowsing": true,
+  "fullFileExact": true
+}

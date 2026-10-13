@@ -1,0 +1,217 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "path": "circuits/teaching_cpu.v",
+      "text": "// Eight-bit accumulator CPU. Memory is kept as two explicit primitive\n// boundaries; the rest of the datapath maps to simple gates and DFFs.\nmodule teaching_cpu (\n    input wire clk, reset,\n    output wire [8:0] pc,\n    output wire [11:0] instruction,\n    output wire [2:0] phase,\n    output wire [7:0] acc, x, sp, out,\n    output wire [1:0] bank,\n    output wire zero, carry, halt,\n    output wire [7:0] terminal_data,\n    output wire terminal_write,\n    output wire [7:0] terminal_sequence\n);\n    wire [11:0] rom_data;\n    wire [7:0] ram_data;\n    wire [9:0] ram_read_address, ram_write_address;\n    wire [7:0] ram_write_data;\n    wire ram_write_enable, ram_write_enable_raw;\n    wire pc_enable, pc_jump;\n    wire [8:0] pc_target;\n    wire call_push_low, call_push_high, return_read_high, return_read_low;\n    wire sp_push, sp_pop;\n    wire execute = (phase == 3'd1) && !halt;\n    wire [3:0] opcode = instruction[11:8];\n    wire [3:0] ext = instruction[7:4];\n    wire [7:0] alu_b;\n    wire [3:0] alu_operation;\n    wire alu_carry_in;\n    wire [7:0] alu_result;\n    wire alu_carry_out;\n    wire acc_write, carry_write, x_load, x_count, x_count_down, bank_write, out_write;\n    wire [7:0] acc_write_data;\n\n    teaching_rom rom(.address(pc), .data(rom_data));\n    teaching_ram ram(.clk(clk), .read_address(ram_read_address), .read_data(ram_data),\n        .write_enable(ram_write_enable), .write_address(ram_write_address),\n        .write_data(ram_write_data));\n\n    teaching_control control(.clk(clk), .reset(reset), .rom_data(rom_data),\n        .zero(zero), .carry(carry), .ram_data(ram_data), .instruction(instruction),\n        .phase(phase), .halt(halt), .pc_enable(pc_enable), .pc_jump(pc_jump),\n        .pc_target(pc_target), .call_push_low(call_push_low),\n        .call_push_high(call_push_high), .return_read_high(return_read_high),\n        .return_read_low(return_read_low));\n    teaching_pc pc_unit(.clk(clk), .reset(reset), .enable(pc_enable),\n        .jump(pc_jump), .target(pc_target), .value(pc));\n\n    assign sp_push = call_push_high;\n    assign sp_pop = return_read_low;\n\n    assign alu_b = (opcode == 4'h8 || (opcode >= 4'ha && opcode <= 4'hd) ||\n                    (opcode == 4'he && ext == 4'h4)) ? ram_data :\n                   (opcode == 4'he && ext == 4'h3) ? x :\n                   (opcode == 4'he && (ext == 4'h8 || ext == 4'h9)) ? x :\n                   instruction[7:0];\n    assign alu_carry_in = (opcode == 4'hc || opcode == 4'hd) ? carry :\n                          ((opcode == 4'hb || opcode == 4'h9 ||\n                            (opcode == 4'he && ext == 4'h9)) ? 1'b1 : 1'b0);\n    assign alu_operation =\n        (opcode == 4'h1 || opcode == 4'ha || opcode == 4'hc ||\n         (opcode == 4'he && ext == 4'h8)) ? 4'd1 :\n        opcode == 4'h2 ? 4'd2 : opcode == 4'h3 ? 4'd3 : opcode == 4'h4 ? 4'd4 :\n        (opcode == 4'hb || opcode == 4'hd ||\n         (opcode == 4'he && ext == 4'h9)) ? 4'd5 :\n        (opcode == 4'he && ext == 4'h0) ? 4'd6 :\n        (opcode == 4'he && ext == 4'h1) ? 4'd7 : 4'd0;\n\n    teaching_alu alu(.a(acc), .b(alu_b), .operation(alu_operation),\n        .carry_in(alu_carry_in), .result(alu_result), .carry(alu_carry_out));\n\n    assign acc_write = execute && ((opcode <= 4'h4) || opcode == 4'h8 ||\n        (opcode >= 4'ha && opcode <= 4'hd) ||\n        (opcode == 4'he && (ext == 4'h0 || ext == 4'h1 || ext == 4'h3 ||\n                            ext == 4'h4 || ext == 4'h8 || ext == 4'h9)));\n    assign carry_write = acc_write && opcode != 4'h8 &&\n                         !(opcode == 4'he && (ext == 4'h3 || ext == 4'h4));\n    assign acc_write_data = alu_result;\n    // E20 remains TAX. E21..E24 select BANK0..BANK3; other E2x values are\n    // reserved and behave as no-ops.\n    assign x_load = execute && instruction == 12'he20;\n    assign bank_write = execute && opcode == 4'he && ext == 4'h2 &&\n                        instruction[3:0] >= 1 && instruction[3:0] <= 4;\n    assign x_count = execute && opcode == 4'he && (ext == 4'h6 || ext == 4'h7);\n    assign x_count_down = ext == 4'h7;\n    assign out_write = execute && opcode == 4'h5;\n\n    teaching_registers registers(.clk(clk), .reset(reset), .acc_write(acc_write),\n        .acc_data(acc_write_data), .carry_write(carry_write), .carry_data(alu_carry_out),\n        .x_load(x_load), .x_data(acc), .x_count(x_count), .x_count_down(x_count_down),\n        .sp_push(sp_push), .sp_pop(sp_pop), .acc(acc), .x(x), .sp(sp),\n        .zero(zero), .carry(carry));\n    teaching_output output_unit(.clk(clk), .reset(reset), .write_enable(out_write),\n        .data(acc), .value(out), .write_strobe(terminal_write),\n        .sequence_id(terminal_sequence));\n    assign terminal_data = out;\n\n    reg [1:0] bank_r;\n    assign bank = bank_r;\n    always @(posedge clk) begin\n        if (reset) bank_r <= 2'b00;\n        else if (bank_write) bank_r <= instruction[1:0] - 2'b01;\n    end\n\n    reg [9:0] ram_read_address_r, ram_write_address_r;\n    reg [7:0] ram_write_data_r;\n    reg ram_write_enable_raw_r;\n    assign ram_read_address = ram_read_address_r;\n    assign ram_write_address = ram_write_address_r;\n    assign ram_write_data = ram_write_data_r;\n    assign ram_write_enable_raw = ram_write_enable_raw_r;\n    assign ram_write_enable = ram_write_enable_raw_r && !reset;\n\n    always @* begin\n        ram_read_address_r = {bank_r, instruction[7:0]};\n        if (opcode == 4'he && (ext == 4'h4 || ext == 4'h5))\n            ram_read_address_r = {bank_r, x};\n        if (return_read_high)\n            ram_read_address_r = {2'b00, sp - 8'd1};\n        else if (return_read_low)\n            ram_read_address_r = {2'b00, sp - 8'd2};\n\n        ram_write_enable_raw_r = 1'b0;\n        ram_write_address_r = {bank_r, instruction[7:0]};\n        ram_write_data_r = acc;\n        if (execute && opcode == 4'h9) begin\n            ram_write_enable_raw_r = 1'b1;\n            ram_write_address_r = {bank_r, instruction[7:0]};\n        end else if (execute && opcode == 4'he && ext == 4'h5) begin\n            ram_write_enable_raw_r = 1'b1;\n            ram_write_address_r = {bank_r, x};\n        end else if (call_push_low) begin\n            ram_write_enable_raw_r = 1'b1;\n            ram_write_address_r = {2'b00, sp};\n            ram_write_data_r = pc + 9'd1;\n        end else if (call_push_high) begin\n            ram_write_enable_raw_r = 1'b1;\n            ram_write_address_r = {2'b00, sp + 8'd1};\n            ram_write_data_r = {7'b0, (pc + 9'd1) >> 8};\n        end\n    end\nendmodule\n\nmodule teaching_control(input wire clk, reset, input wire [11:0] rom_data,\n    input wire zero, carry, input wire [7:0] ram_data,\n    output reg [11:0] instruction, output reg [2:0] phase, output reg halt,\n    output wire pc_enable, pc_jump, output reg [8:0] pc_target,\n    output wire call_push_low, call_push_high, return_read_high, return_read_low);\n    localparam [2:0] FETCH = 3'd0, EXEC = 3'd1, WORD_FETCH = 3'd2,\n                     WORD_EXEC = 3'd3, CALL_HIGH = 3'd4,\n                     RETURN_HIGH = 3'd5, RETURN_LOW = 3'd6;\n    wire [3:0] opcode = instruction[11:8];\n    wire [3:0] ext = instruction[7:4];\n    wire long_instruction = opcode == 4'he &&\n        (ext == 4'ha || ext == 4'hb || ext == 4'hc || ext == 4'hd || ext == 4'he);\n    reg [8:0] long_target;\n    reg return_high;\n    wire direct_taken = opcode == 4'h6 || (opcode == 4'h7 && zero);\n    wire long_taken = (ext == 4'ha && carry) || (ext == 4'hb && !carry) ||\n                      ext == 4'hc || (ext == 4'hd && zero);\n\n    assign pc_enable = !reset && !halt &&\n        ((phase == EXEC && opcode != 4'hf && !(opcode == 4'he && ext == 4'hf)) ||\n         (phase == WORD_EXEC && !(opcode == 4'he && ext == 4'he)) ||\n         phase == CALL_HIGH || phase == RETURN_LOW);\n    assign pc_jump = (phase == EXEC && direct_taken) ||\n                     (phase == WORD_EXEC && long_taken) ||\n                     phase == CALL_HIGH || phase == RETURN_LOW;\n    always @* begin\n        pc_target = {1'b0, instruction[7:0]};\n        if (phase == WORD_EXEC || phase == CALL_HIGH)\n            pc_target = long_target;\n        else if (phase == RETURN_LOW)\n            pc_target = {return_high, ram_data};\n    end\n    assign call_push_low = !reset && !halt && phase == WORD_EXEC && opcode == 4'he && ext == 4'he;\n    assign call_push_high = !reset && !halt && phase == CALL_HIGH;\n    assign return_read_high = phase == RETURN_HIGH;\n    assign return_read_low = phase == RETURN_LOW;\n\n    always @(posedge clk) begin\n        if (reset) begin\n            instruction <= 0;\n            phase <= FETCH;\n            halt <= 0;\n            long_target <= 0;\n            return_high <= 0;\n        end else if (!halt) begin\n            case (phase)\n                FETCH: begin instruction <= rom_data; phase <= EXEC; end\n                EXEC: begin\n                    if (opcode == 4'hf) halt <= 1'b1;\n                    else if (long_instruction) phase <= WORD_FETCH;\n                    else if (opcode == 4'he && ext == 4'hf) phase <= RETURN_HIGH;\n                    else phase <= FETCH;\n                end\n                WORD_FETCH: begin long_target <= rom_data[8:0]; phase <= WORD_EXEC; end\n                WORD_EXEC: begin\n                    if (opcode == 4'he && ext == 4'he) phase <= CALL_HIGH;\n                    else phase <= FETCH;\n                end\n                CALL_HIGH: phase <= FETCH;\n                RETURN_HIGH: begin return_high <= ram_data[0]; phase <= RETURN_LOW; end\n                RETURN_LOW: phase <= FETCH;\n                default: phase <= FETCH;\n            endcase\n        end\n    end\nendmodule\n\nmodule teaching_pc(input wire clk, reset, enable, jump,\n    input wire [8:0] target, output reg [8:0] value);\n    always @(posedge clk) begin\n        if (reset) value <= 0;\n        else if (enable) value <= jump ? target : value + 9'd1;\n    end\nendmodule\n\nmodule teaching_registers(input wire clk, reset,\n    input wire acc_write, input wire [7:0] acc_data,\n    input wire carry_write, carry_data,\n    input wire x_load, input wire [7:0] x_data,\n    input wire x_count, x_count_down, sp_push, sp_pop,\n    output reg [7:0] acc, x, sp, output reg zero, carry);\n    // Test exactly the eight-bit value written to X. An unsized zero in an\n    // arithmetic comparison would widen FF+1 to 256 before testing for zero.\n    wire [7:0] x_count_result = x_count_down ? x - 8'd1 : x + 8'd1;\n    always @(posedge clk) begin\n        if (reset) begin\n            acc <= 0;\n            x <= 0;\n            sp <= 0;\n            zero <= 1;\n            carry <= 0;\n        end else begin\n            if (acc_write) begin\n                acc <= acc_data;\n                zero <= acc_data == 0;\n                if (carry_write) carry <= carry_data;\n            end\n            if (x_load) x <= x_data;\n            if (x_count) begin\n                x <= x_count_result;\n                zero <= x_count_result == 8'd0;\n            end\n            if (sp_push) sp <= sp + 8'd2;\n            if (sp_pop) sp <= sp - 8'd2;\n        end\n    end\nendmodule\n\nmodule teaching_output(input wire clk, reset, write_enable,\n    input wire [7:0] data, output reg [7:0] value,\n    output reg write_strobe, output reg [7:0] sequence_id);\n    always @(posedge clk) begin\n        if (reset) begin\n            value <= 0;\n            write_strobe <= 0;\n            sequence_id <= 0;\n        end else begin\n            write_strobe <= write_enable;\n            if (write_enable) begin\n                value <= data;\n                sequence_id <= sequence_id + 8'd1;\n            end\n        end\n    end\nendmodule\n\nmodule teaching_alu(input wire [7:0] a, b, input wire [3:0] operation,\n    input wire carry_in, output reg [7:0] result, output reg carry);\n    wire subtract = operation == 4'd5;\n    wire [7:0] adder_b = b ^ {8{subtract}};\n    wire [7:0] sum;\n    wire adder_carry;\n    teaching_adder8 adder(.a(a), .b(adder_b), .carry_in(carry_in),\n        .sum(sum), .carry_out(adder_carry));\n    wire [7:0] and_result, or_result, xor_result;\n    teaching_and8 bit_and(.a(a), .b(b), .result(and_result));\n    teaching_or8 bit_or(.a(a), .b(b), .result(or_result));\n    teaching_xor8 bit_xor(.a(a), .b(b), .result(xor_result));\n    always @* begin\n        result = b;\n        carry = 0;\n        case (operation)\n            4'd1: begin result = sum; carry = adder_carry; end\n            4'd2: result = and_result;\n            4'd3: result = or_result;\n            4'd4: result = xor_result;\n            4'd5: begin result = sum; carry = adder_carry; end\n            4'd6: begin result = {a[6:0], 1'b0}; carry = a[7]; end\n            4'd7: begin result = {1'b0, a[7:1]}; carry = a[0]; end\n            default: begin end\n        endcase\n    end\nendmodule\n\nmodule teaching_and8(input wire [7:0] a, b, output wire [7:0] result);\n    assign result = a & b;\nendmodule\nmodule teaching_or8(input wire [7:0] a, b, output wire [7:0] result);\n    assign result = a | b;\nendmodule\nmodule teaching_xor8(input wire [7:0] a, b, output wire [7:0] result);\n    assign result = a ^ b;\nendmodule\n\nmodule teaching_adder8(input wire [7:0] a, b, input wire carry_in,\n    output wire [7:0] sum, output wire carry_out);\n    wire [8:0] carry;\n    assign carry[0] = carry_in;\n    assign carry_out = carry[8];\n    teaching_full_adder fa0(a[0], b[0], carry[0], sum[0], carry[1]);\n    teaching_full_adder fa1(a[1], b[1], carry[1], sum[1], carry[2]);\n    teaching_full_adder fa2(a[2], b[2], carry[2], sum[2], carry[3]);\n    teaching_full_adder fa3(a[3], b[3], carry[3], sum[3], carry[4]);\n    teaching_full_adder fa4(a[4], b[4], carry[4], sum[4], carry[5]);\n    teaching_full_adder fa5(a[5], b[5], carry[5], sum[5], carry[6]);\n    teaching_full_adder fa6(a[6], b[6], carry[6], sum[6], carry[7]);\n    teaching_full_adder fa7(a[7], b[7], carry[7], sum[7], carry[8]);\nendmodule\n\nmodule teaching_full_adder(input wire a, b, carry_in, output wire sum, carry_out);\n    wire propagate = a ^ b;\n    assign sum = propagate ^ carry_in;\n    assign carry_out = (a & b) | (propagate & carry_in);\nendmodule\n\n`ifdef SYNTHESIS\n(* blackbox *) module teaching_rom(input wire [8:0] address, output wire [11:0] data);\nendmodule\n(* blackbox *) module teaching_ram(input wire clk, input wire [9:0] read_address,\n    output wire [7:0] read_data, input wire write_enable, input wire [9:0] write_address,\n    input wire [7:0] write_data);\nendmodule\n`endif\n"
+    }
+  ],
+  "definitions": [
+    {
+      "name": "teaching_cpu",
+      "fileIndex": 0,
+      "startLine": 3,
+      "endLine": 142,
+      "text": "module teaching_cpu (\n    input wire clk, reset,\n    output wire [8:0] pc,\n    output wire [11:0] instruction,\n    output wire [2:0] phase,\n    output wire [7:0] acc, x, sp, out,\n    output wire [1:0] bank,\n    output wire zero, carry, halt,\n    output wire [7:0] terminal_data,\n    output wire terminal_write,\n    output wire [7:0] terminal_sequence\n);\n    wire [11:0] rom_data;\n    wire [7:0] ram_data;\n    wire [9:0] ram_read_address, ram_write_address;\n    wire [7:0] ram_write_data;\n    wire ram_write_enable, ram_write_enable_raw;\n    wire pc_enable, pc_jump;\n    wire [8:0] pc_target;\n    wire call_push_low, call_push_high, return_read_high, return_read_low;\n    wire sp_push, sp_pop;\n    wire execute = (phase == 3'd1) && !halt;\n    wire [3:0] opcode = instruction[11:8];\n    wire [3:0] ext = instruction[7:4];\n    wire [7:0] alu_b;\n    wire [3:0] alu_operation;\n    wire alu_carry_in;\n    wire [7:0] alu_result;\n    wire alu_carry_out;\n    wire acc_write, carry_write, x_load, x_count, x_count_down, bank_write, out_write;\n    wire [7:0] acc_write_data;\n\n    teaching_rom rom(.address(pc), .data(rom_data));\n    teaching_ram ram(.clk(clk), .read_address(ram_read_address), .read_data(ram_data),\n        .write_enable(ram_write_enable), .write_address(ram_write_address),\n        .write_data(ram_write_data));\n\n    teaching_control control(.clk(clk), .reset(reset), .rom_data(rom_data),\n        .zero(zero), .carry(carry), .ram_data(ram_data), .instruction(instruction),\n        .phase(phase), .halt(halt), .pc_enable(pc_enable), .pc_jump(pc_jump),\n        .pc_target(pc_target), .call_push_low(call_push_low),\n        .call_push_high(call_push_high), .return_read_high(return_read_high),\n        .return_read_low(return_read_low));\n    teaching_pc pc_unit(.clk(clk), .reset(reset), .enable(pc_enable),\n        .jump(pc_jump), .target(pc_target), .value(pc));\n\n    assign sp_push = call_push_high;\n    assign sp_pop = return_read_low;\n\n    assign alu_b = (opcode == 4'h8 || (opcode >= 4'ha && opcode <= 4'hd) ||\n                    (opcode == 4'he && ext == 4'h4)) ? ram_data :\n                   (opcode == 4'he && ext == 4'h3) ? x :\n                   (opcode == 4'he && (ext == 4'h8 || ext == 4'h9)) ? x :\n                   instruction[7:0];\n    assign alu_carry_in = (opcode == 4'hc || opcode == 4'hd) ? carry :\n                          ((opcode == 4'hb || opcode == 4'h9 ||\n                            (opcode == 4'he && ext == 4'h9)) ? 1'b1 : 1'b0);\n    assign alu_operation =\n        (opcode == 4'h1 || opcode == 4'ha || opcode == 4'hc ||\n         (opcode == 4'he && ext == 4'h8)) ? 4'd1 :\n        opcode == 4'h2 ? 4'd2 : opcode == 4'h3 ? 4'd3 : opcode == 4'h4 ? 4'd4 :\n        (opcode == 4'hb || opcode == 4'hd ||\n         (opcode == 4'he && ext == 4'h9)) ? 4'd5 :\n        (opcode == 4'he && ext == 4'h0) ? 4'd6 :\n        (opcode == 4'he && ext == 4'h1) ? 4'd7 : 4'd0;\n\n    teaching_alu alu(.a(acc), .b(alu_b), .operation(alu_operation),\n        .carry_in(alu_carry_in), .result(alu_result), .carry(alu_carry_out));\n\n    assign acc_write = execute && ((opcode <= 4'h4) || opcode == 4'h8 ||\n        (opcode >= 4'ha && opcode <= 4'hd) ||\n        (opcode == 4'he && (ext == 4'h0 || ext == 4'h1 || ext == 4'h3 ||\n                            ext == 4'h4 || ext == 4'h8 || ext == 4'h9)));\n    assign carry_write = acc_write && opcode != 4'h8 &&\n                         !(opcode == 4'he && (ext == 4'h3 || ext == 4'h4));\n    assign acc_write_data = alu_result;\n    // E20 remains TAX. E21..E24 select BANK0..BANK3; other E2x values are\n    // reserved and behave as no-ops.\n    assign x_load = execute && instruction == 12'he20;\n    assign bank_write = execute && opcode == 4'he && ext == 4'h2 &&\n                        instruction[3:0] >= 1 && instruction[3:0] <= 4;\n    assign x_count = execute && opcode == 4'he && (ext == 4'h6 || ext == 4'h7);\n    assign x_count_down = ext == 4'h7;\n    assign out_write = execute && opcode == 4'h5;\n\n    teaching_registers registers(.clk(clk), .reset(reset), .acc_write(acc_write),\n        .acc_data(acc_write_data), .carry_write(carry_write), .carry_data(alu_carry_out),\n        .x_load(x_load), .x_data(acc), .x_count(x_count), .x_count_down(x_count_down),\n        .sp_push(sp_push), .sp_pop(sp_pop), .acc(acc), .x(x), .sp(sp),\n        .zero(zero), .carry(carry));\n    teaching_output output_unit(.clk(clk), .reset(reset), .write_enable(out_write),\n        .data(acc), .value(out), .write_strobe(terminal_write),\n        .sequence_id(terminal_sequence));\n    assign terminal_data = out;\n\n    reg [1:0] bank_r;\n    assign bank = bank_r;\n    always @(posedge clk) begin\n        if (reset) bank_r <= 2'b00;\n        else if (bank_write) bank_r <= instruction[1:0] - 2'b01;\n    end\n\n    reg [9:0] ram_read_address_r, ram_write_address_r;\n    reg [7:0] ram_write_data_r;\n    reg ram_write_enable_raw_r;\n    assign ram_read_address = ram_read_address_r;\n    assign ram_write_address = ram_write_address_r;\n    assign ram_write_data = ram_write_data_r;\n    assign ram_write_enable_raw = ram_write_enable_raw_r;\n    assign ram_write_enable = ram_write_enable_raw_r && !reset;\n\n    always @* begin\n        ram_read_address_r = {bank_r, instruction[7:0]};\n        if (opcode == 4'he && (ext == 4'h4 || ext == 4'h5))\n            ram_read_address_r = {bank_r, x};\n        if (return_read_high)\n            ram_read_address_r = {2'b00, sp - 8'd1};\n        else if (return_read_low)\n            ram_read_address_r = {2'b00, sp - 8'd2};\n\n        ram_write_enable_raw_r = 1'b0;\n        ram_write_address_r = {bank_r, instruction[7:0]};\n        ram_write_data_r = acc;\n        if (execute && opcode == 4'h9) begin\n            ram_write_enable_raw_r = 1'b1;\n            ram_write_address_r = {bank_r, instruction[7:0]};\n        end else if (execute && opcode == 4'he && ext == 4'h5) begin\n            ram_write_enable_raw_r = 1'b1;\n            ram_write_address_r = {bank_r, x};\n        end else if (call_push_low) begin\n            ram_write_enable_raw_r = 1'b1;\n            ram_write_address_r = {2'b00, sp};\n            ram_write_data_r = pc + 9'd1;\n        end else if (call_push_high) begin\n            ram_write_enable_raw_r = 1'b1;\n            ram_write_address_r = {2'b00, sp + 8'd1};\n            ram_write_data_r = {7'b0, (pc + 9'd1) >> 8};\n        end\n    end\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_control",
+      "fileIndex": 0,
+      "startLine": 144,
+      "endLine": 209,
+      "text": "module teaching_control(input wire clk, reset, input wire [11:0] rom_data,\n    input wire zero, carry, input wire [7:0] ram_data,\n    output reg [11:0] instruction, output reg [2:0] phase, output reg halt,\n    output wire pc_enable, pc_jump, output reg [8:0] pc_target,\n    output wire call_push_low, call_push_high, return_read_high, return_read_low);\n    localparam [2:0] FETCH = 3'd0, EXEC = 3'd1, WORD_FETCH = 3'd2,\n                     WORD_EXEC = 3'd3, CALL_HIGH = 3'd4,\n                     RETURN_HIGH = 3'd5, RETURN_LOW = 3'd6;\n    wire [3:0] opcode = instruction[11:8];\n    wire [3:0] ext = instruction[7:4];\n    wire long_instruction = opcode == 4'he &&\n        (ext == 4'ha || ext == 4'hb || ext == 4'hc || ext == 4'hd || ext == 4'he);\n    reg [8:0] long_target;\n    reg return_high;\n    wire direct_taken = opcode == 4'h6 || (opcode == 4'h7 && zero);\n    wire long_taken = (ext == 4'ha && carry) || (ext == 4'hb && !carry) ||\n                      ext == 4'hc || (ext == 4'hd && zero);\n\n    assign pc_enable = !reset && !halt &&\n        ((phase == EXEC && opcode != 4'hf && !(opcode == 4'he && ext == 4'hf)) ||\n         (phase == WORD_EXEC && !(opcode == 4'he && ext == 4'he)) ||\n         phase == CALL_HIGH || phase == RETURN_LOW);\n    assign pc_jump = (phase == EXEC && direct_taken) ||\n                     (phase == WORD_EXEC && long_taken) ||\n                     phase == CALL_HIGH || phase == RETURN_LOW;\n    always @* begin\n        pc_target = {1'b0, instruction[7:0]};\n        if (phase == WORD_EXEC || phase == CALL_HIGH)\n            pc_target = long_target;\n        else if (phase == RETURN_LOW)\n            pc_target = {return_high, ram_data};\n    end\n    assign call_push_low = !reset && !halt && phase == WORD_EXEC && opcode == 4'he && ext == 4'he;\n    assign call_push_high = !reset && !halt && phase == CALL_HIGH;\n    assign return_read_high = phase == RETURN_HIGH;\n    assign return_read_low = phase == RETURN_LOW;\n\n    always @(posedge clk) begin\n        if (reset) begin\n            instruction <= 0;\n            phase <= FETCH;\n            halt <= 0;\n            long_target <= 0;\n            return_high <= 0;\n        end else if (!halt) begin\n            case (phase)\n                FETCH: begin instruction <= rom_data; phase <= EXEC; end\n                EXEC: begin\n                    if (opcode == 4'hf) halt <= 1'b1;\n                    else if (long_instruction) phase <= WORD_FETCH;\n                    else if (opcode == 4'he && ext == 4'hf) phase <= RETURN_HIGH;\n                    else phase <= FETCH;\n                end\n                WORD_FETCH: begin long_target <= rom_data[8:0]; phase <= WORD_EXEC; end\n                WORD_EXEC: begin\n                    if (opcode == 4'he && ext == 4'he) phase <= CALL_HIGH;\n                    else phase <= FETCH;\n                end\n                CALL_HIGH: phase <= FETCH;\n                RETURN_HIGH: begin return_high <= ram_data[0]; phase <= RETURN_LOW; end\n                RETURN_LOW: phase <= FETCH;\n                default: phase <= FETCH;\n            endcase\n        end\n    end\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_pc",
+      "fileIndex": 0,
+      "startLine": 211,
+      "endLine": 217,
+      "text": "module teaching_pc(input wire clk, reset, enable, jump,\n    input wire [8:0] target, output reg [8:0] value);\n    always @(posedge clk) begin\n        if (reset) value <= 0;\n        else if (enable) value <= jump ? target : value + 9'd1;\n    end\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_registers",
+      "fileIndex": 0,
+      "startLine": 219,
+      "endLine": 250,
+      "text": "module teaching_registers(input wire clk, reset,\n    input wire acc_write, input wire [7:0] acc_data,\n    input wire carry_write, carry_data,\n    input wire x_load, input wire [7:0] x_data,\n    input wire x_count, x_count_down, sp_push, sp_pop,\n    output reg [7:0] acc, x, sp, output reg zero, carry);\n    // Test exactly the eight-bit value written to X. An unsized zero in an\n    // arithmetic comparison would widen FF+1 to 256 before testing for zero.\n    wire [7:0] x_count_result = x_count_down ? x - 8'd1 : x + 8'd1;\n    always @(posedge clk) begin\n        if (reset) begin\n            acc <= 0;\n            x <= 0;\n            sp <= 0;\n            zero <= 1;\n            carry <= 0;\n        end else begin\n            if (acc_write) begin\n                acc <= acc_data;\n                zero <= acc_data == 0;\n                if (carry_write) carry <= carry_data;\n            end\n            if (x_load) x <= x_data;\n            if (x_count) begin\n                x <= x_count_result;\n                zero <= x_count_result == 8'd0;\n            end\n            if (sp_push) sp <= sp + 8'd2;\n            if (sp_pop) sp <= sp - 8'd2;\n        end\n    end\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_output",
+      "fileIndex": 0,
+      "startLine": 252,
+      "endLine": 268,
+      "text": "module teaching_output(input wire clk, reset, write_enable,\n    input wire [7:0] data, output reg [7:0] value,\n    output reg write_strobe, output reg [7:0] sequence_id);\n    always @(posedge clk) begin\n        if (reset) begin\n            value <= 0;\n            write_strobe <= 0;\n            sequence_id <= 0;\n        end else begin\n            write_strobe <= write_enable;\n            if (write_enable) begin\n                value <= data;\n                sequence_id <= sequence_id + 8'd1;\n            end\n        end\n    end\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_alu",
+      "fileIndex": 0,
+      "startLine": 270,
+      "endLine": 296,
+      "text": "module teaching_alu(input wire [7:0] a, b, input wire [3:0] operation,\n    input wire carry_in, output reg [7:0] result, output reg carry);\n    wire subtract = operation == 4'd5;\n    wire [7:0] adder_b = b ^ {8{subtract}};\n    wire [7:0] sum;\n    wire adder_carry;\n    teaching_adder8 adder(.a(a), .b(adder_b), .carry_in(carry_in),\n        .sum(sum), .carry_out(adder_carry));\n    wire [7:0] and_result, or_result, xor_result;\n    teaching_and8 bit_and(.a(a), .b(b), .result(and_result));\n    teaching_or8 bit_or(.a(a), .b(b), .result(or_result));\n    teaching_xor8 bit_xor(.a(a), .b(b), .result(xor_result));\n    always @* begin\n        result = b;\n        carry = 0;\n        case (operation)\n            4'd1: begin result = sum; carry = adder_carry; end\n            4'd2: result = and_result;\n            4'd3: result = or_result;\n            4'd4: result = xor_result;\n            4'd5: begin result = sum; carry = adder_carry; end\n            4'd6: begin result = {a[6:0], 1'b0}; carry = a[7]; end\n            4'd7: begin result = {1'b0, a[7:1]}; carry = a[0]; end\n            default: begin end\n        endcase\n    end\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_and8",
+      "fileIndex": 0,
+      "startLine": 298,
+      "endLine": 300,
+      "text": "module teaching_and8(input wire [7:0] a, b, output wire [7:0] result);\n    assign result = a & b;\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_or8",
+      "fileIndex": 0,
+      "startLine": 301,
+      "endLine": 303,
+      "text": "module teaching_or8(input wire [7:0] a, b, output wire [7:0] result);\n    assign result = a | b;\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_xor8",
+      "fileIndex": 0,
+      "startLine": 304,
+      "endLine": 306,
+      "text": "module teaching_xor8(input wire [7:0] a, b, output wire [7:0] result);\n    assign result = a ^ b;\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_adder8",
+      "fileIndex": 0,
+      "startLine": 308,
+      "endLine": 321,
+      "text": "module teaching_adder8(input wire [7:0] a, b, input wire carry_in,\n    output wire [7:0] sum, output wire carry_out);\n    wire [8:0] carry;\n    assign carry[0] = carry_in;\n    assign carry_out = carry[8];\n    teaching_full_adder fa0(a[0], b[0], carry[0], sum[0], carry[1]);\n    teaching_full_adder fa1(a[1], b[1], carry[1], sum[1], carry[2]);\n    teaching_full_adder fa2(a[2], b[2], carry[2], sum[2], carry[3]);\n    teaching_full_adder fa3(a[3], b[3], carry[3], sum[3], carry[4]);\n    teaching_full_adder fa4(a[4], b[4], carry[4], sum[4], carry[5]);\n    teaching_full_adder fa5(a[5], b[5], carry[5], sum[5], carry[6]);\n    teaching_full_adder fa6(a[6], b[6], carry[6], sum[6], carry[7]);\n    teaching_full_adder fa7(a[7], b[7], carry[7], sum[7], carry[8]);\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_full_adder",
+      "fileIndex": 0,
+      "startLine": 323,
+      "endLine": 327,
+      "text": "module teaching_full_adder(input wire a, b, carry_in, output wire sum, carry_out);\n    wire propagate = a ^ b;\n    assign sum = propagate ^ carry_in;\n    assign carry_out = (a & b) | (propagate & carry_in);\nendmodule\n",
+      "externalMemory": false
+    },
+    {
+      "name": "teaching_rom",
+      "fileIndex": 0,
+      "startLine": 330,
+      "endLine": 331,
+      "text": "(* blackbox *) module teaching_rom(input wire [8:0] address, output wire [11:0] data);\nendmodule\n",
+      "externalMemory": true
+    },
+    {
+      "name": "teaching_ram",
+      "fileIndex": 0,
+      "startLine": 332,
+      "endLine": 335,
+      "text": "(* blackbox *) module teaching_ram(input wire clk, input wire [9:0] read_address,\n    output wire [7:0] read_data, input wire write_enable, input wire [9:0] write_address,\n    input wire [7:0] write_data);\nendmodule\n",
+      "externalMemory": true
+    }
+  ],
+  "modules": [
+    {
+      "id": 0,
+      "path": "teaching_cpu",
+      "definitionIndex": 0
+    },
+    {
+      "id": 1,
+      "path": "teaching_cpu/alu",
+      "definitionIndex": 5
+    },
+    {
+      "id": 2,
+      "path": "teaching_cpu/alu/adder",
+      "definitionIndex": 9
+    },
+    {
+      "id": 3,
+      "path": "teaching_cpu/alu/adder/fa0",
+      "definitionIndex": 10
+    },
+    {
+      "id": 4,
+      "path": "teaching_cpu/alu/adder/fa1",
+      "definitionIndex": 10
+    },
+    {
+      "id": 5,
+      "path": "teaching_cpu/alu/adder/fa2",
+      "definitionIndex": 10
+    },
+    {
+      "id": 6,
+      "path": "teaching_cpu/alu/adder/fa3",
+      "definitionIndex": 10
+    },
+    {
+      "id": 7,
+      "path": "teaching_cpu/alu/adder/fa4",
+      "definitionIndex": 10
+    },
+    {
+      "id": 8,
+      "path": "teaching_cpu/alu/adder/fa5",
+      "definitionIndex": 10
+    },
+    {
+      "id": 9,
+      "path": "teaching_cpu/alu/adder/fa6",
+      "definitionIndex": 10
+    },
+    {
+      "id": 10,
+      "path": "teaching_cpu/alu/adder/fa7",
+      "definitionIndex": 10
+    },
+    {
+      "id": 11,
+      "path": "teaching_cpu/alu/bit_and",
+      "definitionIndex": 6
+    },
+    {
+      "id": 12,
+      "path": "teaching_cpu/alu/bit_or",
+      "definitionIndex": 7
+    },
+    {
+      "id": 13,
+      "path": "teaching_cpu/alu/bit_xor",
+      "definitionIndex": 8
+    },
+    {
+      "id": 14,
+      "path": "teaching_cpu/control",
+      "definitionIndex": 1
+    },
+    {
+      "id": 15,
+      "path": "teaching_cpu/output_unit",
+      "definitionIndex": 4
+    },
+    {
+      "id": 16,
+      "path": "teaching_cpu/pc_unit",
+      "definitionIndex": 2
+    },
+    {
+      "id": 17,
+      "path": "teaching_cpu/ram",
+      "definitionIndex": 12
+    },
+    {
+      "id": 18,
+      "path": "teaching_cpu/registers",
+      "definitionIndex": 3
+    },
+    {
+      "id": 19,
+      "path": "teaching_cpu/rom",
+      "definitionIndex": 11
+    }
+  ]
+}

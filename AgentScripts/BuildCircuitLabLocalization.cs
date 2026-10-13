@@ -63,6 +63,52 @@ public static class BuildCircuitLabLocalization
 
     private const string SuperscriptGlyphs = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 
+    // Add SDF overlays and glyphs only for new controls/program rows, preserving
+    // every existing display object and the stable source-text indices.
+    public static object AppendLocalizedTexts()
+    {
+        var scene = SceneManager.GetActiveScene();
+        if (EditorApplication.isPlaying || scene.path != ScenePath) throw new InvalidOperationException("Use CircuitLab in Edit Mode.");
+        var world = scene.GetRootGameObjects().Single(g => g.name == "CircuitLabWorld");
+        var locale = world.GetComponent<CircuitLabLocalization>();
+        var sources = world.GetComponentsInChildren<Text>(true).Where(t => t.GetComponentInParent<InputField>(true) == null).ToList();
+        var added = sources.Where(t => !locale.sourceTexts.Contains(t)).ToArray();
+        var glyphs = CollectGlyphs(scene, sources);
+        string extra = new string(File.ReadAllText("Assets/CircuitLab/Scripts/CircuitLabSourceViewer.cs").Where(c => c > 127).Distinct().ToArray());
+        var zh = EnsureStaticFont("SimplifiedChinese-SDF.asset", "FontSources/NotoSansSC-Regular.ttf", glyphs.chinese + extra, 2048, 40, 6);
+        var en = EnsureStaticFont("EnglishUI-SDF.asset", "FontSources/NotoSansJP-Regular.ttf", glyphs.english + extra, 2048, 40, 6, zh);
+        var ja = EnsureStaticFont("Japanese-SDF.asset", "FontSources/NotoSansJP-Regular.ttf", glyphs.japanese + extra, 2048, 40, 6, zh);
+        var enCode = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Root + "/FontS/Code-IBM-Plex-Mono-En-SDF.asset");
+        var zhCode = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Root + "/FontS/Code-IBM-Plex-Mono-Zh-SDF.asset");
+        var jaCode = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Root + "/FontS/Code-IBM-Plex-Mono-Ja-SDF.asset");
+        if (enCode == null || zhCode == null || jaCode == null) throw new InvalidOperationException("Existing code SDF fonts are missing.");
+        var english = locale.englishDisplays.ToList(); var chinese = locale.chineseDisplays.ToList(); var japanese = locale.japaneseDisplays.ToList();
+        var keep = locale.keepText.ToList();
+        foreach (var source in added)
+        {
+            bool code = IsCodeText(source);
+            english.Add(EnsureTextDisplay(source, "LocalizedTMP_EN", code ? enCode : en, locale.languageIndex == 0));
+            chinese.Add(EnsureTextDisplay(source, "LocalizedTMP_ZH", code ? zhCode : zh, locale.languageIndex == 1));
+            japanese.Add(EnsureTextDisplay(source, "LocalizedTMP_JA", code ? jaCode : ja, locale.languageIndex == 2));
+            keep.Add(MustPreserveText(source));
+        }
+        locale.sourceTexts = locale.sourceTexts.Concat(added).ToArray();
+        locale.englishDisplays = english.ToArray(); locale.chineseDisplays = chinese.ToArray(); locale.japaneseDisplays = japanese.ToArray(); locale.keepText = keep.ToArray();
+        var phrases = ReadPhrases(); locale.englishPhrases = phrases.Select(p => p.english).ToArray();
+        locale.chinesePhrases = phrases.Select(p => p.chinese).ToArray(); locale.japanesePhrases = phrases.Select(p => p.japanese).ToArray();
+        var dynamicTexts = new HashSet<Text>();
+        foreach (var behaviour in world.GetComponentsInChildren<UdonSharpBehaviour>(true).Where(b => !(b is CircuitLabLocalization)))
+            foreach (var field in behaviour.GetType().GetFields())
+            {
+                if (field.FieldType == typeof(Text) && field.GetValue(behaviour) is Text text) dynamicTexts.Add(text);
+                else if (field.FieldType == typeof(Text[]) && field.GetValue(behaviour) is Text[] texts) foreach (var t in texts) if (t != null) dynamicTexts.Add(t);
+            }
+        locale.dynamicIndices = Enumerable.Range(0, locale.sourceTexts.Length).Where(i => dynamicTexts.Contains(locale.sourceTexts[i])).ToArray();
+        BindLocalization(world); CopyProxy(locale);
+        EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
+        return new { appended = added.Length, total = locale.sourceTexts.Length, dynamicTexts = locale.dynamicIndices.Length, existingDisplaysPreserved = true };
+    }
+
     private sealed class Phrase
     {
         public string english;
@@ -129,7 +175,7 @@ public static class BuildCircuitLabLocalization
         }
 
         GlyphSets glyphs = CollectGlyphs(scene, sourceTexts);
-        if (!AssetDatabase.IsValidFolder(Root + "/Fonts")) AssetDatabase.CreateFolder(Root, "Fonts");
+        if (!AssetDatabase.IsValidFolder(Root + "/FontS")) AssetDatabase.CreateFolder(Root, "FontS");
         TMP_FontAsset zhFont = EnsureStaticFont("SimplifiedChinese-SDF.asset", "FontSources/NotoSansSC-Regular.ttf", glyphs.chinese, 2048, 40, 6);
         TMP_FontAsset enFont = EnsureStaticFont("EnglishUI-SDF.asset", "FontSources/NotoSansJP-Regular.ttf", glyphs.english, 2048, 40, 6, zhFont);
         TMP_FontAsset jaFont = EnsureStaticFont("Japanese-SDF.asset", "FontSources/NotoSansJP-Regular.ttf", glyphs.japanese, 2048, 40, 6, zhFont);
@@ -457,7 +503,9 @@ public static class BuildCircuitLabLocalization
     {
         string name = text.gameObject.name;
         string path = HierarchyPath(text.transform);
-        return name == "TerminalOutput" || name == "TerminalStatus" || name == "ISADetails"
+        return name == "VerilogListing" || name == "VerilogInstance" || name == "VerilogContext"
+            || path.Contains("/VerilogModuleList/")
+            || name == "TerminalOutput" || name == "TerminalStatus" || name == "ISADetails"
             || name == "VirtualWordPreview" || name == "ProgramListingHeader" || name == "LedStatus"
             || name == "LedBitLabels" || name == "SelectedRamDetails" || name == "MemoryPortStatus"
             || name.StartsWith("ProgramWord_") || name.StartsWith("SignalCell_") || name.StartsWith("RamCell_")
@@ -470,7 +518,9 @@ public static class BuildCircuitLabLocalization
     {
         string name = text.gameObject.name;
         string path = HierarchyPath(text.transform);
-        return name == "TerminalOutput" || name == "ISADetails" || name == "VirtualWordPreview"
+        return name == "VerilogListing" || name == "VerilogInstance" || name == "VerilogContext"
+            || path.Contains("/VerilogModuleList/")
+            || name == "TerminalOutput" || name == "ISADetails" || name == "VirtualWordPreview"
             || name == "LedStatus" || name == "LifeStatus" || name == "IsaPageTitle" || name == "IsaBody" || name == "IsaPageNumber"
             || name == "ModulePath" || name == "PortLabel" || name.StartsWith("PinLabel_") || name.StartsWith("GateLabel_")
             || name.StartsWith("ProgramWord_") || name.StartsWith("SignalCell_") || name.StartsWith("RamCell_")
@@ -500,6 +550,34 @@ public static class BuildCircuitLabLocalization
         if (manual != null) { manual.localization = world.GetComponent<CircuitLabLocalization>(); CopyProxy(manual); }
         CircuitLabOutputDisplay output = world.GetComponentInChildren<CircuitLabOutputDisplay>(true);
         if (output != null) { output.localization = world.GetComponent<CircuitLabLocalization>(); CopyProxy(output); }
+        CircuitLabSourceViewer sourceViewer = world.GetComponentInChildren<CircuitLabSourceViewer>(true);
+        if (sourceViewer != null)
+        {
+            var locale = world.GetComponent<CircuitLabLocalization>(); sourceViewer.localization = locale;
+            int index = Array.IndexOf(locale.sourceTexts, sourceViewer.sourceText);
+            if (index >= 0)
+            {
+                sourceViewer.sourceDisplays = new[] { locale.englishDisplays[index], locale.chineseDisplays[index], locale.japaneseDisplays[index] };
+                int selected = sourceViewer.selectedIndex; bool fullFile = sourceViewer.fullFile;
+                sourceViewer.definitionHeights = new float[sourceViewer.definitionTexts.Length * 3];
+                sourceViewer.fileHeights = new float[sourceViewer.fileTexts.Length * 3];
+                for (int d = 0; d < sourceViewer.definitionTexts.Length; d++)
+                {
+                    sourceViewer.selectedIndex = Array.IndexOf(sourceViewer.moduleDefinitions, d); sourceViewer.fullFile = false; sourceViewer.RenderSource();
+                    for (int language = 0; language < 3; language++) sourceViewer.definitionHeights[d * 3 + language] =
+                        sourceViewer.sourceDisplays[language].GetPreferredValues(sourceViewer.sourceText.text, sourceViewer.sourceTextRect.rect.width, 0).y;
+                }
+                for (int f = 0; f < sourceViewer.fileTexts.Length; f++)
+                {
+                    sourceViewer.selectedIndex = Array.FindIndex(sourceViewer.moduleDefinitions, d => sourceViewer.definitionFiles[d] == f);
+                    sourceViewer.fullFile = true; sourceViewer.RenderSource();
+                    for (int language = 0; language < 3; language++) sourceViewer.fileHeights[f * 3 + language] =
+                        sourceViewer.sourceDisplays[language].GetPreferredValues(sourceViewer.sourceText.text, sourceViewer.sourceTextRect.rect.width, 0).y;
+                }
+                sourceViewer.selectedIndex = selected; sourceViewer.fullFile = fullFile;
+            }
+            sourceViewer.RenderSource(); CopyProxy(sourceViewer);
+        }
     }
 
     private static void CopyProxy(UdonSharpBehaviour proxy)
@@ -514,7 +592,7 @@ public static class BuildCircuitLabLocalization
     private static TMP_FontAsset EnsureStaticFont(string assetFile, string sourceFile, string characters,
         int atlasSize, int samplingSize, int padding, TMP_FontAsset verifiedFallback = null)
     {
-        string assetPath = Root + "/Fonts/" + assetFile;
+        string assetPath = Root + "/FontS/" + assetFile;
         string fontPath = Root + "/" + sourceFile;
         TMP_FontAsset fontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
         if (fontAsset == null)
